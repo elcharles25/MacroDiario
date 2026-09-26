@@ -35,9 +35,15 @@
   header .brand{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;}
   header .brand h1{font-size:22px;font-weight:900;letter-spacing:-0.02em;margin:0;}
   header .brand button.gear{background:none;border:1px solid var(--ink);border-radius:0;width:30px;height:30px;font-size:15px;}
-  nav.tabs{display:flex;gap:0;margin-top:6px;}
-  nav.tabs button{flex:1;background:none;border:none;border-bottom:3px solid transparent;padding:10px 4px;font-size:13px;font-weight:600;color:var(--ink-soft);letter-spacing:0.02em;}
-  nav.tabs button.active{color:var(--ink);border-bottom-color:var(--ink);}
+  .day-strip-wrap{display:flex;align-items:center;gap:4px;border-bottom:3px solid var(--rule);margin:0 -20px 16px -20px;padding:8px 6px;}
+  .strip-nav{flex:none;background:none;border:none;font-size:22px;color:var(--ink);padding:0 6px;line-height:1;}
+  .day-strip{display:flex;overflow-x:auto;scroll-snap-type:x proximity;gap:6px;flex:1;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+  .day-strip::-webkit-scrollbar{display:none;}
+  .day-chip{scroll-snap-align:center;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;width:44px;height:52px;border:1px solid #DEDACB;background:var(--paper);color:var(--ink-soft);font-family:'Work Sans',sans-serif;}
+  .day-chip .dc-dow{font-size:9px;text-transform:uppercase;letter-spacing:0.03em;}
+  .day-chip .dc-num{font-size:15px;font-weight:700;margin-top:2px;}
+  .day-chip.is-today{border-color:var(--ink);}
+  .day-chip.is-selected{background:var(--ink);color:var(--paper);border-color:var(--ink);}
 
   main{padding:18px 20px 100px 20px;}
   .hidden{display:none !important;}
@@ -161,13 +167,15 @@
       <h1>MacroDiario</h1>
       <button class="gear" id="btnSettings" title="Ajustes">⚙</button>
     </div>
-    <nav class="tabs">
-      <button data-tab="hoy" class="active">Hoy</button>
-      <button data-tab="objetivos">Objetivos</button>
-    </nav>
   </header>
 
   <main>
+
+    <div class="day-strip-wrap">
+      <button class="strip-nav" id="prevDay" aria-label="Día anterior">‹</button>
+      <div class="day-strip" id="dayStrip"></div>
+      <button class="strip-nav" id="nextDay" aria-label="Día siguiente">›</button>
+    </div>
 
     <!-- HOY -->
     <section id="tab-hoy">
@@ -181,19 +189,6 @@
       <div class="log-list" id="logList"></div>
     </section>
 
-    <!-- OBJETIVOS -->
-    <section id="tab-objetivos" class="hidden">
-      <p class="day-title">OBJETIVOS SEMANALES</p>
-      <h2 class="day-date">Define tus macros por día</h2>
-      <div class="copy-row">
-        <button id="btnCopyMon">Copiar lunes a todos los días</button>
-      </div>
-      <div id="targetsForm"></div>
-      <div class="save-bar">
-        <button id="btnSaveTargets" style="width:100%;">Guardar objetivos</button>
-      </div>
-    </section>
-
   </main>
 </div>
 
@@ -202,6 +197,14 @@
   <div class="sheet sheet-wrap">
     <button class="close-x" id="closeSettings">×</button>
     <h2>Ajustes</h2>
+    <div class="field-block">
+      <label>Objetivos semanales</label>
+      <div class="copy-row">
+        <button id="btnCopyMon">Copiar lunes a todos los días</button>
+      </div>
+      <div id="targetsForm"></div>
+      <button class="secondary-btn" id="btnSaveTargets" style="width:100%;margin-top:8px;">Guardar objetivos</button>
+    </div>
     <div class="field-block">
       <label>API key de Gemini (opcional)</label>
       <input type="password" id="geminiKeyInput" placeholder="AIza...">
@@ -507,14 +510,15 @@
     container.innerHTML = html;
   }
 
-  /* ---------- Render: Today ---------- */
-  function renderToday(){
-    var today = new Date();
-    var iso = isoDate(today);
-    var dk = dayKeyFromDate(today);
+  /* ---------- Render: current day (from the day strip) ---------- */
+  function renderDay(){
+    var viewDate = currentViewDate;
+    var iso = isoDate(viewDate);
+    var dk = dayKeyFromDate(viewDate);
+    var isToday = (iso === todayIso());
 
-    document.getElementById('dayTitle').textContent = 'HOY · ' + DAY_LABELS[dk].toUpperCase();
-    document.getElementById('dayDate').textContent = fmtLong(today);
+    document.getElementById('dayTitle').textContent = (isToday ? 'HOY · ' : '') + DAY_LABELS[dk].toUpperCase();
+    document.getElementById('dayDate').textContent = fmtLong(viewDate);
 
     var consumed = totalsFor(iso);
     var target = targetFor(dk);
@@ -567,7 +571,7 @@
       btn.addEventListener('click', function(ev){
         ev.stopPropagation();
         deleteEntry(iso, btn.getAttribute('data-del'));
-        renderToday();
+        renderDay();
       });
     });
     Array.prototype.forEach.call(listEl.querySelectorAll('[data-editid]'), function(rowEl){
@@ -582,12 +586,16 @@
     });
   }
 
-  /* ---------- Week progress (shown inside Hoy) ---------- */
+  /* ---------- Week progress (shown inside the day view) ---------- */
   function renderWeekSummary(){
-    var today = new Date();
-    var monday = mondayOf(today);
+    var monday = mondayOf(currentViewDate);
     var dates = weekDates(monday);
-    var todayIso_ = isoDate(today);
+    var realTodayIso = todayIso();
+    var weekStartIso = isoDate(dates[0]);
+    var weekEndIso = isoDate(dates[6]);
+    // cutoff: if the whole week is already past, count all 7 days;
+    // otherwise count only up to the real current date (0 days if the week is fully future).
+    var cutoffIso = (weekEndIso < realTodayIso) ? weekEndIso : realTodayIso;
 
     var consumedToDate = 0, targetToDate = 0, targetFullWeek = 0;
     dates.forEach(function(d, i){
@@ -595,7 +603,7 @@
       var iso = isoDate(d);
       var tKcal = targetFor(dk).kcal || 0;
       targetFullWeek += tKcal;
-      if(iso <= todayIso_){
+      if(iso <= cutoffIso && iso >= weekStartIso){
         consumedToDate += totalsFor(iso).kcal;
         targetToDate += tKcal;
       }
@@ -603,12 +611,66 @@
 
     var avgDaily = targetFullWeek / 7;
     var p = pct(consumedToDate, targetToDate);
+    var label = (cutoffIso >= weekEndIso) ? 'la semana' : 'hoy';
 
-    var html = '<div class="wsh"><span class="wst">Esta semana</span><span class="wsrange">'+fmtShort(dates[0])+' – '+fmtShort(dates[6])+'</span></div>'+
-      '<div class="wsval">'+round(consumedToDate)+'/'+round(targetToDate)+' cal hasta hoy <small>(media de '+round(avgDaily)+' kcal diarias)</small></div>'+
+    var html = '<div class="wsh"><span class="wst">Esa semana</span><span class="wsrange">'+fmtShort(dates[0])+' – '+fmtShort(dates[6])+'</span></div>'+
+      '<div class="wsval">'+round(consumedToDate)+'/'+round(targetToDate)+' cal hasta '+label+' <small>(media de '+round(avgDaily)+' kcal diarias)</small></div>'+
       '<div class="bar-bg"><div class="bar-fill" style="width:'+p+'%"></div></div>';
     document.getElementById('weekSummary').innerHTML = html;
   }
+
+  /* ---------- Day strip (carousel) ---------- */
+  var DAY_STRIP_RANGE = 120; // days before/after today
+
+  function buildDayStrip(){
+    var strip = document.getElementById('dayStrip');
+    var today = new Date();
+    today.setHours(0,0,0,0);
+    var html = '';
+    for(var i = -DAY_STRIP_RANGE; i <= DAY_STRIP_RANGE; i++){
+      var d = new Date(today);
+      d.setDate(d.getDate() + i);
+      var iso = isoDate(d);
+      var dk = dayKeyFromDate(d);
+      html += '<button class="day-chip" data-date="'+iso+'"'+(iso === isoDate(today) ? ' data-istoday="1"' : '')+'>'+
+        '<span class="dc-dow">'+DAY_SHORT[dk]+'</span><span class="dc-num">'+d.getDate()+'</span>'+
+      '</button>';
+    }
+    strip.innerHTML = html;
+    Array.prototype.forEach.call(strip.querySelectorAll('.day-chip'), function(chip){
+      chip.addEventListener('click', function(){
+        selectDate(chip.getAttribute('data-date'), true);
+      });
+    });
+  }
+
+  function markSelectedChip(){
+    var iso = isoDate(currentViewDate);
+    Array.prototype.forEach.call(document.querySelectorAll('.day-chip'), function(chip){
+      chip.classList.toggle('is-selected', chip.getAttribute('data-date') === iso);
+      chip.classList.toggle('is-today', chip.hasAttribute('data-istoday'));
+    });
+  }
+
+  function selectDate(iso, scrollTo){
+    var parts = iso.split('-');
+    currentViewDate = new Date(Number(parts[0]), Number(parts[1])-1, Number(parts[2]));
+    markSelectedChip();
+    renderDay();
+    if(scrollTo){
+      var chip = document.querySelector('.day-chip[data-date="'+iso+'"]');
+      if(chip) chip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }
+
+  function shiftDay(delta){
+    var d = new Date(currentViewDate);
+    d.setDate(d.getDate() + delta);
+    selectDate(isoDate(d), true);
+  }
+
+  document.getElementById('prevDay').addEventListener('click', function(){ shiftDay(-1); });
+  document.getElementById('nextDay').addEventListener('click', function(){ shiftDay(1); });
 
   /* ---------- Render: Targets form ---------- */
   function calcCarbs(kcal, protein, fat){
@@ -662,19 +724,6 @@
     return out;
   }
 
-  /* ---------- Tabs ---------- */
-  Array.prototype.forEach.call(document.querySelectorAll('nav.tabs button'), function(btn){
-    btn.addEventListener('click', function(){
-      Array.prototype.forEach.call(document.querySelectorAll('nav.tabs button'), function(b){ b.classList.remove('active'); });
-      btn.classList.add('active');
-      var tab = btn.getAttribute('data-tab');
-      ['hoy','objetivos'].forEach(function(t){
-        document.getElementById('tab-'+t).classList.toggle('hidden', t !== tab);
-      });
-      if(tab === 'objetivos') renderTargetsForm();
-    });
-  });
-
   document.getElementById('btnCopyMon').addEventListener('click', function(){
     var monBlock = document.querySelector('.target-day[data-day="mon"]');
     var vals = {};
@@ -692,7 +741,7 @@
   document.getElementById('btnSaveTargets').addEventListener('click', function(){
     targets = collectTargetsFromForm();
     saveTargets(targets);
-    renderToday();
+    renderDay();
     var btn = document.getElementById('btnSaveTargets');
     var original = btn.textContent;
     btn.textContent = 'Guardado ✓';
@@ -704,6 +753,7 @@
   document.getElementById('btnSettings').addEventListener('click', function(){
     document.getElementById('geminiKeyInput').value = getGeminiKey();
     document.getElementById('proxyUrlInput').value = getProxyUrl();
+    renderTargetsForm();
     settingsOverlay.classList.remove('hidden');
   });
   document.getElementById('closeSettings').addEventListener('click', function(){ settingsOverlay.classList.add('hidden'); });
@@ -719,7 +769,7 @@
       localStorage.removeItem(LS_GEMINI);
       localStorage.removeItem(LS_PROXY);
       targets = {}; logs = {};
-      renderToday(); renderTargetsForm();
+      renderDay(); renderTargetsForm();
       settingsOverlay.classList.add('hidden');
     }
   });
@@ -798,7 +848,7 @@
     updateEntry(editingContext.dateIso, editingContext.id, changes);
     editOverlay.classList.add('hidden');
     editingContext = null;
-    renderToday();
+    renderDay();
   });
 
   document.getElementById('btnDeleteFromEdit').addEventListener('click', function(){
@@ -806,7 +856,7 @@
     deleteEntry(editingContext.dateIso, editingContext.id);
     editOverlay.classList.add('hidden');
     editingContext = null;
-    renderToday();
+    renderDay();
   });
 
   /* ---------- Add food modal ---------- */
@@ -854,6 +904,8 @@
   });
 
   function todayIso(){ return isoDate(new Date()); }
+  var currentViewDate = new Date();
+  function viewIso(){ return isoDate(currentViewDate); }
 
   function closeAddAndRefresh(){
     addOverlay.classList.add('hidden');
@@ -862,14 +914,14 @@
     document.getElementById('barcodeResult').innerHTML = '';
     document.getElementById('photoResults').innerHTML = '';
     document.getElementById('photoStatus').innerHTML = '';
-    renderToday();
+    renderDay();
   }
 
   /* --- Manual --- */
   document.getElementById('btnManAdd').addEventListener('click', function(){
     var name = document.getElementById('manName').value.trim();
     if(!name){ alert('Ponle un nombre al alimento.'); return; }
-    addEntry(todayIso(), {
+    addEntry(viewIso(), {
       name: name,
       kcal: Number(document.getElementById('manKcal').value)||0,
       protein: Number(document.getElementById('manProtein').value)||0,
@@ -987,7 +1039,7 @@
           if(grams === null) return;
           var per100 = per100Of(p);
           var macros = offNutriments(p, grams);
-          addEntry(todayIso(), {
+          addEntry(viewIso(), {
             name: p.product_name,
             kcal: macros.kcal, protein: macros.protein, carbs: macros.carbs, fat: macros.fat,
             portionLabel: grams + ' g',
@@ -1041,7 +1093,7 @@
         if(grams === null) return;
         var per100 = per100Of(p);
         var macros = offNutriments(p, grams);
-        addEntry(todayIso(), {
+        addEntry(viewIso(), {
           name: p.product_name || ('Producto ' + code),
           kcal: macros.kcal, protein: macros.protein, carbs: macros.carbs, fat: macros.fat,
           portionLabel: grams + ' g',
@@ -1284,11 +1336,11 @@
           entry.grams = row.grams;
           entry.per100 = row.per100;
         }
-        addEntry(todayIso(), entry);
+        addEntry(viewIso(), entry);
       });
       document.getElementById('photoStatus').innerHTML = '<div class="msg">Añadido a tu registro de hoy.</div>';
       document.getElementById('photoResults').innerHTML = '';
-      renderToday();
+      renderDay();
     });
   }
 
@@ -1327,7 +1379,7 @@
         } else {
           entry.kcal = f.kcal; entry.protein = f.protein; entry.carbs = f.carbs; entry.fat = f.fat;
         }
-        addEntry(todayIso(), entry);
+        addEntry(viewIso(), entry);
         closeAddAndRefresh();
       });
       row.querySelector('.del').addEventListener('click', function(){
@@ -1338,8 +1390,14 @@
   }
 
   /* ---------- Init ---------- */
-  renderToday();
+  buildDayStrip();
+  markSelectedChip();
+  renderDay();
   renderTargetsForm();
+  (function(){
+    var chip = document.querySelector('.day-chip[data-istoday]');
+    if(chip) chip.scrollIntoView({ inline: 'center', block: 'nearest' });
+  })();
 
 })();
 </script>
