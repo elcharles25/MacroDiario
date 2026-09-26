@@ -124,6 +124,11 @@
   .method-tabs{display:flex;gap:6px;margin-bottom:16px;}
   .method-tabs button{flex:1;border:1px solid var(--ink);background:none;padding:9px 0;font-size:19px;line-height:1;display:flex;align-items:center;justify-content:center;}
   .method-tabs button.active{background:var(--ink);color:var(--paper);}
+  .settings-tabs{display:flex;gap:6px;margin-bottom:16px;}
+  .settings-tabs button{flex:1;border:1px solid var(--ink);background:none;padding:9px 4px;font-size:13px;font-weight:600;}
+  .settings-tabs button.active{background:var(--ink);color:var(--paper);}
+  .st-panel{display:none;}
+  .st-panel.active{display:block;}
   .m-panel{display:none;}
   .m-panel.active{display:block;}
   .m-field{margin-bottom:10px;}
@@ -197,26 +202,33 @@
   <div class="sheet sheet-wrap">
     <button class="close-x" id="closeSettings">×</button>
     <h2>Ajustes</h2>
-    <div class="field-block">
-      <label>Objetivos semanales</label>
+    <div class="settings-tabs">
+      <button data-st="objetivos" class="active">Objetivos</button>
+      <button data-st="apis">APIs y proxy</button>
+    </div>
+
+    <div class="st-panel active" id="stpanel-objetivos">
       <div class="copy-row">
         <button id="btnCopyMon">Copiar lunes a todos los días</button>
       </div>
       <div id="targetsForm"></div>
       <button class="secondary-btn" id="btnSaveTargets" style="width:100%;margin-top:8px;">Guardar objetivos</button>
     </div>
-    <div class="field-block">
-      <label>API key de Gemini (opcional)</label>
-      <input type="password" id="geminiKeyInput" placeholder="AIza...">
-      <p class="hint">Solo se necesita para identificar alimentos a partir de una foto del plato. Se guarda únicamente en este navegador y se envía directamente a Google, nunca a otro servidor. Consíguela en <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>.</p>
+
+    <div class="st-panel" id="stpanel-apis">
+      <div class="field-block">
+        <label>API key de Gemini (opcional)</label>
+        <input type="password" id="geminiKeyInput" placeholder="AIza...">
+        <p class="hint">Solo se necesita para identificar alimentos a partir de una foto del plato. Se guarda únicamente en este navegador y se envía directamente a Google, nunca a otro servidor. Consíguela en <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>.</p>
+      </div>
+      <div class="field-block">
+        <label>Proxy para Open Food Facts (opcional)</label>
+        <input type="text" id="proxyUrlInput" placeholder="https://tu-proxy.workers.dev">
+        <p class="hint">Solo rellénalo si "Buscar" te da error de conexión. Es la URL de un pequeño Cloudflare Worker propio que reenvía la búsqueda a Open Food Facts añadiendo cabeceras CORS. Déjalo vacío para llamar directamente.</p>
+      </div>
+      <button class="primary-btn" id="btnSaveSettings">Guardar</button>
+      <button class="secondary-btn" id="btnClearData">Borrar todos los datos guardados</button>
     </div>
-    <div class="field-block">
-      <label>Proxy para Open Food Facts (opcional)</label>
-      <input type="text" id="proxyUrlInput" placeholder="https://tu-proxy.workers.dev">
-      <p class="hint">Solo rellénalo si "Buscar" te da error de conexión. Es la URL de un pequeño Cloudflare Worker propio que reenvía la búsqueda a Open Food Facts añadiendo cabeceras CORS. Déjalo vacío para llamar directamente.</p>
-    </div>
-    <button class="primary-btn" id="btnSaveSettings">Guardar</button>
-    <button class="secondary-btn" id="btnClearData">Borrar todos los datos guardados</button>
   </div>
 </div>
 
@@ -757,6 +769,18 @@
     settingsOverlay.classList.remove('hidden');
   });
   document.getElementById('closeSettings').addEventListener('click', function(){ settingsOverlay.classList.add('hidden'); });
+
+  Array.prototype.forEach.call(document.querySelectorAll('.settings-tabs button'), function(btn){
+    btn.addEventListener('click', function(){
+      Array.prototype.forEach.call(document.querySelectorAll('.settings-tabs button'), function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      var st = btn.getAttribute('data-st');
+      ['objetivos','apis'].forEach(function(p){
+        document.getElementById('stpanel-'+p).classList.toggle('active', p === st);
+      });
+    });
+  });
+
   document.getElementById('btnSaveSettings').addEventListener('click', function(){
     setGeminiKey(document.getElementById('geminiKeyInput').value.trim());
     setProxyUrl(document.getElementById('proxyUrlInput').value.trim());
