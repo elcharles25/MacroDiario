@@ -208,6 +208,11 @@
       <input type="password" id="geminiKeyInput" placeholder="AIza...">
       <p class="hint">Solo se necesita para identificar alimentos a partir de una foto del plato. Se guarda únicamente en este navegador y se envía directamente a Google, nunca a otro servidor. Consíguela en <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>.</p>
     </div>
+    <div class="field-block">
+      <label>Proxy para Open Food Facts (opcional)</label>
+      <input type="text" id="proxyUrlInput" placeholder="https://tu-proxy.workers.dev">
+      <p class="hint">Solo rellénalo si "Buscar" te da error de conexión. Es la URL de un pequeño Cloudflare Worker propio que reenvía la búsqueda a Open Food Facts añadiendo cabeceras CORS. Déjalo vacío para llamar directamente.</p>
+    </div>
     <button class="primary-btn" id="btnSaveSettings">Guardar</button>
     <button class="secondary-btn" id="btnClearData">Borrar todos los datos guardados</button>
   </div>
@@ -261,6 +266,7 @@
     <!-- BARCODE -->
     <div class="m-panel" id="panel-barcode">
       <div class="qr-box hidden" id="qrBox"></div>
+      <p class="hint">Encuadra el código de barras horizontal, llenando el ancho del recuadro, con buena luz y a unos 10-15 cm.</p>
       <button class="secondary-btn" id="btnRetryCam">↻ Reintentar cámara</button>
       <div id="barcodeResult"></div>
       <p class="hint">¿No puedes usar la cámara? Escribe el código a mano:</p>
@@ -304,6 +310,7 @@
   var LS_TARGETS = 'md_targets_v1';
   var LS_LOGS = 'md_logs_v1';
   var LS_GEMINI = 'md_gemini_key_v1';
+  var LS_PROXY = 'md_off_proxy_v1';
   var LS_FAVORITES = 'md_favorites_v1';
 
   /* ---------- Date helpers (semana natural: lunes-domingo) ---------- */
@@ -361,6 +368,14 @@
 
   function getGeminiKey(){ return localStorage.getItem(LS_GEMINI) || ''; }
   function setGeminiKey(k){ localStorage.setItem(LS_GEMINI, k); }
+
+  function getProxyUrl(){ return localStorage.getItem(LS_PROXY) || ''; }
+  function setProxyUrl(u){ localStorage.setItem(LS_PROXY, u); }
+  function viaProxy(directUrl){
+    var proxy = getProxyUrl();
+    if(!proxy) return directUrl;
+    return proxy.replace(/\/$/, '') + '?url=' + encodeURIComponent(directUrl);
+  }
 
   function loadFavorites(){
     try{
@@ -637,11 +652,13 @@
   var settingsOverlay = document.getElementById('settingsOverlay');
   document.getElementById('btnSettings').addEventListener('click', function(){
     document.getElementById('geminiKeyInput').value = getGeminiKey();
+    document.getElementById('proxyUrlInput').value = getProxyUrl();
     settingsOverlay.classList.remove('hidden');
   });
   document.getElementById('closeSettings').addEventListener('click', function(){ settingsOverlay.classList.add('hidden'); });
   document.getElementById('btnSaveSettings').addEventListener('click', function(){
     setGeminiKey(document.getElementById('geminiKeyInput').value.trim());
+    setProxyUrl(document.getElementById('proxyUrlInput').value.trim());
     settingsOverlay.classList.add('hidden');
   });
   document.getElementById('btnClearData').addEventListener('click', function(){
@@ -649,6 +666,7 @@
       localStorage.removeItem(LS_TARGETS);
       localStorage.removeItem(LS_LOGS);
       localStorage.removeItem(LS_GEMINI);
+      localStorage.removeItem(LS_PROXY);
       targets = {}; logs = {};
       renderToday(); renderTargetsForm();
       settingsOverlay.classList.add('hidden');
@@ -762,9 +780,9 @@
   }
 
   function searchOff(term){
-    var url = 'https://world.openfoodfacts.org/cgi/search.pl?search_terms=' + encodeURIComponent(term) +
+    var url = viaProxy('https://world.openfoodfacts.org/cgi/search.pl?search_terms=' + encodeURIComponent(term) +
       '&search_simple=1&action=process&json=1&page_size=12' +
-      '&fields=product_name,brands,nutriments,code';
+      '&fields=product_name,brands,nutriments,code');
     return fetch(url).then(function(r){
       if(!r.ok){ throw new Error('HTTP ' + r.status + ' de Open Food Facts'); }
       return r.text();
@@ -777,8 +795,8 @@
   }
 
   function productByBarcode(code){
-    var url = 'https://world.openfoodfacts.org/api/v2/product/' + encodeURIComponent(code) +
-      '.json?fields=product_name,brands,nutriments,code';
+    var url = viaProxy('https://world.openfoodfacts.org/api/v2/product/' + encodeURIComponent(code) +
+      '.json?fields=product_name,brands,nutriments,code');
     return fetch(url).then(function(r){
       if(!r.ok){ throw new Error('HTTP ' + r.status + ' de Open Food Facts'); }
       return r.json();
@@ -891,10 +909,20 @@
       qrBox.innerHTML = '<div class="msg err">No se pudo cargar el lector de cámara.</div>';
       return;
     }
-    html5QrScanner = new Html5Qrcode('qrReader');
+    var scannerOpts = {};
+    if(typeof Html5QrcodeSupportedFormats !== 'undefined'){
+      scannerOpts.formatsToSupport = [
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.CODE_128
+      ];
+    }
+    html5QrScanner = new Html5Qrcode('qrReader', scannerOpts);
     html5QrScanner.start(
-      { facingMode: 'environment' },
-      { fps: 10, qrbox: { width: 250, height: 150 } },
+      { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+      { fps: 10, qrbox: { width: 280, height: 120 }, aspectRatio: 1.777778 },
       function(decodedText){
         document.getElementById('barcodeInput').value = decodedText;
         stopScanner();
