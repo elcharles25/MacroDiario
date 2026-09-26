@@ -281,7 +281,7 @@
         <button class="secondary-btn" id="btnOpenCamPhoto" type="button">📷 Abrir cámara</button>
         <div id="photoPreviewName" class="hint"></div>
       </div>
-      <button class="primary-btn" id="btnAnalyzePhoto">Analizar foto</button>
+      <p class="hint">Al hacer la foto, se analiza y se añade sola al registro de hoy — no hace falta nada más.</p>
       <div id="photoStatus"></div>
       <div id="photoResults"></div>
     </div>
@@ -991,9 +991,10 @@
   document.getElementById('photoInput').addEventListener('change', function(){
     var f = this.files && this.files[0];
     document.getElementById('photoPreviewName').textContent = f ? ('Foto lista: ' + f.name) : '';
+    if(f) analyzeAndAutoAddPhoto(f);
   });
 
-  document.getElementById('btnAnalyzePhoto').addEventListener('click', function(){
+  function analyzeAndAutoAddPhoto(file){
     var key = getGeminiKey();
     var status = document.getElementById('photoStatus');
     var resultsBox = document.getElementById('photoResults');
@@ -1002,18 +1003,13 @@
       status.innerHTML = '<div class="msg err">Añade tu API key de Gemini en Ajustes (⚙) para usar esta función.</div>';
       return;
     }
-    var fileInput = document.getElementById('photoInput');
-    if(!fileInput.files || !fileInput.files[0]){
-      status.innerHTML = '<div class="msg err">Selecciona o haz una foto primero.</div>';
-      return;
-    }
     status.innerHTML = '<div class="msg">Analizando la foto…</div>';
 
-    fileToBase64(fileInput.files[0]).then(function(b64){
+    fileToBase64(file).then(function(b64){
       var body = {
         contents: [{ parts: [
           { text: PHOTO_PROMPT },
-          { inline_data: { mime_type: fileInput.files[0].type || 'image/jpeg', data: b64 } }
+          { inline_data: { mime_type: file.type || 'image/jpeg', data: b64 } }
         ]}],
         generationConfig: { response_mime_type: 'application/json' }
       };
@@ -1048,68 +1044,47 @@
         status.innerHTML = '<div class="msg">No se detectaron alimentos en la foto.</div>';
         return;
       }
-      status.innerHTML = '<div class="msg">Alimentos detectados — busca cada uno en Open Food Facts para macros precisas, o guárdalo como estimación de la IA.</div>';
-      renderDetectedItems(items);
+      status.innerHTML = '<div class="msg">Detectados '+items.length+' alimentos, buscando y añadiendo…</div>';
+      return autoAddDetectedItems(items).then(function(summaryLines){
+        status.innerHTML = '<div class="msg">Añadido a tu registro de hoy:</div>';
+        resultsBox.innerHTML = '<div class="detected-item">'+summaryLines.join('<br>')+'</div>';
+        renderToday();
+      });
     }).catch(function(err){
       status.innerHTML = '<div class="msg err">Error al conectar con la API de Gemini. ('+escapeHtml(err && err.message ? err.message : err)+')</div>';
     });
-  });
+  }
 
-  function renderDetectedItems(items){
-    var box = document.getElementById('photoResults');
-    box.innerHTML = items.map(function(it, idx){
-      return '<div class="detected-item" data-idx="'+idx+'">'+
-        '<div class="dtitle">'+escapeHtml(it.nombre)+' · ~'+round(it.gramos_estimados)+' g (estimado)</div>'+
-        '<div class="m-field"><input type="text" class="di-search" placeholder="Buscar en Open Food Facts…" value="'+escapeHtml(it.nombre)+'"></div>'+
-        '<button class="secondary-btn di-search-btn">Buscar coincidencia</button>'+
-        '<div class="di-results"></div>'+
-      '</div>';
-    }).join('');
-
-    Array.prototype.forEach.call(box.querySelectorAll('.detected-item'), function(card){
-      var idx = Number(card.getAttribute('data-idx'));
-      var item = items[idx];
-      card.querySelector('.di-search-btn').addEventListener('click', function(){
-        var term = card.querySelector('.di-search').value.trim();
-        var rbox = card.querySelector('.di-results');
-        rbox.innerHTML = '<div class="msg">Buscando…</div>';
-        searchOff(term).then(function(products){
-          if(products.length === 0){
-            rbox.innerHTML = '<div class="msg">Sin coincidencias. Puedes guardar la estimación de la IA.</div>' +
-              '<button class="secondary-btn use-ai-est">Usar estimación de la IA (sin macros exactos)</button>';
-            rbox.querySelector('.use-ai-est').addEventListener('click', function(){
-              addEntry(todayIso(), { name: item.nombre, kcal: 0, protein: 0, carbs: 0, fat: 0,
-                portionLabel: round(item.gramos_estimados)+' g (sin verificar)',
-                meal: document.getElementById('mealSelect').value,
-                source: 'ai-unverified' });
-              closeAddAndRefresh();
+  function autoAddDetectedItems(items){
+    var summaryLines = [];
+    var mealVal = document.getElementById('mealSelect').value;
+    return items.reduce(function(chain, item){
+      return chain.then(function(){
+        return searchOff(item.nombre).catch(function(){ return []; }).then(function(products){
+          var grams = Number(item.gramos_estimados) || 100;
+          if(products && products.length > 0){
+            var p = products[0];
+            var macros = offNutriments(p, grams);
+            addEntry(todayIso(), {
+              name: p.product_name,
+              kcal: macros.kcal, protein: macros.protein, carbs: macros.carbs, fat: macros.fat,
+              portionLabel: round(grams) + ' g (auto)',
+              meal: mealVal,
+              source: 'ai+off-auto'
             });
-            return;
+            summaryLines.push('✓ ' + escapeHtml(p.product_name) + ' — ' + round(macros.kcal) + ' kcal (' + round(grams) + 'g)');
+          } else {
+            addEntry(todayIso(), {
+              name: item.nombre, kcal: 0, protein: 0, carbs: 0, fat: 0,
+              portionLabel: round(grams) + ' g (sin verificar)',
+              meal: mealVal,
+              source: 'ai-unverified'
+            });
+            summaryLines.push('⚠ ' + escapeHtml(item.nombre) + ' — sin coincidencia en Open Food Facts, guardado sin verificar');
           }
-          rbox.innerHTML = products.map(function(p, pidx){
-            return '<div class="result-row"><span class="rn">'+escapeHtml(p.product_name)+(p.brands ? ' · <span style="color:var(--ink-soft)">'+escapeHtml(p.brands)+'</span>' : '')+'</span>'+
-              '<button data-pidx="'+pidx+'">Elegir</button></div>';
-          }).join('');
-          Array.prototype.forEach.call(rbox.querySelectorAll('[data-pidx]'), function(btn){
-            btn.addEventListener('click', function(){
-              var p = products[Number(btn.getAttribute('data-pidx'))];
-              var grams = prompt('Gramos a registrar de "'+p.product_name+'"', String(round(item.gramos_estimados)||100));
-              if(grams === null) return;
-              var macros = offNutriments(p, grams);
-              addEntry(todayIso(), {
-                name: p.product_name, kcal: macros.kcal, protein: macros.protein, carbs: macros.carbs, fat: macros.fat,
-                portionLabel: grams + ' g',
-                meal: document.getElementById('mealSelect').value,
-                source: 'ai+off'
-              });
-              closeAddAndRefresh();
-            });
-          });
-        }).catch(function(err){
-          rbox.innerHTML = '<div class="msg err">No se pudo conectar con Open Food Facts. ('+escapeHtml(err && err.message ? err.message : err)+')</div>';
         });
       });
-    });
+    }, Promise.resolve()).then(function(){ return summaryLines; });
   }
 
   /* ---------- Favorites ---------- */
