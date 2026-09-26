@@ -1017,22 +1017,31 @@
         ]}],
         generationConfig: { response_mime_type: 'application/json' }
       };
-      return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + encodeURIComponent(key), {
+      return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=' + encodeURIComponent(key), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
     }).then(function(r){ return r.json(); }).then(function(data){
-      var text = data && data.candidates && data.candidates[0] && data.candidates[0].content &&
-        data.candidates[0].content.parts && data.candidates[0].content.parts[0] &&
-        data.candidates[0].content.parts[0].text;
+      if(data && data.error){
+        status.innerHTML = '<div class="msg err">Error de Gemini: '+escapeHtml(data.error.message || data.error.status || JSON.stringify(data.error))+'</div>';
+        return;
+      }
+      var candidate = data && data.candidates && data.candidates[0];
+      if(candidate && candidate.finishReason && candidate.finishReason !== 'STOP'){
+        status.innerHTML = '<div class="msg err">Gemini no completó la respuesta (motivo: '+escapeHtml(candidate.finishReason)+'). Prueba con otra foto o mejor luz.</div>';
+        return;
+      }
+      var text = candidate && candidate.content &&
+        candidate.content.parts && candidate.content.parts[0] &&
+        candidate.content.parts[0].text;
       if(!text){
-        status.innerHTML = '<div class="msg err">Gemini no devolvió un resultado utilizable. Revisa tu API key.</div>';
+        status.innerHTML = '<div class="msg err">Gemini no devolvió texto utilizable. Respuesta cruda: '+escapeHtml(JSON.stringify(data).slice(0,300))+'</div>';
         return;
       }
       var parsed;
       try{ parsed = JSON.parse(text); }
-      catch(e){ status.innerHTML = '<div class="msg err">No se pudo interpretar la respuesta de Gemini.</div>'; return; }
+      catch(e){ status.innerHTML = '<div class="msg err">No se pudo interpretar la respuesta de Gemini: '+escapeHtml(text.slice(0,200))+'</div>'; return; }
 
       var items = (parsed.alimentos || []);
       if(items.length === 0){
@@ -1041,8 +1050,8 @@
       }
       status.innerHTML = '<div class="msg">Alimentos detectados — busca cada uno en Open Food Facts para macros precisas, o guárdalo como estimación de la IA.</div>';
       renderDetectedItems(items);
-    }).catch(function(){
-      status.innerHTML = '<div class="msg err">Error al conectar con la API de Gemini.</div>';
+    }).catch(function(err){
+      status.innerHTML = '<div class="msg err">Error al conectar con la API de Gemini. ('+escapeHtml(err && err.message ? err.message : err)+')</div>';
     });
   });
 
