@@ -69,7 +69,7 @@
   .log-title{display:flex;justify-content:space-between;align-items:center;margin:26px 0 4px 0;}
   .log-title h2{font-size:13px;text-transform:uppercase;letter-spacing:0.08em;margin:0;color:var(--ink-soft);}
   .log-list{border-top:2px solid var(--rule);}
-  .log-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid #DEDACB;}
+  .log-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid #DEDACB;cursor:pointer;}
   .log-row .who{flex:1;min-width:0;}
   .log-row .time{font-size:11px;color:var(--ink-soft);}
   .log-row .name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -217,6 +217,30 @@
   </div>
 </div>
 
+<!-- EDIT ENTRY MODAL -->
+<div class="overlay hidden" id="editOverlay">
+  <div class="sheet sheet-wrap">
+    <button class="close-x" id="closeEdit">×</button>
+    <h2>Editar alimento</h2>
+    <div class="m-field"><label>Nombre</label><input type="text" id="editName"></div>
+    <div id="editGramsBlock" class="hidden">
+      <div class="m-field"><label>Gramos</label><input type="number" id="editGrams"></div>
+      <p class="hint" id="editPreview"></p>
+    </div>
+    <div id="editDirectBlock" class="hidden">
+      <div class="m-grid2">
+        <div class="m-field"><label>Kcal</label><input type="number" id="editKcal"></div>
+        <div class="m-field"><label>Proteína (g)</label><input type="number" id="editProtein"></div>
+        <div class="m-field"><label>Carbohidratos (g)</label><input type="number" id="editCarbs"></div>
+        <div class="m-field"><label>Grasa (g)</label><input type="number" id="editFat"></div>
+      </div>
+      <div class="m-field"><label>Porción (texto libre)</label><input type="text" id="editPortionLabel"></div>
+    </div>
+    <button class="primary-btn" id="btnSaveEdit">Guardar cambios</button>
+    <button class="secondary-btn" id="btnDeleteFromEdit">Eliminar este alimento</button>
+  </div>
+</div>
+
 <!-- ADD FOOD MODAL -->
 <div class="overlay hidden" id="addOverlay">
   <div class="sheet sheet-wrap">
@@ -276,12 +300,16 @@
     <!-- FOTO -->
     <div class="m-panel" id="panel-foto">
       <div class="m-field">
+        <label>Contexto (opcional)</label>
+        <input type="text" id="photoNote" placeholder="Ej: sin salsa, ración pequeña, es una ensalada césar...">
+      </div>
+      <div class="m-field">
         <label>Foto del plato</label>
         <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none">
         <button class="secondary-btn" id="btnOpenCamPhoto" type="button">📷 Abrir cámara</button>
         <div id="photoPreviewName" class="hint"></div>
       </div>
-      <p class="hint">Al hacer la foto, se analiza y se añade sola al registro de hoy — no hace falta nada más.</p>
+      <p class="hint">Escribe el contexto antes de la foto si quieres — al hacerla, se analiza y se añade sola al registro de hoy.</p>
       <div id="photoStatus"></div>
       <div id="photoResults"></div>
     </div>
@@ -436,6 +464,17 @@
     logs[dateIso] = logs[dateIso].filter(function(e){ return e.id !== id; });
     saveLogs(logs);
   }
+  function getEntry(dateIso, id){
+    var arr = logs[dateIso] || [];
+    for(var i=0;i<arr.length;i++){ if(arr[i].id === id) return arr[i]; }
+    return null;
+  }
+  function updateEntry(dateIso, id, changes){
+    var e = getEntry(dateIso, id);
+    if(!e) return;
+    Object.keys(changes).forEach(function(k){ e[k] = changes[k]; });
+    saveLogs(logs);
+  }
 
   function escapeHtml(s){
     return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
@@ -510,7 +549,7 @@
         html += '<div class="meal-empty">Sin registros</div>';
       } else {
         html += group.map(function(e){
-          return '<div class="log-row">'+
+          return '<div class="log-row" data-editid="'+e.id+'">'+
             '<div class="who">'+
               '<div class="name">'+escapeHtml(e.name)+'</div>'+
               '<div class="portion">'+e.time+(e.portionLabel ? ' · '+escapeHtml(e.portionLabel) : '')+'</div>'+
@@ -525,9 +564,15 @@
     listEl.innerHTML = html;
 
     Array.prototype.forEach.call(listEl.querySelectorAll('[data-del]'), function(btn){
-      btn.addEventListener('click', function(){
+      btn.addEventListener('click', function(ev){
+        ev.stopPropagation();
         deleteEntry(iso, btn.getAttribute('data-del'));
         renderToday();
+      });
+    });
+    Array.prototype.forEach.call(listEl.querySelectorAll('[data-editid]'), function(rowEl){
+      rowEl.addEventListener('click', function(){
+        openEditEntry(iso, rowEl.getAttribute('data-editid'));
       });
     });
     Array.prototype.forEach.call(listEl.querySelectorAll('[data-addmeal]'), function(btn){
@@ -679,6 +724,91 @@
     }
   });
 
+  /* ---------- Edit entry modal ---------- */
+  var editOverlay = document.getElementById('editOverlay');
+  var editingContext = null; // { dateIso, id }
+
+  function openEditEntry(dateIso, id){
+    var e = getEntry(dateIso, id);
+    if(!e) return;
+    editingContext = { dateIso: dateIso, id: id };
+    document.getElementById('editName').value = e.name || '';
+
+    var gramsBlock = document.getElementById('editGramsBlock');
+    var directBlock = document.getElementById('editDirectBlock');
+
+    if(e.per100){
+      gramsBlock.classList.remove('hidden');
+      directBlock.classList.add('hidden');
+      document.getElementById('editGrams').value = e.grams || 0;
+      updateEditPreview(e.per100, e.grams || 0);
+    } else {
+      gramsBlock.classList.add('hidden');
+      directBlock.classList.remove('hidden');
+      document.getElementById('editKcal').value = round(e.kcal);
+      document.getElementById('editProtein').value = round(e.protein);
+      document.getElementById('editCarbs').value = round(e.carbs);
+      document.getElementById('editFat').value = round(e.fat);
+      document.getElementById('editPortionLabel').value = e.portionLabel || '';
+    }
+    editOverlay.classList.remove('hidden');
+  }
+
+  function updateEditPreview(per100, grams){
+    var factor = (Number(grams)||0) / 100;
+    var k = per100.kcal*factor, p = per100.protein*factor, c = per100.carbs*factor, f = per100.fat*factor;
+    document.getElementById('editPreview').textContent =
+      round(k)+' kcal · P '+round(p)+'g · C '+round(c)+'g · G '+round(f)+'g';
+  }
+
+  document.getElementById('editGrams').addEventListener('input', function(){
+    if(!editingContext) return;
+    var e = getEntry(editingContext.dateIso, editingContext.id);
+    if(e && e.per100) updateEditPreview(e.per100, this.value);
+  });
+
+  document.getElementById('closeEdit').addEventListener('click', function(){
+    editOverlay.classList.add('hidden');
+    editingContext = null;
+  });
+
+  document.getElementById('btnSaveEdit').addEventListener('click', function(){
+    if(!editingContext) return;
+    var e = getEntry(editingContext.dateIso, editingContext.id);
+    if(!e) return;
+    var newName = document.getElementById('editName').value.trim() || e.name;
+    var changes = { name: newName };
+
+    if(e.per100){
+      var grams = Number(document.getElementById('editGrams').value) || 0;
+      var factor = grams / 100;
+      changes.grams = grams;
+      changes.kcal = e.per100.kcal * factor;
+      changes.protein = e.per100.protein * factor;
+      changes.carbs = e.per100.carbs * factor;
+      changes.fat = e.per100.fat * factor;
+      changes.portionLabel = round(grams) + ' g';
+    } else {
+      changes.kcal = Number(document.getElementById('editKcal').value) || 0;
+      changes.protein = Number(document.getElementById('editProtein').value) || 0;
+      changes.carbs = Number(document.getElementById('editCarbs').value) || 0;
+      changes.fat = Number(document.getElementById('editFat').value) || 0;
+      changes.portionLabel = document.getElementById('editPortionLabel').value.trim();
+    }
+    updateEntry(editingContext.dateIso, editingContext.id, changes);
+    editOverlay.classList.add('hidden');
+    editingContext = null;
+    renderToday();
+  });
+
+  document.getElementById('btnDeleteFromEdit').addEventListener('click', function(){
+    if(!editingContext) return;
+    deleteEntry(editingContext.dateIso, editingContext.id);
+    editOverlay.classList.add('hidden');
+    editingContext = null;
+    renderToday();
+  });
+
   /* ---------- Add food modal ---------- */
   var addOverlay = document.getElementById('addOverlay');
   var html5QrScanner = null;
@@ -775,13 +905,23 @@
 
   /* --- Open Food Facts helpers --- */
   function offNutriments(product, grams){
-    var n = product.nutriments || {};
+    var per100 = per100Of(product);
     var factor = (Number(grams)||100) / 100;
     return {
-      kcal: (Number(n['energy-kcal_100g'])||0) * factor,
-      protein: (Number(n['proteins_100g'])||0) * factor,
-      carbs: (Number(n['carbohydrates_100g'])||0) * factor,
-      fat: (Number(n['fat_100g'])||0) * factor
+      kcal: per100.kcal * factor,
+      protein: per100.protein * factor,
+      carbs: per100.carbs * factor,
+      fat: per100.fat * factor
+    };
+  }
+
+  function per100Of(product){
+    var n = product.nutriments || {};
+    return {
+      kcal: Number(n['energy-kcal_100g'])||0,
+      protein: Number(n['proteins_100g'])||0,
+      carbs: Number(n['carbohydrates_100g'])||0,
+      fat: Number(n['fat_100g'])||0
     };
   }
 
@@ -845,11 +985,14 @@
           var p = products[Number(btn.getAttribute('data-idx'))];
           var grams = prompt('¿Cuántos gramos vas a registrar de "'+p.product_name+'"?', '100');
           if(grams === null) return;
+          var per100 = per100Of(p);
           var macros = offNutriments(p, grams);
           addEntry(todayIso(), {
             name: p.product_name,
             kcal: macros.kcal, protein: macros.protein, carbs: macros.carbs, fat: macros.fat,
             portionLabel: grams + ' g',
+            grams: Number(grams)||0,
+            per100: per100,
             meal: document.getElementById('mealSelect').value,
             source: 'off'
           });
@@ -896,11 +1039,14 @@
       document.getElementById('btnUseBarcode').addEventListener('click', function(){
         var grams = prompt('¿Cuántos gramos vas a registrar?', '100');
         if(grams === null) return;
+        var per100 = per100Of(p);
         var macros = offNutriments(p, grams);
         addEntry(todayIso(), {
           name: p.product_name || ('Producto ' + code),
           kcal: macros.kcal, protein: macros.protein, carbs: macros.carbs, fat: macros.fat,
           portionLabel: grams + ' g',
+          grams: Number(grams)||0,
+          per100: per100,
           meal: document.getElementById('mealSelect').value,
           source: 'off-barcode'
         });
@@ -1005,10 +1151,16 @@
     }
     status.innerHTML = '<div class="msg">Analizando la foto…</div>';
 
+    var note = document.getElementById('photoNote').value.trim();
+    var promptText = PHOTO_PROMPT;
+    if(note){
+      promptText += ' Contexto adicional proporcionado por el usuario, tenlo en cuenta para identificar los alimentos y estimar las porciones con más precisión: "' + note + '"';
+    }
+
     fileToBase64(file).then(function(b64){
       var body = {
         contents: [{ parts: [
-          { text: PHOTO_PROMPT },
+          { text: promptText },
           { inline_data: { mime_type: file.type || 'image/jpeg', data: b64 } }
         ]}],
         generationConfig: { response_mime_type: 'application/json' }
@@ -1044,47 +1196,100 @@
         status.innerHTML = '<div class="msg">No se detectaron alimentos en la foto.</div>';
         return;
       }
-      status.innerHTML = '<div class="msg">Detectados '+items.length+' alimentos, buscando y añadiendo…</div>';
-      return autoAddDetectedItems(items).then(function(summaryLines){
-        status.innerHTML = '<div class="msg">Añadido a tu registro de hoy:</div>';
-        resultsBox.innerHTML = '<div class="detected-item">'+summaryLines.join('<br>')+'</div>';
-        renderToday();
+      status.innerHTML = '<div class="msg">Detectados '+items.length+' alimentos, buscando coincidencias…</div>';
+      return resolveItemsForReview(items).then(function(reviewItems){
+        status.innerHTML = '<div class="msg">Revisa las cantidades y confirma:</div>';
+        document.getElementById('photoNote').value = '';
+        renderPhotoReview(reviewItems);
       });
     }).catch(function(err){
       status.innerHTML = '<div class="msg err">Error al conectar con la API de Gemini. ('+escapeHtml(err && err.message ? err.message : err)+')</div>';
     });
   }
 
-  function autoAddDetectedItems(items){
-    var summaryLines = [];
-    var mealVal = document.getElementById('mealSelect').value;
+  function resolveItemsForReview(items){
     return items.reduce(function(chain, item){
-      return chain.then(function(){
+      return chain.then(function(acc){
         return searchOff(item.nombre).catch(function(){ return []; }).then(function(products){
           var grams = Number(item.gramos_estimados) || 100;
           if(products && products.length > 0){
             var p = products[0];
-            var macros = offNutriments(p, grams);
-            addEntry(todayIso(), {
-              name: p.product_name,
-              kcal: macros.kcal, protein: macros.protein, carbs: macros.carbs, fat: macros.fat,
-              portionLabel: round(grams) + ' g (auto)',
-              meal: mealVal,
-              source: 'ai+off-auto'
-            });
-            summaryLines.push('✓ ' + escapeHtml(p.product_name) + ' — ' + round(macros.kcal) + ' kcal (' + round(grams) + 'g)');
+            acc.push({ name: p.product_name, grams: grams, per100: per100Of(p), matched: true });
           } else {
-            addEntry(todayIso(), {
-              name: item.nombre, kcal: 0, protein: 0, carbs: 0, fat: 0,
-              portionLabel: round(grams) + ' g (sin verificar)',
-              meal: mealVal,
-              source: 'ai-unverified'
-            });
-            summaryLines.push('⚠ ' + escapeHtml(item.nombre) + ' — sin coincidencia en Open Food Facts, guardado sin verificar');
+            acc.push({ name: item.nombre, grams: grams, per100: null, matched: false });
           }
+          return acc;
         });
       });
-    }, Promise.resolve()).then(function(){ return summaryLines; });
+    }, Promise.resolve([]));
+  }
+
+  function reviewRowMacros(row){
+    if(row.per100){
+      var factor = row.grams / 100;
+      return { kcal: row.per100.kcal*factor, protein: row.per100.protein*factor, carbs: row.per100.carbs*factor, fat: row.per100.fat*factor };
+    }
+    return { kcal:0, protein:0, carbs:0, fat:0 };
+  }
+
+  function renderPhotoReview(reviewItems){
+    var box = document.getElementById('photoResults');
+    if(reviewItems.length === 0){
+      box.innerHTML = '<div class="msg">No queda ningún alimento por añadir.</div>';
+      return;
+    }
+    box.innerHTML = reviewItems.map(function(row, idx){
+      var m = reviewRowMacros(row);
+      var subtitle = row.matched
+        ? round(m.kcal)+' kcal · P '+round(m.protein)+'g · C '+round(m.carbs)+'g · G '+round(m.fat)+'g'
+        : 'Sin coincidencia en Open Food Facts — se guardará sin macros para que lo revises luego';
+      return '<div class="detected-item" data-ridx="'+idx+'">'+
+        '<div class="dtitle">'+escapeHtml(row.name)+'</div>'+
+        '<div class="m-grid2">'+
+          '<div class="m-field"><label>Gramos</label><input type="number" class="ri-grams" value="'+row.grams+'"></div>'+
+        '</div>'+
+        '<div class="hint ri-sub">'+subtitle+'</div>'+
+        '<button class="secondary-btn ri-remove">✕ Quitar de la lista</button>'+
+      '</div>';
+    }).join('') + '<button class="primary-btn" id="btnConfirmPhotoAdd">✓ Añadir todo a Hoy</button>';
+
+    Array.prototype.forEach.call(box.querySelectorAll('.detected-item'), function(card){
+      var idx = Number(card.getAttribute('data-ridx'));
+      var gramsInput = card.querySelector('.ri-grams');
+      gramsInput.addEventListener('input', function(){
+        reviewItems[idx].grams = Number(gramsInput.value) || 0;
+        var m = reviewRowMacros(reviewItems[idx]);
+        if(reviewItems[idx].matched){
+          card.querySelector('.ri-sub').textContent = round(m.kcal)+' kcal · P '+round(m.protein)+'g · C '+round(m.carbs)+'g · G '+round(m.fat)+'g';
+        }
+      });
+      card.querySelector('.ri-remove').addEventListener('click', function(){
+        reviewItems.splice(idx, 1);
+        renderPhotoReview(reviewItems);
+      });
+    });
+
+    document.getElementById('btnConfirmPhotoAdd').addEventListener('click', function(){
+      var mealVal = document.getElementById('mealSelect').value;
+      reviewItems.forEach(function(row){
+        var m = reviewRowMacros(row);
+        var entry = {
+          name: row.name,
+          kcal: m.kcal, protein: m.protein, carbs: m.carbs, fat: m.fat,
+          portionLabel: round(row.grams) + ' g' + (row.matched ? '' : ' (sin verificar)'),
+          meal: mealVal,
+          source: row.matched ? 'ai+off' : 'ai-unverified'
+        };
+        if(row.matched){
+          entry.grams = row.grams;
+          entry.per100 = row.per100;
+        }
+        addEntry(todayIso(), entry);
+      });
+      document.getElementById('photoStatus').innerHTML = '<div class="msg">Añadido a tu registro de hoy.</div>';
+      document.getElementById('photoResults').innerHTML = '';
+      renderToday();
+    });
   }
 
   /* ---------- Favorites ---------- */
@@ -1117,6 +1322,8 @@
           entry.carbs = f.carbs100 * factor;
           entry.fat = f.fat100 * factor;
           entry.portionLabel = grams + ' g';
+          entry.grams = Number(grams)||0;
+          entry.per100 = { kcal: f.kcal100, protein: f.protein100, carbs: f.carbs100, fat: f.fat100 };
         } else {
           entry.kcal = f.kcal; entry.protein = f.protein; entry.carbs = f.carbs; entry.fat = f.fat;
         }
