@@ -43,9 +43,8 @@
   header{padding:20px 20px 0 20px;}
   header .brand{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
   header .brand h1{font-size:21px;font-weight:800;letter-spacing:-0.01em;margin:0;color:var(--ink);}
-  header .brand button.gear{background:var(--card);border:none;border-radius:var(--radius-full);width:38px;height:38px;font-size:16px;box-shadow:var(--shadow-card);color:var(--ink-soft);}
+  header .brand button.gear{background:var(--card);border:none;border-radius:var(--radius-full);width:38px;height:38px;box-shadow:var(--shadow-card);color:var(--ink-soft);display:flex;align-items:center;justify-content:center;}
   .day-strip-wrap{display:flex;align-items:center;gap:2px;margin:0 0 18px 0;padding:2px 0;}
-  .strip-nav{flex:none;background:var(--card);border:none;border-radius:var(--radius-full);width:30px;height:30px;font-size:16px;color:var(--ink-soft);line-height:1;box-shadow:var(--shadow-card);}
   .day-strip{display:flex;overflow-x:auto;scroll-snap-type:x proximity;gap:8px;flex:1;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:2px 8px;}
   .day-strip::-webkit-scrollbar{display:none;}
   .day-chip{scroll-snap-align:center;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:42px;height:56px;border:none;border-radius:var(--radius-full);background:var(--card);color:var(--ink-soft);font-family:'Inter',sans-serif;box-shadow:var(--shadow-card);position:relative;}
@@ -96,14 +95,18 @@
   .log-title{display:flex;justify-content:space-between;align-items:center;margin:26px 0 4px 0;}
   .log-title h2{font-size:13px;text-transform:uppercase;letter-spacing:0.08em;margin:0;color:var(--ink-soft);}
   .log-list{margin-top:18px;}
-  .log-row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-radius:var(--radius-sm);cursor:pointer;transition:background 0.15s ease;}
-  .log-row:active{background:var(--border-soft);}
+  .log-row-wrap{position:relative;overflow:hidden;border-radius:var(--radius-sm);margin-bottom:1px;}
+  .log-row-delete{position:absolute;top:0;right:0;bottom:0;width:76px;background:var(--fat);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:none;}
+  .log-row{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:10px 4px;background:var(--card);cursor:pointer;touch-action:pan-y;}
+  .log-row.dragging{transition:none;}
+  .log-row:not(.dragging){transition:transform 0.22s ease;}
   .log-row .who{flex:1;min-width:0;}
-  .log-row .time{font-size:11px;color:var(--ink-soft);}
   .log-row .name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .log-row .portion{font-size:11px;color:var(--ink-soft);}
   .log-row .kcal{font-size:14px;font-weight:700;margin-left:10px;flex:none;}
-  .log-row .del{background:var(--border-soft);border:none;border-radius:var(--radius-full);color:var(--ink-soft);font-size:13px;margin-left:10px;padding:5px 9px;flex:none;}
+  .log-row.is-excluded .name,.log-row.is-excluded .kcal{opacity:0.4;}
+  .select-btn{background:none;border:none;padding:6px 0 6px 10px;flex:none;color:var(--ink-soft);display:flex;align-items:center;}
+  .select-btn.is-counted{color:var(--primary);}
   .empty{padding:26px 0;text-align:center;color:var(--ink-soft);font-size:13px;}
 
   /* Week summary card */
@@ -188,10 +191,11 @@
   .empty-mini{font-size:12px;color:var(--ink-soft);padding:6px 0 14px 0;}
   .search-methods-bar{display:flex;gap:8px;position:sticky;bottom:0;background:var(--bg);padding-top:12px;margin-top:8px;}
   .search-methods-bar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;border:none;border-radius:var(--radius-md);background:var(--card);padding:10px 0;box-shadow:var(--shadow-card);}
-  .search-methods-bar .smb-ic{font-size:18px;line-height:1;}
+  .search-methods-bar .smb-ic{line-height:1;color:var(--ink-soft);display:flex;}
   .search-methods-bar .smb-lb{font-size:10px;font-weight:600;color:var(--ink-soft);}
   .search-methods-bar button.active{background:var(--ink);}
   .search-methods-bar button.active .smb-lb{color:#fff;}
+  .search-methods-bar button.active .smb-ic{color:#fff;}
   .m-panel{display:none;}
   .m-panel.active{display:block;}
   .m-field{margin-bottom:10px;}
@@ -233,16 +237,14 @@
   <header>
     <div class="brand">
       <h1>MacroDiario</h1>
-      <button class="gear" id="btnSettings" title="Ajustes">⚙</button>
+      <button class="gear" id="btnSettings" title="Ajustes"></button>
     </div>
   </header>
 
   <main>
 
     <div class="day-strip-wrap">
-      <button class="strip-nav" id="prevDay" aria-label="Día anterior">‹</button>
       <div class="day-strip" id="dayStrip"></div>
-      <button class="strip-nav" id="nextDay" aria-label="Día siguiente">›</button>
     </div>
 
     <!-- HOY -->
@@ -254,6 +256,7 @@
 
       <div class="log-list" id="logList"></div>
     </section>
+
 
   </main>
 </div>
@@ -390,9 +393,9 @@
     </div>
 
     <div class="search-methods-bar">
-      <button data-m="buscar"><span class="smb-ic">🔍</span><span class="smb-lb">Buscar</span></button>
-      <button data-m="barcode"><span class="smb-ic">🏷️</span><span class="smb-lb">Código</span></button>
-      <button data-m="foto"><span class="smb-ic">📷</span><span class="smb-lb">Foto</span></button>
+      <button data-m="buscar"><span class="smb-ic"></span><span class="smb-lb">Buscar</span></button>
+      <button data-m="barcode"><span class="smb-ic"></span><span class="smb-lb">Código</span></button>
+      <button data-m="foto"><span class="smb-ic"></span><span class="smb-lb">Foto</span></button>
     </div>
 
   </div>
@@ -517,6 +520,34 @@
   function heartIconSvg(filled){
     return '<svg viewBox="0 0 24 24" width="15" height="15"><path d="M12 21s-6.72-4.35-9.33-8.1C1 10.22 1.6 6.9 4.42 5.4c2.2-1.18 4.66-.4 6 .1.4.15.8.4 1.1.7.3-.3.7-.55 1.1-.7 1.34-.5 3.8-1.28 6-.1 2.82 1.5 3.42 4.82 1.75 7.5C18.72 16.65 12 21 12 21z" fill="'+(filled ? 'currentColor' : 'none')+'" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path></svg>';
   }
+  function selectIconSvg(selected){
+    if(selected){
+      return '<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="9" fill="currentColor"></circle><path d="M8 12.3l2.6 2.6 5.2-5.6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
+    }
+    return '<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"></circle></svg>';
+  }
+
+  /* Simple line icons (same visual family as the heart above), used for header/search icons. */
+  function iconSvg(name, size){
+    size = size || 18;
+    var body;
+    if(name === 'settings'){
+      body = '<line x1="4" y1="6" x2="20" y2="6"></line><circle cx="14" cy="6" r="2" fill="currentColor" stroke="none"></circle>'+
+             '<line x1="4" y1="12" x2="20" y2="12"></line><circle cx="8" cy="12" r="2" fill="currentColor" stroke="none"></circle>'+
+             '<line x1="4" y1="18" x2="20" y2="18"></line><circle cx="16" cy="18" r="2" fill="currentColor" stroke="none"></circle>';
+    } else if(name === 'search'){
+      body = '<circle cx="10.5" cy="10.5" r="6.5"></circle><line x1="20" y1="20" x2="15.3" y2="15.3"></line>';
+    } else if(name === 'barcode'){
+      body = '<path d="M4 8V6a1 1 0 0 1 1-1h2"></path><path d="M4 16v2a1 1 0 0 0 1 1h2"></path>'+
+             '<path d="M20 8V6a1 1 0 0 0-1-1h-2"></path><path d="M20 16v2a1 1 0 0 1-1 1h-2"></path>'+
+             '<line x1="4" y1="12" x2="20" y2="12"></line>';
+    } else if(name === 'camera'){
+      body = '<path d="M4 8h2.5l1.3-2h8.4l1.3 2H20a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"></path><circle cx="12" cy="13.5" r="3.3"></circle>';
+    } else {
+      body = '';
+    }
+    return '<svg viewBox="0 0 24 24" width="'+size+'" height="'+size+'" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+body+'</svg>';
+  }
 
   function guessMeal(){
     var h = new Date().getHours();
@@ -537,6 +568,7 @@
     var entries = logs[dateIso] || [];
     var t = {kcal:0, protein:0, carbs:0, fat:0};
     entries.forEach(function(e){
+      if(e.counted === false) return;
       t.kcal += Number(e.kcal)||0;
       t.protein += Number(e.protein)||0;
       t.carbs += Number(e.carbs)||0;
@@ -549,6 +581,7 @@
     if(!logs[dateIso]) logs[dateIso] = [];
     entry.id = 'e' + Date.now() + Math.random().toString(36).slice(2,7);
     entry.time = new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+    if(entry.counted === undefined) entry.counted = true;
     logs[dateIso].push(entry);
     saveLogs(logs);
   }
@@ -614,10 +647,11 @@
 
   /* ---------- Weekly balance progress bar (sits above the daily ring) ---------- */
   function renderWeekBar(){
-    var wb = computeWeekBalanceUpToYesterday();
+    var wb = computeWeekBalanceForViewedWeek();
     if(wb.daysCounted === 0){
+      var emptyMsg = wb.isCurrentWeek ? 'Vuelve mañana' : 'Sin días previos';
       return '<div class="week-bar-block">'+
-        '<div class="wb-head"><span class="wb-label">Balance semanal</span><span class="wb-diff wb-diff-empty">Vuelve mañana</span></div>'+
+        '<div class="wb-head"><span class="wb-label">Balance semanal</span><span class="wb-diff wb-diff-empty">'+emptyMsg+'</span></div>'+
         '<div class="wb-track"><div class="wb-fill" style="width:0%;background:var(--border-soft)"></div></div>'+
       '</div>';
     }
@@ -698,12 +732,16 @@
     container.innerHTML = html;
   }
 
-  /* ---------- Week balance up to yesterday (independent of the day being viewed) ---------- */
-  function computeWeekBalanceUpToYesterday(){
-    var today = new Date(); today.setHours(0,0,0,0);
-    var monday = mondayOf(today);
+  /* ---------- Week balance for the week that contains the day being viewed ----------
+     Follows the day carousel: navigating to a different week recomputes this against
+     that week instead of always the real current week. Only days strictly before real
+     "today" are counted (so a past week counts all 7 days, the current week counts up
+     to yesterday, and a future week counts none), since today's own log is still
+     incomplete while it's in progress. */
+  function computeWeekBalanceForViewedWeek(){
+    var monday = mondayOf(currentViewDate);
     var dates = weekDates(monday);
-    var todayIsoVal = isoDate(today);
+    var todayIsoVal = todayIso();
     var consumed = 0, target = 0, daysCounted = 0;
     dates.forEach(function(d, i){
       var iso = isoDate(d);
@@ -714,7 +752,8 @@
         daysCounted++;
       }
     });
-    return { consumed: consumed, target: target, daysCounted: daysCounted };
+    var isCurrentWeek = (isoDate(monday) === isoDate(mondayOf(new Date())));
+    return { consumed: consumed, target: target, daysCounted: daysCounted, isCurrentWeek: isCurrentWeek };
   }
 
   /* ---------- Render: current day (from the day strip) ---------- */
@@ -743,6 +782,7 @@
     MEAL_KEYS.forEach(function(mk){
       var group = byMeal[mk] || [];
       var mealTotals = group.reduce(function(s,e){
+        if(e.counted === false) return s;
         s.kcal += Number(e.kcal)||0;
         s.protein += Number(e.protein)||0;
         s.carbs += Number(e.carbs)||0;
@@ -759,13 +799,17 @@
         html += '<div class="meal-empty">Sin registros</div>';
       } else {
         html += group.map(function(e){
-          return '<div class="log-row" data-editid="'+e.id+'">'+
-            '<div class="who">'+
-              '<div class="name">'+escapeHtml(e.name)+'</div>'+
-              (e.portionLabel ? '<div class="portion">'+escapeHtml(e.portionLabel)+'</div>' : '')+
+          var counted = e.counted !== false;
+          return '<div class="log-row-wrap">'+
+            '<button class="log-row-delete" data-del="'+e.id+'">Eliminar</button>'+
+            '<div class="log-row'+(counted ? '' : ' is-excluded')+'" data-editid="'+e.id+'">'+
+              '<div class="who">'+
+                '<div class="name">'+escapeHtml(e.name)+'</div>'+
+                (e.portionLabel ? '<div class="portion">'+escapeHtml(e.portionLabel)+'</div>' : '')+
+              '</div>'+
+              '<div class="kcal">'+round(e.kcal)+' kcal</div>'+
+              '<button class="select-btn'+(counted ? ' is-counted' : '')+'" data-select="'+e.id+'" aria-label="Contar en el total diario" title="Contar en el total diario">'+selectIconSvg(counted)+'</button>'+
             '</div>'+
-            '<div class="kcal">'+round(e.kcal)+' kcal</div>'+
-            '<button class="del" data-del="'+e.id+'" title="Eliminar">✕</button>'+
           '</div>';
         }).join('');
       }
@@ -780,8 +824,24 @@
         renderDay();
       });
     });
+    Array.prototype.forEach.call(listEl.querySelectorAll('[data-select]'), function(btn){
+      btn.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        var id = btn.getAttribute('data-select');
+        var entry = getEntry(iso, id);
+        if(!entry) return;
+        var wasCounted = entry.counted !== false;
+        updateEntry(iso, id, {counted: !wasCounted});
+        renderDay();
+      });
+    });
     Array.prototype.forEach.call(listEl.querySelectorAll('[data-editid]'), function(rowEl){
+      attachRowSwipe(rowEl);
       rowEl.addEventListener('click', function(){
+        if(rowEl.classList.contains('is-open')){
+          closeSwipeRow(rowEl);
+          return;
+        }
         openEditEntry(iso, rowEl.getAttribute('data-editid'));
       });
     });
@@ -789,6 +849,57 @@
       btn.addEventListener('click', function(){
         openAddModal(btn.getAttribute('data-addmeal'));
       });
+    });
+  }
+
+  /* ---------- Swipe-to-delete for log rows ---------- */
+  var SWIPE_REVEAL = 76;
+  var openSwipeRow = null;
+  function closeSwipeRow(rowEl){
+    rowEl.style.transform = 'translateX(0)';
+    rowEl.classList.remove('is-open');
+    if(openSwipeRow === rowEl) openSwipeRow = null;
+  }
+  function attachRowSwipe(rowEl){
+    var startX = 0, startY = 0, dx = 0, dragging = false, decided = false, horizontal = false;
+    rowEl.addEventListener('touchstart', function(ev){
+      if(ev.touches.length !== 1) return;
+      if(openSwipeRow && openSwipeRow !== rowEl) closeSwipeRow(openSwipeRow);
+      startX = ev.touches[0].clientX;
+      startY = ev.touches[0].clientY;
+      dx = 0; decided = false; horizontal = false; dragging = true;
+      rowEl.classList.add('dragging');
+    }, {passive:true});
+    rowEl.addEventListener('touchmove', function(ev){
+      if(!dragging) return;
+      var x = ev.touches[0].clientX, y = ev.touches[0].clientY;
+      dx = x - startX;
+      var dy = y - startY;
+      if(!decided && (Math.abs(dx) > 6 || Math.abs(dy) > 6)){
+        decided = true;
+        horizontal = Math.abs(dx) > Math.abs(dy);
+      }
+      if(horizontal){
+        if(ev.cancelable) ev.preventDefault();
+        var base = rowEl.classList.contains('is-open') ? -SWIPE_REVEAL : 0;
+        var t = Math.max(-SWIPE_REVEAL, Math.min(0, base + dx));
+        rowEl.style.transform = 'translateX(' + t + 'px)';
+      }
+    }, {passive:false});
+    rowEl.addEventListener('touchend', function(){
+      if(!dragging) return;
+      dragging = false;
+      rowEl.classList.remove('dragging');
+      if(!horizontal) return;
+      var base = rowEl.classList.contains('is-open') ? -SWIPE_REVEAL : 0;
+      var finalX = base + dx;
+      if(finalX < -SWIPE_REVEAL / 2){
+        rowEl.style.transform = 'translateX(-' + SWIPE_REVEAL + 'px)';
+        rowEl.classList.add('is-open');
+        openSwipeRow = rowEl;
+      } else {
+        closeSwipeRow(rowEl);
+      }
     });
   }
 
@@ -841,9 +952,6 @@
     d.setDate(d.getDate() + delta);
     selectDate(isoDate(d), true);
   }
-
-  document.getElementById('prevDay').addEventListener('click', function(){ shiftDay(-1); });
-  document.getElementById('nextDay').addEventListener('click', function(){ shiftDay(1); });
 
   /* ---------- Render: Targets form ---------- */
   function calcCarbs(kcal, protein, fat){
@@ -1843,6 +1951,11 @@
   }
 
   /* ---------- Init ---------- */
+  document.getElementById('btnSettings').innerHTML = iconSvg('settings', 17);
+  Array.prototype.forEach.call(document.querySelectorAll('.search-methods-bar button'), function(btn){
+    var name = btn.getAttribute('data-m') === 'buscar' ? 'search' : (btn.getAttribute('data-m') === 'barcode' ? 'barcode' : 'camera');
+    btn.querySelector('.smb-ic').innerHTML = iconSvg(name, 19);
+  });
   buildDayStrip();
   markSelectedChip();
   renderDay();
