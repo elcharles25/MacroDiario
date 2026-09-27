@@ -63,15 +63,13 @@
 
   /* Facts card: calorie ring + macro pills */
   .facts{background:var(--card);border-radius:var(--radius-lg);padding:22px 18px;box-shadow:var(--shadow-card);}
-  .ring-wrap{position:relative;width:160px;height:160px;margin:0;flex:none;}
-  .ring-wrap svg{width:100%;height:100%;transform:rotate(-90deg);}
-  .ring-wrap circle{fill:none;stroke-linecap:round;}
-  .ring-track{stroke:var(--border-soft);}
-  .ring-arc{transition:stroke-dashoffset 0.5s ease, stroke-dasharray 0.5s ease, stroke 0.3s ease;}
-  .ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+  .ring-wrap{position:relative;width:100%;max-width:340px;aspect-ratio:320/90;margin:0 auto;flex:none;}
+  .ring-wrap svg{display:block;width:100%;height:100%;}
+  .ring-center{position:absolute;left:0;right:0;top:60%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;text-align:center;}
+  .ring-center .rc-kcal-row{display:flex;align-items:baseline;justify-content:center;gap:3px;}
   .ring-center .rc-kcal{font-family:'Poppins',sans-serif;font-size:32px;font-weight:800;line-height:1;color:var(--ink);}
-  .ring-center .rc-sub{font-size:12px;color:var(--ink-soft);margin-top:4px;font-weight:500;}
-  .ring-center .rc-remain{font-size:11px;color:var(--primary-dark);margin-top:2px;font-weight:600;}
+  .ring-center .rc-sub{font-size:12px;color:var(--ink-soft);font-weight:500;white-space:nowrap;}
+  .ring-center .rc-remain{font-size:11px;margin-top:4px;font-weight:600;}
   .week-bar-block{margin-bottom:16px;}
   .week-bar-block .wb-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;}
   .week-bar-block .wb-label{font-size:11px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;color:var(--ink-soft);}
@@ -79,7 +77,7 @@
   .week-bar-block .wb-diff-empty{font-size:11px;font-weight:500;color:var(--ink-soft);font-family:'Inter',sans-serif;}
   .week-bar-block .wb-track{height:10px;background:var(--border-soft);border-radius:var(--radius-full);overflow:hidden;}
   .week-bar-block .wb-fill{height:100%;border-radius:var(--radius-full);transition:width 0.5s ease, background 0.3s ease;}
-  .macro-grid{display:flex;padding-top:6px;}
+  .macro-grid{display:flex;padding-top:0;}
   .macro-col{flex:1;text-align:center;padding:0 6px;}
   .macro-col .mc-label{font-size:13px;color:var(--ink-soft);font-weight:500;margin-bottom:6px;}
   .macro-col .mc-label .mc-chev{color:var(--border-soft);font-weight:700;margin-left:1px;}
@@ -88,7 +86,7 @@
   .macro-col .mc-val .mc-unit{font-size:13px;font-weight:600;color:var(--ink-soft);margin-left:2px;}
   .macro-col .mc-bar-bg{height:6px;background:var(--border-soft);border-radius:var(--radius-full);overflow:hidden;}
   .macro-col .mc-bar-fill{height:100%;background:var(--primary);border-radius:var(--radius-full);}
-  .rings-row{display:flex;align-items:center;justify-content:center;gap:36px;flex-wrap:wrap;margin-bottom:14px;}
+  .rings-row{display:flex;align-items:center;justify-content:center;gap:36px;flex-wrap:wrap;margin-bottom:2px;}
 
   /* Add button */
   .add-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:18px;padding:14px;background:var(--ink);color:#fff;border:none;border-radius:var(--radius-md);font-weight:700;font-size:14px;letter-spacing:0.01em;box-shadow:var(--shadow-card);}
@@ -549,28 +547,36 @@
     return Math.max(0, Math.min(100, (consumed/target)*100));
   }
 
-  /* ---------- Arc-gauge geometry helpers (rings open at the bottom) ---------- */
-  // gapDeg: total angular gap centered at the bottom (6 o'clock) of the circle.
-  // With the SVG rotated -90deg, t=0 is the top and t increases clockwise;
-  // t=C/2 is the bottom. The visible arc runs from startT (bottom-left edge
-  // of the gap) clockwise all the way around (through left, top, right) to
-  // endT (bottom-right edge of the gap).
-  function arcGeom(r, gapDeg){
-    var C = 2 * Math.PI * r;
-    var gapLen = C * gapDeg / 360;
-    var arcLen = C - gapLen;
-    var startT = C/2 + gapLen/2;
-    var endT = C/2 - gapLen/2;
-    return { C:C, gapLen:gapLen, arcLen:arcLen, startT:startT, endT:endT };
+  /* ---------- Oval arc-gauge helpers (ring open at the bottom, uniform stroke width) ----------
+     A true ellipse is drawn point-by-point (instead of stretching a circle with a CSS
+     transform), so the stroke offset is computed perpendicular to the real curve and
+     comes out the same width all the way around, including on the wide sides of the oval. */
+  // Angle convention: deg=0 is the top (12 o'clock), increasing clockwise.
+  function ovalPoint(cx, cy, rx, ry, deg){
+    var rad = deg * Math.PI / 180;
+    return { x: cx + rx * Math.sin(rad), y: cy - ry * Math.cos(rad) };
   }
-  // A colored circle element showing only the segment [startAt, startAt+length] of its path.
-  function arcSegmentEl(r, startAt, length, color, strokeWidth, cap){
-    var C = 2 * Math.PI * r;
-    length = Math.max(0, Math.min(length, C));
-    return '<circle class="ring-arc" cx="80" cy="80" r="'+r+'" style="stroke:'+color+';stroke-width:'+strokeWidth+'px;stroke-linecap:'+(cap||'round')+';stroke-dasharray:'+length+' '+(C-length)+';stroke-dashoffset:'+(-startAt)+'"></circle>';
+  function ovalArcPathD(cx, cy, rx, ry, startDeg, lengthDeg){
+    var steps = Math.max(2, Math.round(Math.abs(lengthDeg) / 3));
+    var d = '';
+    for(var i=0;i<=steps;i++){
+      var deg = startDeg + lengthDeg * i / steps;
+      var p = ovalPoint(cx, cy, rx, ry, deg);
+      d += (i===0 ? 'M' : 'L') + p.x.toFixed(2) + ',' + p.y.toFixed(2) + ' ';
+    }
+    return d.trim();
   }
-  function arcTrackEl(r, geom, strokeWidth){
-    return '<circle class="ring-track" cx="80" cy="80" r="'+r+'" style="stroke-width:'+strokeWidth+'px;stroke-dasharray:'+geom.arcLen+' '+geom.gapLen+';stroke-dashoffset:'+(-geom.startT)+'"></circle>';
+  // A colored open path covering [startDeg, startDeg+lengthDeg] of the oval.
+  function ovalArcEl(cx, cy, rx, ry, startDeg, lengthDeg, color, strokeWidth, cap){
+    if(lengthDeg <= 0.01) return '';
+    var d = ovalArcPathD(cx, cy, rx, ry, startDeg, lengthDeg);
+    return '<path d="'+d+'" style="fill:none;stroke:'+color+';stroke-width:'+strokeWidth+'px;stroke-linecap:'+(cap||'round')+'"></path>';
+  }
+  // gapDeg: total angular gap centered at the bottom. The visible track runs
+  // clockwise from startDeg (bottom-left edge of the gap), through left/top/right,
+  // for arcDeg degrees, ending at the bottom-right edge of the gap.
+  function ovalGapGeom(gapDeg){
+    return { arcDeg: 360 - gapDeg, startDeg: 180 + gapDeg / 2 };
   }
 
   /* ---------- Weekly balance progress bar (sits above the daily ring) ---------- */
@@ -599,24 +605,43 @@
   function renderFacts(container, consumed, target){
     var remainKcal = round(target.kcal) - round(consumed.kcal);
     var kcalPct = pct(consumed.kcal, target.kcal);
+    var relPct = target.kcal > 0 ? (consumed.kcal / target.kcal * 100) : 0;
     var overTarget = target.kcal > 0 && consumed.kcal > target.kcal;
-    var ringColor = overTarget ? 'var(--fat)' : 'var(--primary)';
 
-    var GAP_DEG = 100;
-    var R1 = 68, SW1 = 6;    // daily ring
-    var g1 = arcGeom(R1, GAP_DEG);
+    // Objetivo cumplido: entre -10% y +2% del objetivo. Amarillo: +2% a +15% sobre el objetivo.
+    // Rojo: más de +15% sobre el objetivo. Por debajo del -10%: aún no alcanzado.
+    var ringColor;
+    if(target.kcal <= 0){ ringColor = 'var(--primary)'; }
+    else if(relPct > 115){ ringColor = 'var(--fat)'; }
+    else if(relPct > 102){ ringColor = 'var(--carbs)'; }
+    else if(relPct >= 90){ ringColor = 'var(--primary)'; }
+    else { ringColor = 'var(--carbs)'; }
 
-    var svg = '<svg viewBox="0 0 160 160">';
-    svg += arcTrackEl(R1, g1, SW1);
-    var dailyLen = g1.arcLen * Math.min(kcalPct, 100) / 100;
-    svg += arcSegmentEl(R1, g1.startT, dailyLen, ringColor, SW1, 'round');
+    // Number: same bands, but under target shows in the normal ink color instead of yellow.
+    var numberColor;
+    if(target.kcal <= 0){ numberColor = 'var(--ink)'; }
+    else if(relPct > 115){ numberColor = 'var(--fat)'; }
+    else if(relPct > 102){ numberColor = 'var(--carbs)'; }
+    else if(relPct >= 90){ numberColor = 'var(--primary)'; }
+    else { numberColor = 'var(--ink)'; }
+
+    var GAP_DEG = 240;
+    var CX = 160, CY = 80, RX = 136, RY = 68, SW1 = 6;    // daily ring (true oval, double the old circle's width)
+    var g1 = ovalGapGeom(GAP_DEG);
+
+    var svg = '<svg viewBox="0 0 320 90">';
+    svg += ovalArcEl(CX, CY, RX, RY, g1.startDeg, g1.arcDeg, 'var(--border-soft)', SW1, 'round');
+    var dailyLenDeg = g1.arcDeg * Math.min(kcalPct, 100) / 100;
+    svg += ovalArcEl(CX, CY, RX, RY, g1.startDeg, dailyLenDeg, ringColor, SW1, 'round');
     svg += '</svg>';
 
     var mainRing = '<div class="ring-wrap">'+svg+
       '<div class="ring-center">'+
-        '<div class="rc-kcal">'+round(consumed.kcal)+'</div>'+
-        '<div class="rc-sub">de '+round(target.kcal)+' kcal</div>'+
-        '<div class="rc-remain">'+(overTarget ? (Math.abs(remainKcal)+' de más') : (remainKcal+' restantes'))+'</div>'+
+        '<div class="rc-kcal-row">'+
+          '<span class="rc-kcal" style="color:'+numberColor+'">'+round(consumed.kcal)+'</span>'+
+          '<span class="rc-sub">/'+round(target.kcal)+' kcal</span>'+
+        '</div>'+
+        '<div class="rc-remain" style="color:'+(overTarget ? numberColor : 'var(--ink)')+'">'+(overTarget ? (Math.abs(remainKcal)+' de más') : (remainKcal+' restantes'))+'</div>'+
       '</div>'+
     '</div>';
 
