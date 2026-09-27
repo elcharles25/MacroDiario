@@ -72,15 +72,22 @@
   .ring-center .rc-kcal{font-family:'Poppins',sans-serif;font-size:32px;font-weight:800;line-height:1;color:var(--ink);}
   .ring-center .rc-sub{font-size:12px;color:var(--ink-soft);margin-top:4px;font-weight:500;}
   .ring-center .rc-remain{font-size:11px;color:var(--primary-dark);margin-top:2px;font-weight:600;}
-  .ring-center .rc-week{font-size:10px;margin-top:7px;font-weight:700;letter-spacing:0.01em;}
-  .ring-center .rc-week-empty{color:var(--ink-soft);font-weight:500;}
-  .macro-row{display:flex;align-items:center;gap:10px;padding:9px 2px;}
-  .macro-row .chip{width:10px;height:10px;flex:none;border-radius:var(--radius-full);}
-  .macro-row .name{font-size:12px;font-weight:600;color:var(--ink-soft);width:70px;flex:none;}
-  .macro-row .bar-bg{flex:1;height:8px;background:var(--border-soft);border-radius:var(--radius-full);position:relative;overflow:hidden;}
-  .macro-row .bar-fill{height:100%;border-radius:var(--radius-full);}
-  .macro-row .amt{font-size:12px;font-weight:600;width:88px;text-align:right;flex:none;color:var(--ink-soft);}
-  .macro-row .amt b{color:var(--ink);font-weight:700;}
+  .week-bar-block{margin-bottom:16px;}
+  .week-bar-block .wb-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;}
+  .week-bar-block .wb-label{font-size:11px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;color:var(--ink-soft);}
+  .week-bar-block .wb-diff{font-size:13px;font-weight:700;font-family:'Poppins',sans-serif;}
+  .week-bar-block .wb-diff-empty{font-size:11px;font-weight:500;color:var(--ink-soft);font-family:'Inter',sans-serif;}
+  .week-bar-block .wb-track{height:10px;background:var(--border-soft);border-radius:var(--radius-full);overflow:hidden;}
+  .week-bar-block .wb-fill{height:100%;border-radius:var(--radius-full);transition:width 0.5s ease, background 0.3s ease;}
+  .macro-grid{display:flex;padding-top:6px;}
+  .macro-col{flex:1;text-align:center;padding:0 6px;}
+  .macro-col .mc-label{font-size:13px;color:var(--ink-soft);font-weight:500;margin-bottom:6px;}
+  .macro-col .mc-label .mc-chev{color:var(--border-soft);font-weight:700;margin-left:1px;}
+  .macro-col .mc-val{font-family:'Poppins',sans-serif;font-size:15px;font-weight:500;color:var(--ink);white-space:nowrap;margin-bottom:9px;}
+  .macro-col .mc-val .mc-sep{color:var(--ink-soft);font-weight:600;}
+  .macro-col .mc-val .mc-unit{font-size:13px;font-weight:600;color:var(--ink-soft);margin-left:2px;}
+  .macro-col .mc-bar-bg{height:6px;background:var(--border-soft);border-radius:var(--radius-full);overflow:hidden;}
+  .macro-col .mc-bar-fill{height:100%;background:var(--primary);border-radius:var(--radius-full);}
   .rings-row{display:flex;align-items:center;justify-content:center;gap:36px;flex-wrap:wrap;margin-bottom:14px;}
 
   /* Add button */
@@ -267,6 +274,9 @@
         <p class="hint">Solo rellénalo si "Buscar" te da error de conexión. Es la URL de un pequeño Cloudflare Worker propio que reenvía la búsqueda a Open Food Facts añadiendo cabeceras CORS. Déjalo vacío para llamar directamente.</p>
       </div>
       <button class="primary-btn" id="btnSaveSettings">Guardar</button>
+      <p class="section-label">Zona de pruebas</p>
+      <button class="secondary-btn" id="btnSeedFake" style="width:100%;margin-bottom:10px;">Cargar datos de ejemplo</button>
+      <p class="hint" style="margin-top:-4px;margin-bottom:14px;">Rellena objetivos, favoritos y varios días de comidas con datos inventados (sin llamar a Open Food Facts), para poder probar la app.</p>
       <button class="secondary-btn" id="btnClearData">Borrar todos los datos guardados</button>
     </div>
   </div>
@@ -563,6 +573,28 @@
     return '<circle class="ring-track" cx="80" cy="80" r="'+r+'" style="stroke-width:'+strokeWidth+'px;stroke-dasharray:'+geom.arcLen+' '+geom.gapLen+';stroke-dashoffset:'+(-geom.startT)+'"></circle>';
   }
 
+  /* ---------- Weekly balance progress bar (sits above the daily ring) ---------- */
+  function renderWeekBar(){
+    var wb = computeWeekBalanceUpToYesterday();
+    if(wb.daysCounted === 0){
+      return '<div class="week-bar-block">'+
+        '<div class="wb-head"><span class="wb-label">Balance semanal</span><span class="wb-diff wb-diff-empty">Vuelve mañana</span></div>'+
+        '<div class="wb-track"><div class="wb-fill" style="width:0%;background:var(--border-soft)"></div></div>'+
+      '</div>';
+    }
+    var weekTotalTarget = 0;
+    DAY_KEYS.forEach(function(dk){ weekTotalTarget += targetFor(dk).kcal || 0; });
+    var barPct = weekTotalTarget > 0 ? Math.max(0, Math.min(100, wb.consumed / weekTotalTarget * 100)) : 0;
+    var diff = round(wb.consumed) - round(wb.target);
+    var color = diff <= 0 ? 'var(--primary)' : (diff <= 300 ? 'var(--carbs)' : 'var(--fat)');
+    var sign = diff > 0 ? '+' : (diff < 0 ? '−' : '');
+
+    return '<div class="week-bar-block">'+
+      '<div class="wb-head"><span class="wb-label">Balance semanal</span><span class="wb-diff" style="color:'+color+'">'+sign+Math.abs(diff)+' kcal</span></div>'+
+      '<div class="wb-track"><div class="wb-fill" style="width:'+barPct+'%;background:'+color+'"></div></div>'+
+    '</div>';
+  }
+
   /* ---------- Render: Nutrition facts panel ---------- */
   function renderFacts(container, consumed, target){
     var remainKcal = round(target.kcal) - round(consumed.kcal);
@@ -571,48 +603,13 @@
     var ringColor = overTarget ? 'var(--fat)' : 'var(--primary)';
 
     var GAP_DEG = 100;
-    var R1 = 68, SW1 = 6;    // daily ring (outer)
-    var R2 = 58, SW2 = 5;    // weekly balance ring (inner, concentric)
+    var R1 = 68, SW1 = 6;    // daily ring
     var g1 = arcGeom(R1, GAP_DEG);
-    var g2 = arcGeom(R2, GAP_DEG);
 
     var svg = '<svg viewBox="0 0 160 160">';
     svg += arcTrackEl(R1, g1, SW1);
     var dailyLen = g1.arcLen * Math.min(kcalPct, 100) / 100;
     svg += arcSegmentEl(R1, g1.startT, dailyLen, ringColor, SW1, 'round');
-    svg += arcTrackEl(R2, g2, SW2);
-
-    var wb = computeWeekBalanceUpToYesterday();
-    var weekBalanceLabel;
-    if(wb.daysCounted === 0){
-      weekBalanceLabel = '<div class="rc-week rc-week-empty">Semana: vuelve mañana</div>';
-    } else {
-      var balance = round(wb.consumed) - round(wb.target);
-      var MAX_DEV_PCT = 30, YELLOW_THRESHOLD_PCT = 12;
-      var halfArc = g2.arcLen / 2;
-      var balColor;
-      if(balance < 0){
-        var deficitPct = wb.target > 0 ? Math.min(Math.abs(balance) / wb.target * 100, MAX_DEV_PCT) : 0;
-        var lenGreen = halfArc * (deficitPct / MAX_DEV_PCT);
-        svg += arcSegmentEl(R2, g2.startT, lenGreen, 'var(--primary)', SW2, 'round');
-        balColor = 'var(--primary)';
-      } else if(balance > 0){
-        var surplusPct = wb.target > 0 ? Math.min(balance / wb.target * 100, MAX_DEV_PCT) : 0;
-        var lenSurplusTotal = halfArc * (surplusPct / MAX_DEV_PCT);
-        var lenYellow = halfArc * (Math.min(surplusPct, YELLOW_THRESHOLD_PCT) / MAX_DEV_PCT);
-        var lenRed = lenSurplusTotal - lenYellow;
-        var yellowCap = lenRed > 0.5 ? 'butt' : 'round';
-        svg += arcSegmentEl(R2, g2.endT - lenYellow, lenYellow, 'var(--carbs)', SW2, yellowCap);
-        if(lenRed > 0.5){
-          svg += arcSegmentEl(R2, g2.endT - lenSurplusTotal, lenRed, 'var(--fat)', SW2, 'round');
-        }
-        balColor = surplusPct > YELLOW_THRESHOLD_PCT ? 'var(--fat)' : 'var(--carbs)';
-      } else {
-        balColor = 'var(--ink-soft)';
-      }
-      var sign = balance > 0 ? '+' : (balance < 0 ? '−' : '');
-      weekBalanceLabel = '<div class="rc-week" style="color:'+balColor+'">Semana '+sign+Math.abs(balance)+' kcal</div>';
-    }
     svg += '</svg>';
 
     var mainRing = '<div class="ring-wrap">'+svg+
@@ -620,23 +617,26 @@
         '<div class="rc-kcal">'+round(consumed.kcal)+'</div>'+
         '<div class="rc-sub">de '+round(target.kcal)+' kcal</div>'+
         '<div class="rc-remain">'+(overTarget ? (Math.abs(remainKcal)+' de más') : (remainKcal+' restantes'))+'</div>'+
-        weekBalanceLabel+
       '</div>'+
     '</div>';
 
-    var html = '<div class="rings-row">'+mainRing+'</div>';
+    var html = renderWeekBar() + '<div class="rings-row">'+mainRing+'</div>';
 
-    [['protein','Proteína','var(--protein)'],['carbs','Carbohidr.','var(--carbs)'],['fat','Grasa','var(--fat)']].forEach(function(m){
-      var key=m[0], label=m[1], color=m[2];
+    html += '<div class="macro-grid">';
+    [['protein','Proteínas'],['carbs','Carbs'],['fat','Grasas']].forEach(function(m){
+      var key=m[0], label=m[1];
       var c = round(consumed[key]), tg = round(target[key]);
       var p = pct(c, tg);
-      html += '<div class="macro-row">'+
-        '<span class="chip" style="background:'+color+'"></span>'+
-        '<span class="name">'+label+'</span>'+
-        '<span class="bar-bg"><span class="bar-fill" style="width:'+p+'%;background:'+color+'"></span></span>'+
-        '<span class="amt"><b>'+c+'</b> / '+tg+' g</span>'+
+      var relPct = tg > 0 ? (c / tg * 100) : 0;
+      var completed = tg > 0 && relPct >= 90 && relPct <= 110;
+      var barColor = completed ? 'var(--primary)' : 'var(--carbs)';
+      html += '<div class="macro-col">'+
+        '<div class="mc-label">'+label+' <span class="mc-chev">›</span></div>'+
+        '<div class="mc-val">'+c+'<span class="mc-sep"> / </span>'+tg+'<span class="mc-unit">g</span></div>'+
+        '<div class="mc-bar-bg"><div class="mc-bar-fill" style="width:'+p+'%;background:'+barColor+'"></div></div>'+
       '</div>';
     });
+    html += '</div>';
     container.innerHTML = html;
   }
 
@@ -889,16 +889,119 @@
     setProxyUrl(document.getElementById('proxyUrlInput').value.trim());
     settingsOverlay.classList.add('hidden');
   });
+  /* window.confirm()/prompt() are unreliable in an iOS "Add to Home Screen" app
+     (they can silently no-op instead of showing a dialog), so destructive
+     actions use this in-page confirm sheet instead of confirm(). */
+  function customConfirm(message, onConfirm){
+    var ov = document.createElement('div');
+    ov.className = 'overlay';
+    ov.innerHTML = '<div class="sheet" style="max-height:none;">'+
+      '<p style="font-size:14px;line-height:1.5;margin:14px 0 4px 0;">'+escapeHtml(message)+'</p>'+
+      '<div style="display:flex;gap:10px;margin-top:16px;">'+
+        '<button class="secondary-btn cc-cancel" style="flex:1;">Cancelar</button>'+
+        '<button class="primary-btn cc-ok" style="flex:1;">Continuar</button>'+
+      '</div>'+
+    '</div>';
+    document.body.appendChild(ov);
+    function close(){ if(ov.parentNode) document.body.removeChild(ov); }
+    ov.addEventListener('click', function(e){ if(e.target === ov) close(); });
+    ov.querySelector('.cc-cancel').addEventListener('click', close);
+    ov.querySelector('.cc-ok').addEventListener('click', function(){ close(); onConfirm(); });
+  }
+
   document.getElementById('btnClearData').addEventListener('click', function(){
-    if(confirm('Esto borrará tus objetivos y todo el historial guardado en este navegador. ¿Continuar?')){
+    customConfirm('Esto borrará tus objetivos y todo el historial guardado en este navegador. ¿Continuar?', function(){
       localStorage.removeItem(LS_TARGETS);
       localStorage.removeItem(LS_LOGS);
       localStorage.removeItem(LS_GEMINI);
       localStorage.removeItem(LS_PROXY);
-      targets = {}; logs = {};
+      localStorage.removeItem(LS_FAVORITES);
+      targets = {}; logs = {}; favorites = [];
       renderDay(); renderTargetsForm();
       settingsOverlay.classList.add('hidden');
-    }
+    });
+  });
+
+  /* ---------- Datos de ejemplo (para probar la app sin llamar a Open Food Facts) ---------- */
+  var FAKE_FOODS = [
+    {name:'Pechuga de pollo a la plancha', per100:{kcal:165, protein:31, carbs:0, fat:3.6}},
+    {name:'Arroz blanco cocido', per100:{kcal:130, protein:2.7, carbs:28, fat:0.3}},
+    {name:'Avena en copos', per100:{kcal:389, protein:16.9, carbs:66, fat:6.9}},
+    {name:'Plátano', per100:{kcal:89, protein:1.1, carbs:23, fat:0.3}},
+    {name:'Yogur natural', per100:{kcal:61, protein:3.5, carbs:4.7, fat:3.3}},
+    {name:'Huevo cocido', per100:{kcal:155, protein:13, carbs:1.1, fat:11}},
+    {name:'Pan integral', per100:{kcal:247, protein:13, carbs:41, fat:4.2}},
+    {name:'Aguacate', per100:{kcal:160, protein:2, carbs:8.5, fat:14.7}},
+    {name:'Salmón a la plancha', per100:{kcal:208, protein:20, carbs:0, fat:13}},
+    {name:'Lentejas cocidas', per100:{kcal:116, protein:9, carbs:20, fat:0.4}},
+    {name:'Almendras', per100:{kcal:579, protein:21, carbs:22, fat:50}},
+    {name:'Aceite de oliva', per100:{kcal:884, protein:0, carbs:0, fat:100}}
+  ];
+  var FAKE_MEAL_TIMES = {desayuno:'08:30', almuerzo:'11:15', comida:'14:15', merienda:'17:45', cena:'21:00'};
+
+  function fakePickFood(){
+    return FAKE_FOODS[Math.floor(Math.random() * FAKE_FOODS.length)];
+  }
+  function fakeEntry(meal, gramsMin, gramsMax){
+    var f = fakePickFood();
+    var grams = gramsMin + Math.round(Math.random() * (gramsMax - gramsMin));
+    var factor = grams / 100;
+    return {
+      id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
+      time: FAKE_MEAL_TIMES[meal] || '12:00',
+      name: f.name,
+      kcal: f.per100.kcal * factor, protein: f.per100.protein * factor, carbs: f.per100.carbs * factor, fat: f.per100.fat * factor,
+      portionLabel: grams + ' g', grams: grams, per100: f.per100,
+      meal: meal, source: 'fake'
+    };
+  }
+
+  function seedFakeData(){
+    // Objetivos: entre semana algo más bajos que el fin de semana
+    var weekday = {kcal:2200, protein:160, fat:70};
+    weekday.carbs = calcCarbs(weekday.kcal, weekday.protein, weekday.fat);
+    var weekend = {kcal:2500, protein:150, fat:80};
+    weekend.carbs = calcCarbs(weekend.kcal, weekend.protein, weekend.fat);
+    var newTargets = {};
+    DAY_KEYS.forEach(function(dk){
+      newTargets[dk] = Object.assign({}, (dk === 'sat' || dk === 'sun') ? weekend : weekday);
+    });
+    targets = newTargets;
+    saveTargets(targets);
+
+    // Favoritos de ejemplo
+    favorites = FAKE_FOODS.slice(0, 5).map(function(f){
+      return { id:'f' + Date.now() + Math.random().toString(36).slice(2,7), name:f.name, per100:f.per100, grams:100, source:'fake' };
+    });
+    saveFavorites(favorites);
+
+    // Historial: rellena de lunes hasta hoy (los días futuros de la semana quedan vacíos)
+    var today = new Date(); today.setHours(0,0,0,0);
+    var monday = mondayOf(today);
+    var todayIsoVal = isoDate(today);
+    logs = {};
+    weekDates(monday).forEach(function(d){
+      var iso = isoDate(d);
+      if(iso > todayIsoVal) return;
+      var day = [];
+      day.push(fakeEntry('desayuno', 150, 320));
+      day.push(fakeEntry('almuerzo', 80, 180));
+      day.push(fakeEntry('comida', 220, 380));
+      if(Math.random() > 0.35) day.push(fakeEntry('merienda', 60, 150));
+      day.push(fakeEntry('cena', 200, 340));
+      logs[iso] = day;
+    });
+    saveLogs(logs);
+
+    renderTargetsForm();
+    renderDay();
+  }
+
+  document.getElementById('btnSeedFake').addEventListener('click', function(){
+    customConfirm('Esto sustituirá tus objetivos, favoritos e historial actuales por datos de ejemplo inventados (sin usar Open Food Facts). ¿Continuar?', function(){
+      seedFakeData();
+      settingsOverlay.classList.add('hidden');
+    });
   });
 
   /* ---------- Edit entry modal ---------- */
