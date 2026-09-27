@@ -63,15 +63,17 @@
 
   /* Facts card: calorie ring + macro pills */
   .facts{background:var(--card);border-radius:var(--radius-lg);padding:22px 18px;box-shadow:var(--shadow-card);}
-  .ring-wrap{position:relative;width:172px;height:172px;margin:0 auto 18px auto;}
+  .ring-wrap{position:relative;width:160px;height:160px;margin:0;flex:none;}
   .ring-wrap svg{width:100%;height:100%;transform:rotate(-90deg);}
-  .ring-wrap circle{fill:none;stroke-width:14;stroke-linecap:round;}
-  .ring-bg{stroke:var(--border-soft);}
-  .ring-fg{stroke:var(--primary);transition:stroke-dashoffset 0.5s ease, stroke 0.3s ease;}
+  .ring-wrap circle{fill:none;stroke-linecap:round;}
+  .ring-track{stroke:var(--border-soft);}
+  .ring-arc{transition:stroke-dashoffset 0.5s ease, stroke-dasharray 0.5s ease, stroke 0.3s ease;}
   .ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
   .ring-center .rc-kcal{font-family:'Poppins',sans-serif;font-size:32px;font-weight:800;line-height:1;color:var(--ink);}
   .ring-center .rc-sub{font-size:12px;color:var(--ink-soft);margin-top:4px;font-weight:500;}
   .ring-center .rc-remain{font-size:11px;color:var(--primary-dark);margin-top:2px;font-weight:600;}
+  .ring-center .rc-week{font-size:10px;margin-top:7px;font-weight:700;letter-spacing:0.01em;}
+  .ring-center .rc-week-empty{color:var(--ink-soft);font-weight:500;}
   .macro-row{display:flex;align-items:center;gap:10px;padding:9px 2px;}
   .macro-row .chip{width:10px;height:10px;flex:none;border-radius:var(--radius-full);}
   .macro-row .name{font-size:12px;font-weight:600;color:var(--ink-soft);width:70px;flex:none;}
@@ -79,6 +81,7 @@
   .macro-row .bar-fill{height:100%;border-radius:var(--radius-full);}
   .macro-row .amt{font-size:12px;font-weight:600;width:88px;text-align:right;flex:none;color:var(--ink-soft);}
   .macro-row .amt b{color:var(--ink);font-weight:700;}
+  .rings-row{display:flex;align-items:center;justify-content:center;gap:36px;flex-wrap:wrap;margin-bottom:14px;}
 
   /* Add button */
   .add-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:18px;padding:14px;background:var(--ink);color:#fff;border:none;border-radius:var(--radius-md);font-weight:700;font-size:14px;letter-spacing:0.01em;box-shadow:var(--shadow-card);}
@@ -134,6 +137,7 @@
   /* Modal */
   .overlay{position:fixed;inset:0;background:rgba(20,22,30,0.45);display:flex;align-items:flex-end;justify-content:center;z-index:50;}
   .sheet{background:var(--bg);width:100%;max-width:640px;max-height:88vh;overflow-y:auto;border-radius:24px 24px 0 0;padding:22px 20px 26px 20px;box-shadow:var(--shadow-pop);position:relative;}
+  #addOverlay .sheet{height:75vh;max-height:75vh;}
   .sheet::before{content:'';position:absolute;top:9px;left:50%;transform:translateX(-50%);width:38px;height:4px;border-radius:var(--radius-full);background:var(--border-soft);}
   .sheet h2{font-size:17px;font-weight:800;margin:6px 0 16px 0;font-family:'Poppins',sans-serif;}
   .method-tabs{display:flex;gap:6px;margin-bottom:16px;}
@@ -144,6 +148,30 @@
   .settings-tabs button.active{background:var(--ink);color:#fff;}
   .st-panel{display:none;}
   .st-panel.active{display:block;}
+  .add-subtabs{display:flex;gap:6px;margin-bottom:14px;}
+  .add-subtabs button{flex:1;border:none;border-radius:var(--radius-md);background:var(--card);padding:10px 4px;font-size:13px;font-weight:600;box-shadow:var(--shadow-card);color:var(--ink-soft);}
+  .add-subtabs button.active{background:var(--ink);color:#fff;}
+  .sub-panel{display:none;}
+  .sub-panel.active{display:block;}
+  .section-label{font-size:12px;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;color:var(--ink-soft);margin:16px 0 8px 0;}
+  .section-label:first-child{margin-top:0;}
+  .recent-row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--border-soft);}
+  .recent-row .fn{flex:1;font-size:13px;font-weight:600;min-width:0;}
+  .recent-row .fmacros{font-size:11px;color:var(--ink-soft);}
+  .recent-row button{background:var(--bg);border:none;border-radius:var(--radius-sm);padding:6px 10px;font-size:11px;font-weight:600;flex:none;margin-left:8px;}
+  .recent-meal-card{background:var(--card);border-radius:var(--radius-md);padding:12px;margin-bottom:10px;box-shadow:var(--shadow-card);}
+  .recent-meal-card .rmh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;}
+  .recent-meal-card .rmh .rmtitle{font-size:13px;font-weight:700;}
+  .recent-meal-card .rmh .rmdate{font-size:11px;color:var(--ink-soft);}
+  .recent-meal-card .rmitems{font-size:12px;color:var(--ink-soft);margin-bottom:8px;line-height:1.4;}
+  .recent-meal-card button{width:100%;background:var(--primary-soft);color:var(--primary-dark);border:none;border-radius:var(--radius-sm);padding:8px;font-size:12px;font-weight:700;}
+  .empty-mini{font-size:12px;color:var(--ink-soft);padding:6px 0 14px 0;}
+  .search-methods-bar{display:flex;gap:8px;position:sticky;bottom:0;background:var(--bg);padding-top:12px;margin-top:8px;}
+  .search-methods-bar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;border:none;border-radius:var(--radius-md);background:var(--card);padding:10px 0;box-shadow:var(--shadow-card);}
+  .search-methods-bar .smb-ic{font-size:18px;line-height:1;}
+  .search-methods-bar .smb-lb{font-size:10px;font-weight:600;color:var(--ink-soft);}
+  .search-methods-bar button.active{background:var(--ink);}
+  .search-methods-bar button.active .smb-lb{color:#fff;}
   .m-panel{display:none;}
   .m-panel.active{display:block;}
   .m-field{margin-bottom:10px;}
@@ -202,8 +230,6 @@
       <h2 class="day-date" id="dayDate">—</h2>
 
       <div class="facts" id="factsPanel"></div>
-
-      <div class="week-summary" id="weekSummary"></div>
 
       <div class="log-list" id="logList"></div>
     </section>
@@ -287,25 +313,20 @@
       </select>
     </div>
 
-    <div class="method-tabs">
-      <button data-m="manual" class="active" title="Manual" aria-label="Manual">✏️</button>
-      <button data-m="buscar" title="Buscar" aria-label="Buscar">🔍</button>
-      <button data-m="barcode" title="Código de barras" aria-label="Código de barras">🏷️</button>
-      <button data-m="foto" title="Foto del plato" aria-label="Foto del plato">📷</button>
-      <button data-m="favoritos" title="Favoritos" aria-label="Favoritos">☆</button>
+    <div class="add-subtabs">
+      <button data-sub="db" class="active">Base de datos</button>
+      <button data-sub="favoritos">Favoritos</button>
     </div>
 
-    <!-- MANUAL -->
-    <div class="m-panel active" id="panel-manual">
-      <div class="m-field"><label>Nombre</label><input type="text" id="manName" placeholder="Ej. Tostada con aguacate"></div>
-      <div class="m-grid2">
-        <div class="m-field"><label>Kcal</label><input type="number" id="manKcal"></div>
-        <div class="m-field"><label>Proteína (g)</label><input type="number" id="manProtein"></div>
-        <div class="m-field"><label>Carbohidratos (g)</label><input type="number" id="manCarbs"></div>
-        <div class="m-field"><label>Grasa (g)</label><input type="number" id="manFat"></div>
-      </div>
-      <button class="primary-btn" id="btnManAdd">Añadir al registro</button>
-      <button class="secondary-btn" id="btnManFav">☆ Guardar como favorito</button>
+    <div class="sub-panel active" id="subpanel-db">
+      <p class="section-label">Añadidos recientemente</p>
+      <div id="recentFoodsList"></div>
+      <p class="section-label">Comidas recientes</p>
+      <div id="recentMealsList"></div>
+    </div>
+
+    <div class="sub-panel" id="subpanel-favoritos">
+      <div id="favoritesList"></div>
     </div>
 
     <!-- BUSCAR -->
@@ -343,9 +364,10 @@
       <div id="photoResults"></div>
     </div>
 
-    <!-- FAVORITOS -->
-    <div class="m-panel" id="panel-favoritos">
-      <div id="favoritesList"></div>
+    <div class="search-methods-bar">
+      <button data-m="buscar"><span class="smb-ic">🔍</span><span class="smb-lb">Buscar</span></button>
+      <button data-m="barcode"><span class="smb-ic">🏷️</span><span class="smb-lb">Código</span></button>
+      <button data-m="foto"><span class="smb-ic">📷</span><span class="smb-lb">Foto</span></button>
     </div>
 
   </div>
@@ -517,27 +539,92 @@
     return Math.max(0, Math.min(100, (consumed/target)*100));
   }
 
+  /* ---------- Arc-gauge geometry helpers (rings open at the bottom) ---------- */
+  // gapDeg: total angular gap centered at the bottom (6 o'clock) of the circle.
+  // With the SVG rotated -90deg, t=0 is the top and t increases clockwise;
+  // t=C/2 is the bottom. The visible arc runs from startT (bottom-left edge
+  // of the gap) clockwise all the way around (through left, top, right) to
+  // endT (bottom-right edge of the gap).
+  function arcGeom(r, gapDeg){
+    var C = 2 * Math.PI * r;
+    var gapLen = C * gapDeg / 360;
+    var arcLen = C - gapLen;
+    var startT = C/2 + gapLen/2;
+    var endT = C/2 - gapLen/2;
+    return { C:C, gapLen:gapLen, arcLen:arcLen, startT:startT, endT:endT };
+  }
+  // A colored circle element showing only the segment [startAt, startAt+length] of its path.
+  function arcSegmentEl(r, startAt, length, color, strokeWidth, cap){
+    var C = 2 * Math.PI * r;
+    length = Math.max(0, Math.min(length, C));
+    return '<circle class="ring-arc" cx="80" cy="80" r="'+r+'" style="stroke:'+color+';stroke-width:'+strokeWidth+'px;stroke-linecap:'+(cap||'round')+';stroke-dasharray:'+length+' '+(C-length)+';stroke-dashoffset:'+(-startAt)+'"></circle>';
+  }
+  function arcTrackEl(r, geom, strokeWidth){
+    return '<circle class="ring-track" cx="80" cy="80" r="'+r+'" style="stroke-width:'+strokeWidth+'px;stroke-dasharray:'+geom.arcLen+' '+geom.gapLen+';stroke-dashoffset:'+(-geom.startT)+'"></circle>';
+  }
+
   /* ---------- Render: Nutrition facts panel ---------- */
   function renderFacts(container, consumed, target){
     var remainKcal = round(target.kcal) - round(consumed.kcal);
     var kcalPct = pct(consumed.kcal, target.kcal);
-    var r = 78, C = 2 * Math.PI * r;
-    var offset = C * (1 - Math.min(kcalPct, 100) / 100);
     var overTarget = target.kcal > 0 && consumed.kcal > target.kcal;
     var ringColor = overTarget ? 'var(--fat)' : 'var(--primary)';
 
-    var html = '';
-    html += '<div class="ring-wrap">'+
-      '<svg viewBox="0 0 180 180">'+
-        '<circle class="ring-bg" cx="90" cy="90" r="'+r+'"></circle>'+
-        '<circle class="ring-fg" cx="90" cy="90" r="'+r+'" style="stroke:'+ringColor+';stroke-dasharray:'+C+';stroke-dashoffset:'+offset+'"></circle>'+
-      '</svg>'+
+    var GAP_DEG = 100;
+    var R1 = 68, SW1 = 6;    // daily ring (outer)
+    var R2 = 58, SW2 = 5;    // weekly balance ring (inner, concentric)
+    var g1 = arcGeom(R1, GAP_DEG);
+    var g2 = arcGeom(R2, GAP_DEG);
+
+    var svg = '<svg viewBox="0 0 160 160">';
+    svg += arcTrackEl(R1, g1, SW1);
+    var dailyLen = g1.arcLen * Math.min(kcalPct, 100) / 100;
+    svg += arcSegmentEl(R1, g1.startT, dailyLen, ringColor, SW1, 'round');
+    svg += arcTrackEl(R2, g2, SW2);
+
+    var wb = computeWeekBalanceUpToYesterday();
+    var weekBalanceLabel;
+    if(wb.daysCounted === 0){
+      weekBalanceLabel = '<div class="rc-week rc-week-empty">Semana: vuelve mañana</div>';
+    } else {
+      var balance = round(wb.consumed) - round(wb.target);
+      var MAX_DEV_PCT = 30, YELLOW_THRESHOLD_PCT = 12;
+      var halfArc = g2.arcLen / 2;
+      var balColor;
+      if(balance < 0){
+        var deficitPct = wb.target > 0 ? Math.min(Math.abs(balance) / wb.target * 100, MAX_DEV_PCT) : 0;
+        var lenGreen = halfArc * (deficitPct / MAX_DEV_PCT);
+        svg += arcSegmentEl(R2, g2.startT, lenGreen, 'var(--primary)', SW2, 'round');
+        balColor = 'var(--primary)';
+      } else if(balance > 0){
+        var surplusPct = wb.target > 0 ? Math.min(balance / wb.target * 100, MAX_DEV_PCT) : 0;
+        var lenSurplusTotal = halfArc * (surplusPct / MAX_DEV_PCT);
+        var lenYellow = halfArc * (Math.min(surplusPct, YELLOW_THRESHOLD_PCT) / MAX_DEV_PCT);
+        var lenRed = lenSurplusTotal - lenYellow;
+        var yellowCap = lenRed > 0.5 ? 'butt' : 'round';
+        svg += arcSegmentEl(R2, g2.endT - lenYellow, lenYellow, 'var(--carbs)', SW2, yellowCap);
+        if(lenRed > 0.5){
+          svg += arcSegmentEl(R2, g2.endT - lenSurplusTotal, lenRed, 'var(--fat)', SW2, 'round');
+        }
+        balColor = surplusPct > YELLOW_THRESHOLD_PCT ? 'var(--fat)' : 'var(--carbs)';
+      } else {
+        balColor = 'var(--ink-soft)';
+      }
+      var sign = balance > 0 ? '+' : (balance < 0 ? '−' : '');
+      weekBalanceLabel = '<div class="rc-week" style="color:'+balColor+'">Semana '+sign+Math.abs(balance)+' kcal</div>';
+    }
+    svg += '</svg>';
+
+    var mainRing = '<div class="ring-wrap">'+svg+
       '<div class="ring-center">'+
         '<div class="rc-kcal">'+round(consumed.kcal)+'</div>'+
         '<div class="rc-sub">de '+round(target.kcal)+' kcal</div>'+
         '<div class="rc-remain">'+(overTarget ? (Math.abs(remainKcal)+' de más') : (remainKcal+' restantes'))+'</div>'+
+        weekBalanceLabel+
       '</div>'+
     '</div>';
+
+    var html = '<div class="rings-row">'+mainRing+'</div>';
 
     [['protein','Proteína','var(--protein)'],['carbs','Carbohidr.','var(--carbs)'],['fat','Grasa','var(--fat)']].forEach(function(m){
       var key=m[0], label=m[1], color=m[2];
@@ -553,6 +640,25 @@
     container.innerHTML = html;
   }
 
+  /* ---------- Week balance up to yesterday (independent of the day being viewed) ---------- */
+  function computeWeekBalanceUpToYesterday(){
+    var today = new Date(); today.setHours(0,0,0,0);
+    var monday = mondayOf(today);
+    var dates = weekDates(monday);
+    var todayIsoVal = isoDate(today);
+    var consumed = 0, target = 0, daysCounted = 0;
+    dates.forEach(function(d, i){
+      var iso = isoDate(d);
+      if(iso < todayIsoVal){
+        var dk = DAY_KEYS[i];
+        consumed += totalsFor(iso).kcal;
+        target += targetFor(dk).kcal || 0;
+        daysCounted++;
+      }
+    });
+    return { consumed: consumed, target: target, daysCounted: daysCounted };
+  }
+
   /* ---------- Render: current day (from the day strip) ---------- */
   function renderDay(){
     var viewDate = currentViewDate;
@@ -566,7 +672,6 @@
     var consumed = totalsFor(iso);
     var target = targetFor(dk);
     renderFacts(document.getElementById('factsPanel'), consumed, target);
-    renderWeekSummary();
 
     var entries = (logs[iso] || []).slice().sort(function(a,b){ return (a.id > b.id)?1:-1; });
     var listEl = document.getElementById('logList');
@@ -627,39 +732,6 @@
         openAddModal(btn.getAttribute('data-addmeal'));
       });
     });
-  }
-
-  /* ---------- Week progress (shown inside the day view) ---------- */
-  function renderWeekSummary(){
-    var monday = mondayOf(currentViewDate);
-    var dates = weekDates(monday);
-    var realTodayIso = todayIso();
-    var weekStartIso = isoDate(dates[0]);
-    var weekEndIso = isoDate(dates[6]);
-    // cutoff: if the whole week is already past, count all 7 days;
-    // otherwise count only up to the real current date (0 days if the week is fully future).
-    var cutoffIso = (weekEndIso < realTodayIso) ? weekEndIso : realTodayIso;
-
-    var consumedToDate = 0, targetToDate = 0, targetFullWeek = 0;
-    dates.forEach(function(d, i){
-      var dk = DAY_KEYS[i];
-      var iso = isoDate(d);
-      var tKcal = targetFor(dk).kcal || 0;
-      targetFullWeek += tKcal;
-      if(iso <= cutoffIso && iso >= weekStartIso){
-        consumedToDate += totalsFor(iso).kcal;
-        targetToDate += tKcal;
-      }
-    });
-
-    var avgDaily = targetFullWeek / 7;
-    var p = pct(consumedToDate, targetToDate);
-    var label = (cutoffIso >= weekEndIso) ? 'la semana' : 'hoy';
-
-    var html = '<div class="wsh"><span class="wst">Esa semana</span><span class="wsrange">'+fmtShort(dates[0])+' – '+fmtShort(dates[6])+'</span></div>'+
-      '<div class="wsval">'+round(consumedToDate)+'/'+round(targetToDate)+' cal hasta '+label+' <small>(media de '+round(avgDaily)+' kcal diarias)</small></div>'+
-      '<div class="bar-bg"><div class="bar-fill" style="width:'+p+'%"></div></div>';
-    document.getElementById('weekSummary').innerHTML = html;
   }
 
   /* ---------- Day strip (carousel) ---------- */
@@ -926,17 +998,29 @@
     document.getElementById('qrBox').classList.add('hidden');
   }
 
+  var ADD_PANEL_IDS = ['db','favoritos','buscar','barcode','foto'];
+
+  function showAddPanel(id){
+    ADD_PANEL_IDS.forEach(function(p){
+      var el = document.getElementById(p === 'db' ? 'subpanel-db' : (p === 'favoritos' ? 'subpanel-favoritos' : 'panel-' + p));
+      el.classList.toggle('active', p === id);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.add-subtabs button'), function(b){
+      b.classList.toggle('active', b.getAttribute('data-sub') === id);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.search-methods-bar button'), function(b){
+      b.classList.toggle('active', b.getAttribute('data-m') === id);
+    });
+    if(id === 'barcode'){ startBarcodeScanner(); } else { stopScanner(); }
+    if(id === 'foto') document.getElementById('photoInput').click();
+    if(id === 'db') renderRecentLists();
+    if(id === 'favoritos') renderFavoritesList();
+  }
+
   function openAddModal(mealKey){
     document.getElementById('mealSelect').value = mealKey || guessMeal();
-    renderFavoritesList();
     addOverlay.classList.remove('hidden');
-    var activeMethod = document.querySelector('.method-tabs button.active');
-    if(activeMethod && activeMethod.getAttribute('data-m') === 'barcode'){
-      startBarcodeScanner();
-    }
-    if(activeMethod && activeMethod.getAttribute('data-m') === 'foto'){
-      document.getElementById('photoInput').click();
-    }
+    showAddPanel('db');
   }
 
   document.getElementById('closeAdd').addEventListener('click', function(){
@@ -944,23 +1028,17 @@
     stopScanner();
   });
 
-  Array.prototype.forEach.call(document.querySelectorAll('.method-tabs button'), function(btn){
-    btn.addEventListener('click', function(){
-      Array.prototype.forEach.call(document.querySelectorAll('.method-tabs button'), function(b){ b.classList.remove('active'); });
-      btn.classList.add('active');
-      var m = btn.getAttribute('data-m');
-      ['manual','buscar','barcode','foto','favoritos'].forEach(function(p){
-        document.getElementById('panel-'+p).classList.toggle('active', p === m);
-      });
-      if(m === 'barcode'){ startBarcodeScanner(); } else { stopScanner(); }
-      if(m === 'favoritos') renderFavoritesList();
-      if(m === 'foto') document.getElementById('photoInput').click();
-    });
+  Array.prototype.forEach.call(document.querySelectorAll('.add-subtabs button'), function(btn){
+    btn.addEventListener('click', function(){ showAddPanel(btn.getAttribute('data-sub')); });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('.search-methods-bar button'), function(btn){
+    btn.addEventListener('click', function(){ showAddPanel(btn.getAttribute('data-m')); });
   });
 
   function todayIso(){ return isoDate(new Date()); }
   var currentViewDate = new Date();
   function viewIso(){ return isoDate(currentViewDate); }
+  function parseIso(iso){ var p = iso.split('-'); return new Date(Number(p[0]), Number(p[1])-1, Number(p[2])); }
 
   function closeAddAndRefresh(){
     addOverlay.classList.add('hidden');
@@ -972,43 +1050,115 @@
     renderDay();
   }
 
-  /* --- Manual --- */
-  document.getElementById('btnManAdd').addEventListener('click', function(){
-    var name = document.getElementById('manName').value.trim();
-    if(!name){ alert('Ponle un nombre al alimento.'); return; }
-    addEntry(viewIso(), {
-      name: name,
-      kcal: Number(document.getElementById('manKcal').value)||0,
-      protein: Number(document.getElementById('manProtein').value)||0,
-      carbs: Number(document.getElementById('manCarbs').value)||0,
-      fat: Number(document.getElementById('manFat').value)||0,
-      meal: document.getElementById('mealSelect').value,
-      source: 'manual'
+  /* --- Recent foods & recent meals (Base de datos tab) --- */
+  function getAllEntriesFlat(){
+    var out = [];
+    Object.keys(logs).forEach(function(dateIso){
+      (logs[dateIso] || []).forEach(function(e){ out.push({ dateIso: dateIso, entry: e }); });
     });
-    document.getElementById('manName').value='';
-    document.getElementById('manKcal').value='';
-    document.getElementById('manProtein').value='';
-    document.getElementById('manCarbs').value='';
-    document.getElementById('manFat').value='';
-    closeAddAndRefresh();
-  });
+    return out;
+  }
 
-  document.getElementById('btnManFav').addEventListener('click', function(){
-    var name = document.getElementById('manName').value.trim();
-    if(!name){ alert('Ponle un nombre al alimento.'); return; }
-    addFavorite({
-      name: name,
-      perGram: false,
-      kcal: Number(document.getElementById('manKcal').value)||0,
-      protein: Number(document.getElementById('manProtein').value)||0,
-      carbs: Number(document.getElementById('manCarbs').value)||0,
-      fat: Number(document.getElementById('manFat').value)||0
+  function getRecentUniqueFoods(limit){
+    var all = getAllEntriesFlat();
+    all.sort(function(a,b){ return a.entry.id < b.entry.id ? 1 : -1; });
+    var seen = {}, result = [];
+    for(var i=0;i<all.length;i++){
+      var e = all[i].entry;
+      var key = (e.name||'').toLowerCase();
+      if(!key || seen[key]) continue;
+      seen[key] = true;
+      result.push(e);
+      if(result.length >= limit) break;
+    }
+    return result;
+  }
+
+  function getRecentMealGroups(limit){
+    var groups = {};
+    Object.keys(logs).forEach(function(dateIso){
+      (logs[dateIso] || []).forEach(function(e){
+        var mk = e.meal || 'comida';
+        var key = dateIso + '|' + mk;
+        if(!groups[key]) groups[key] = { dateIso: dateIso, meal: mk, entries: [], latestId: '' };
+        groups[key].entries.push(e);
+        if(e.id > groups[key].latestId) groups[key].latestId = e.id;
+      });
     });
-    var btn = document.getElementById('btnManFav');
-    var original = btn.textContent;
-    btn.textContent = 'Guardado ✓';
-    setTimeout(function(){ btn.textContent = original; }, 1200);
-  });
+    var arr = Object.keys(groups).map(function(k){ return groups[k]; });
+    arr.sort(function(a,b){ return a.latestId < b.latestId ? 1 : -1; });
+    return arr.slice(0, limit);
+  }
+
+  function renderRecentLists(){
+    var foods = getRecentUniqueFoods(8);
+    var foodsBox = document.getElementById('recentFoodsList');
+    if(foods.length === 0){
+      foodsBox.innerHTML = '<div class="empty-mini">Todavía no has añadido ningún alimento.</div>';
+    } else {
+      foodsBox.innerHTML = foods.map(function(e, idx){
+        var sub = e.per100 ? (round(e.per100.kcal) + ' kcal / 100 g') : (round(e.kcal) + ' kcal');
+        return '<div class="recent-row" data-fidx="'+idx+'">'+
+          '<div><div class="fn">'+escapeHtml(e.name)+'</div><div class="fmacros">'+sub+'</div></div>'+
+          '<button class="use-recent-food">Añadir</button>'+
+        '</div>';
+      }).join('');
+      Array.prototype.forEach.call(foodsBox.querySelectorAll('.recent-row'), function(row){
+        var e = foods[Number(row.getAttribute('data-fidx'))];
+        row.querySelector('.use-recent-food').addEventListener('click', function(){
+          var mealVal = document.getElementById('mealSelect').value;
+          if(e.per100){
+            var grams = prompt('¿Cuántos gramos vas a registrar de "'+e.name+'"?', String(e.grams || 100));
+            if(grams === null) return;
+            var factor = (Number(grams)||0) / 100;
+            addEntry(viewIso(), {
+              name: e.name,
+              kcal: e.per100.kcal*factor, protein: e.per100.protein*factor, carbs: e.per100.carbs*factor, fat: e.per100.fat*factor,
+              portionLabel: grams + ' g', grams: Number(grams)||0, per100: e.per100,
+              meal: mealVal, source: e.source || 'recent'
+            });
+          } else {
+            addEntry(viewIso(), {
+              name: e.name, kcal: e.kcal, protein: e.protein, carbs: e.carbs, fat: e.fat,
+              portionLabel: e.portionLabel || '', meal: mealVal, source: e.source || 'recent'
+            });
+          }
+          closeAddAndRefresh();
+        });
+      });
+    }
+
+    var groups = getRecentMealGroups(6);
+    var mealsBox = document.getElementById('recentMealsList');
+    if(groups.length === 0){
+      mealsBox.innerHTML = '<div class="empty-mini">Todavía no hay comidas registradas para repetir.</div>';
+    } else {
+      mealsBox.innerHTML = groups.map(function(g, idx){
+        var total = g.entries.reduce(function(s,e){ return s + (Number(e.kcal)||0); }, 0);
+        var names = g.entries.map(function(e){ return e.name; }).join(', ');
+        return '<div class="recent-meal-card" data-gidx="'+idx+'">'+
+          '<div class="rmh"><span class="rmtitle">'+MEAL_EMOJI[g.meal]+' '+MEAL_LABELS[g.meal]+' · '+round(total)+' kcal</span><span class="rmdate">'+fmtShort(parseIso(g.dateIso))+'</span></div>'+
+          '<div class="rmitems">'+escapeHtml(names)+'</div>'+
+          '<button class="use-recent-meal">Repetir esta comida</button>'+
+        '</div>';
+      }).join('');
+      Array.prototype.forEach.call(mealsBox.querySelectorAll('.recent-meal-card'), function(card){
+        var g = groups[Number(card.getAttribute('data-gidx'))];
+        card.querySelector('.use-recent-meal').addEventListener('click', function(){
+          var mealVal = document.getElementById('mealSelect').value;
+          g.entries.forEach(function(e){
+            var copy = {
+              name: e.name, kcal: e.kcal, protein: e.protein, carbs: e.carbs, fat: e.fat,
+              portionLabel: e.portionLabel || '', meal: mealVal, source: e.source || 'recent'
+            };
+            if(e.per100){ copy.per100 = e.per100; copy.grams = e.grams; }
+            addEntry(viewIso(), copy);
+          });
+          closeAddAndRefresh();
+        });
+      });
+    }
+  }
 
   /* --- Open Food Facts helpers --- */
   function offNutriments(product, grams){
