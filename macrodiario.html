@@ -160,6 +160,21 @@
   .sub-panel.active{display:block;}
   .section-label{font-size:12px;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;color:var(--ink-soft);margin:16px 0 8px 0;}
   .section-label:first-child{margin-top:0;}
+
+  /* Product detail modal (search / barcode result, before confirming the add) */
+  .pd-image-wrap{width:100%;height:170px;border-radius:var(--radius-md);background:var(--bg);display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:14px;}
+  .pd-image-wrap img{width:100%;height:100%;object-fit:contain;}
+  .pd-image-wrap .pd-noimg{font-size:34px;opacity:0.35;}
+  .pd-name{font-size:17px;font-weight:800;font-family:'Poppins',sans-serif;line-height:1.25;margin-bottom:2px;}
+  .pd-brand{font-size:12px;color:var(--ink-soft);margin-bottom:4px;}
+  .pd-fav-row{display:flex;justify-content:flex-end;margin-top:-34px;margin-bottom:20px;position:relative;z-index:1;}
+  .pd-fav-btn{background:#fff;border:none;border-radius:var(--radius-full);width:36px;height:36px;font-size:17px;box-shadow:var(--shadow-card);color:var(--carbs);}
+  .pd-macros-grid{display:flex;gap:8px;margin:14px 0 16px 0;}
+  .pd-macro-col{flex:1;text-align:center;background:var(--bg);border-radius:var(--radius-sm);padding:9px 4px;}
+  .pd-macro-col .pdm-val{font-weight:700;font-size:14px;font-family:'Poppins',sans-serif;color:var(--ink);}
+  .pd-macro-col .pdm-label{font-size:9px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.03em;margin-top:3px;}
+  .pd-preview{background:var(--bg);border-radius:var(--radius-sm);padding:11px 13px;font-size:13px;color:var(--ink-soft);margin:12px 0 18px 0;line-height:1.6;}
+  .pd-preview b{color:var(--ink);}
   .recent-row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--border-soft);}
   .recent-row .fn{flex:1;font-size:13px;font-weight:600;min-width:0;}
   .recent-row .fmacros{font-size:11px;color:var(--ink-soft);}
@@ -378,6 +393,14 @@
       <button data-m="foto"><span class="smb-ic">📷</span><span class="smb-lb">Foto</span></button>
     </div>
 
+  </div>
+</div>
+
+<!-- PRODUCT DETAIL MODAL (shown after choosing a search or barcode result, before adding) -->
+<div class="overlay hidden" id="productOverlay">
+  <div class="sheet sheet-wrap">
+    <button class="close-x" id="closeProduct">×</button>
+    <div id="productDetailBody"></div>
   </div>
 </div>
 
@@ -994,9 +1017,12 @@
     targets = newTargets;
     saveTargets(targets);
 
-    // Favoritos de ejemplo
+    // Favoritos de ejemplo (mismo formato que usan los favoritos guardados desde Buscar/Código de barras)
     favorites = FAKE_FOODS.slice(0, 5).map(function(f){
-      return { id:'f' + Date.now() + Math.random().toString(36).slice(2,7), name:f.name, per100:f.per100, grams:100, source:'fake' };
+      return {
+        id:'f' + Date.now() + Math.random().toString(36).slice(2,7), name:f.name, perGram:true,
+        kcal100:f.per100.kcal, protein100:f.per100.protein, carbs100:f.per100.carbs, fat100:f.per100.fat
+      };
     });
     saveFavorites(favorites);
 
@@ -1310,6 +1336,81 @@
     };
   }
 
+  /* ---------- Product detail modal (search / barcode result → review before adding) ---------- */
+  var productOverlay = document.getElementById('productOverlay');
+  document.getElementById('closeProduct').addEventListener('click', function(){
+    productOverlay.classList.add('hidden');
+  });
+
+  // name, brand, imageUrl, per100 ({kcal,protein,carbs,fat}), source, fallbackName
+  function openProductDetail(info){
+    var per100 = info.per100;
+    var displayName = info.name || info.fallbackName || 'Producto';
+    var body = document.getElementById('productDetailBody');
+
+    body.innerHTML =
+      '<div class="pd-image-wrap">'+(info.imageUrl
+        ? '<img src="'+escapeHtml(info.imageUrl)+'" alt="" onerror="this.parentNode.innerHTML=\'<span class=&quot;pd-noimg&quot;>🍽️</span>\'">'
+        : '<span class="pd-noimg">🍽️</span>')+
+      '</div>'+
+      '<div class="pd-fav-row"><button class="pd-fav-btn" id="pdFavBtn" title="Guardar en favoritos">☆</button></div>'+
+      '<div class="pd-name">'+escapeHtml(displayName)+'</div>'+
+      (info.brand ? '<div class="pd-brand">'+escapeHtml(info.brand)+'</div>' : '')+
+      '<p class="section-label">Valores por 100 g</p>'+
+      '<div class="pd-macros-grid">'+
+        [['kcal','Kcal'],['protein','Proteína'],['carbs','Carbs'],['fat','Grasa']].map(function(m){
+          return '<div class="pd-macro-col"><div class="pdm-val">'+round(per100[m[0]])+'</div><div class="pdm-label">'+m[1]+'</div></div>';
+        }).join('')+
+      '</div>'+
+      '<div class="m-field"><label>Cantidad a registrar</label><input type="number" id="pdGrams" value="100" inputmode="decimal"></div>'+
+      '<div class="pd-preview" id="pdPreview"></div>'+
+      '<button class="primary-btn" id="pdAddBtn">Añadir a la comida</button>';
+
+    function updatePreview(){
+      var grams = Number(document.getElementById('pdGrams').value) || 0;
+      var factor = grams / 100;
+      document.getElementById('pdPreview').innerHTML =
+        '<b>'+round(per100.kcal*factor)+' kcal</b> · '+
+        round(per100.protein*factor)+' g proteína · '+
+        round(per100.carbs*factor)+' g carbohidratos · '+
+        round(per100.fat*factor)+' g grasa';
+    }
+    updatePreview();
+    document.getElementById('pdGrams').addEventListener('input', updatePreview);
+
+    document.getElementById('pdFavBtn').addEventListener('click', function(){
+      addFavorite({
+        name: displayName, perGram: true,
+        kcal100: per100.kcal, protein100: per100.protein, carbs100: per100.carbs, fat100: per100.fat
+      });
+      var btn = document.getElementById('pdFavBtn');
+      btn.textContent = '★';
+      btn.disabled = true;
+    });
+
+    document.getElementById('pdAddBtn').addEventListener('click', function(){
+      var grams = Number(document.getElementById('pdGrams').value) || 0;
+      var factor = grams / 100;
+      addEntry(viewIso(), {
+        name: displayName,
+        kcal: per100.kcal*factor, protein: per100.protein*factor, carbs: per100.carbs*factor, fat: per100.fat*factor,
+        portionLabel: grams + ' g',
+        grams: grams,
+        per100: per100,
+        meal: document.getElementById('mealSelect').value,
+        source: info.source || 'off'
+      });
+      productOverlay.classList.add('hidden');
+      closeAddAndRefresh();
+    });
+
+    productOverlay.classList.remove('hidden');
+  }
+
+  function offImageUrl(p){
+    return p.image_front_small_url || p.image_url || null;
+  }
+
   function sleep(ms){ return new Promise(function(resolve){ setTimeout(resolve, ms); }); }
 
   function fetchWithRetry(url, retriesLeft, delayMs){
@@ -1329,7 +1430,7 @@
   function searchOff(term){
     var url = viaProxy('https://world.openfoodfacts.org/cgi/search.pl?search_terms=' + encodeURIComponent(term) +
       '&search_simple=1&action=process&json=1&page_size=12' +
-      '&fields=product_name,brands,nutriments,code');
+      '&fields=product_name,brands,nutriments,code,image_front_small_url,image_url');
     return fetchWithRetry(url, 2, 700).then(function(r){
       if(!r.ok){ throw new Error('HTTP ' + r.status + ' de Open Food Facts' + (r.status === 503 ? ' (saturado, incluso tras reintentar)' : '')); }
       return r.text();
@@ -1343,7 +1444,7 @@
 
   function productByBarcode(code){
     var url = viaProxy('https://world.openfoodfacts.org/api/v2/product/' + encodeURIComponent(code) +
-      '.json?fields=product_name,brands,nutriments,code');
+      '.json?fields=product_name,brands,nutriments,code,image_front_small_url,image_url');
     return fetchWithRetry(url, 2, 700).then(function(r){
       if(!r.ok){ throw new Error('HTTP ' + r.status + ' de Open Food Facts' + (r.status === 503 ? ' (saturado, incluso tras reintentar)' : '')); }
       return r.json();
@@ -1368,20 +1469,13 @@
       Array.prototype.forEach.call(box.querySelectorAll('[data-idx]'), function(btn){
         btn.addEventListener('click', function(){
           var p = products[Number(btn.getAttribute('data-idx'))];
-          var grams = prompt('¿Cuántos gramos vas a registrar de "'+p.product_name+'"?', '100');
-          if(grams === null) return;
-          var per100 = per100Of(p);
-          var macros = offNutriments(p, grams);
-          addEntry(viewIso(), {
+          openProductDetail({
             name: p.product_name,
-            kcal: macros.kcal, protein: macros.protein, carbs: macros.carbs, fat: macros.fat,
-            portionLabel: grams + ' g',
-            grams: Number(grams)||0,
-            per100: per100,
-            meal: document.getElementById('mealSelect').value,
+            brand: p.brands || '',
+            imageUrl: offImageUrl(p),
+            per100: per100Of(p),
             source: 'off'
           });
-          closeAddAndRefresh();
         });
       });
       Array.prototype.forEach.call(box.querySelectorAll('[data-favidx]'), function(btn){
@@ -1422,20 +1516,14 @@
       box.innerHTML = '<div class="result-row"><span class="rn">'+escapeHtml(p.product_name || code)+(p.brands ? ' · <span style="color:var(--ink-soft)">'+escapeHtml(p.brands)+'</span>' : '')+'</span>'+
         '<span class="factions"><button class="fav" id="favBarcode" title="Guardar en favoritos">☆</button><button id="btnUseBarcode">Elegir</button></span></div>';
       document.getElementById('btnUseBarcode').addEventListener('click', function(){
-        var grams = prompt('¿Cuántos gramos vas a registrar?', '100');
-        if(grams === null) return;
-        var per100 = per100Of(p);
-        var macros = offNutriments(p, grams);
-        addEntry(viewIso(), {
-          name: p.product_name || ('Producto ' + code),
-          kcal: macros.kcal, protein: macros.protein, carbs: macros.carbs, fat: macros.fat,
-          portionLabel: grams + ' g',
-          grams: Number(grams)||0,
-          per100: per100,
-          meal: document.getElementById('mealSelect').value,
+        openProductDetail({
+          name: p.product_name,
+          fallbackName: 'Producto ' + code,
+          brand: p.brands || '',
+          imageUrl: offImageUrl(p),
+          per100: per100Of(p),
           source: 'off-barcode'
         });
-        closeAddAndRefresh();
       });
       document.getElementById('favBarcode').addEventListener('click', function(){
         var n = p.nutriments || {};
