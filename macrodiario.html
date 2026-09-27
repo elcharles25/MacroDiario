@@ -201,6 +201,7 @@
   .primary-btn{width:100%;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-md);padding:13px;font-weight:700;font-size:14px;margin-top:6px;box-shadow:0 8px 20px -8px rgba(15,191,143,0.5);}
   .secondary-btn{width:100%;background:var(--card);border:none;border-radius:var(--radius-md);color:var(--ink);padding:12px;font-weight:600;font-size:13px;margin-top:6px;box-shadow:var(--shadow-card);}
   .close-x{position:absolute;top:16px;right:14px;background:var(--card);border:none;border-radius:var(--radius-full);width:30px;height:30px;font-size:16px;color:var(--ink-soft);box-shadow:var(--shadow-card);}
+  .fav-x{right:52px;color:var(--fat);display:flex;align-items:center;justify-content:center;}
   .sheet-wrap{position:relative;}
   .result-row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--border-soft);font-size:13px;}
   .result-row .rn{flex:1;padding-right:8px;}
@@ -299,6 +300,7 @@
 <div class="overlay hidden" id="editOverlay">
   <div class="sheet sheet-wrap">
     <button class="close-x" id="closeEdit">×</button>
+    <button class="close-x fav-x" id="btnFavFromEdit" title="Guardar como favorito"></button>
     <h2>Editar alimento</h2>
     <div class="m-field"><label>Nombre</label><input type="text" id="editName"></div>
     <div id="editGramsBlock" class="hidden">
@@ -506,6 +508,14 @@
   function removeFavorite(id){
     favorites = favorites.filter(function(f){ return f.id !== id; });
     saveFavorites(favorites);
+  }
+  function findFavoriteByName(name){
+    var n = (name || '').trim().toLowerCase();
+    if(!n) return null;
+    return favorites.find(function(f){ return (f.name || '').trim().toLowerCase() === n; }) || null;
+  }
+  function heartIconSvg(filled){
+    return '<svg viewBox="0 0 24 24" width="15" height="15"><path d="M12 21s-6.72-4.35-9.33-8.1C1 10.22 1.6 6.9 4.42 5.4c2.2-1.18 4.66-.4 6 .1.4.15.8.4 1.1.7.3-.3.7-.55 1.1-.7 1.34-.5 3.8-1.28 6-.1 2.82 1.5 3.42 4.82 1.75 7.5C18.72 16.65 12 21 12 21z" fill="'+(filled ? 'currentColor' : 'none')+'" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path></svg>';
   }
 
   function guessMeal(){
@@ -752,7 +762,7 @@
           return '<div class="log-row" data-editid="'+e.id+'">'+
             '<div class="who">'+
               '<div class="name">'+escapeHtml(e.name)+'</div>'+
-              '<div class="portion">'+e.time+(e.portionLabel ? ' · '+escapeHtml(e.portionLabel) : '')+'</div>'+
+              (e.portionLabel ? '<div class="portion">'+escapeHtml(e.portionLabel)+'</div>' : '')+
             '</div>'+
             '<div class="kcal">'+round(e.kcal)+' kcal</div>'+
             '<button class="del" data-del="'+e.id+'" title="Eliminar">✕</button>'+
@@ -1064,6 +1074,8 @@
     if(!e) return;
     editingContext = { dateIso: dateIso, id: id };
     document.getElementById('editName').value = e.name || '';
+    var favBtn = document.getElementById('btnFavFromEdit');
+    favBtn.innerHTML = heartIconSvg(!!findFavoriteByName(e.name));
 
     var gramsBlock = document.getElementById('editGramsBlock');
     var directBlock = document.getElementById('editDirectBlock');
@@ -1101,6 +1113,26 @@
   document.getElementById('closeEdit').addEventListener('click', function(){
     editOverlay.classList.add('hidden');
     editingContext = null;
+  });
+
+  document.getElementById('btnFavFromEdit').addEventListener('click', function(){
+    if(!editingContext) return;
+    var e = getEntry(editingContext.dateIso, editingContext.id);
+    if(!e) return;
+    var name = document.getElementById('editName').value.trim() || e.name;
+    var btn = document.getElementById('btnFavFromEdit');
+    var existing = findFavoriteByName(name);
+    if(existing){
+      removeFavorite(existing.id);
+      btn.innerHTML = heartIconSvg(false);
+    } else {
+      if(e.per100){
+        addFavorite({ name: name, perGram: true, kcal100: e.per100.kcal, protein100: e.per100.protein, carbs100: e.per100.carbs, fat100: e.per100.fat });
+      } else {
+        addFavorite({ name: name, kcal: e.kcal, protein: e.protein, carbs: e.carbs, fat: e.fat });
+      }
+      btn.innerHTML = heartIconSvg(true);
+    }
   });
 
   document.getElementById('btnSaveEdit').addEventListener('click', function(){
