@@ -320,7 +320,7 @@
         <p class="hint">Solo se necesita para identificar alimentos a partir de una foto del plato. Se guarda únicamente en este navegador y se envía directamente a Google, nunca a otro servidor. Consíguela en <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>.</p>
       </div>
       <div class="field-block">
-        <label>Proxy para Open Food Facts (opcional)</label>
+        <label>Proxy CORS para Open Food Facts / BEDCA (opcional)</label>
         <input type="text" id="proxyUrlInput" placeholder="https://tu-proxy.workers.dev">
         <p class="hint">Solo rellénalo si "Buscar" te da error de conexión. Es la URL de un pequeño Cloudflare Worker propio que reenvía la búsqueda a Open Food Facts añadiendo cabeceras CORS. Déjalo vacío para llamar directamente.</p>
       </div>
@@ -2095,6 +2095,9 @@
     var delayMs = opts.delayMs != null ? opts.delayMs : 600;
     var maxDelayMs = opts.maxDelayMs != null ? opts.maxDelayMs : 8000;
     var shouldAbort = opts.shouldAbort || function(){ return false; };
+    var method = opts.method;
+    var headers = opts.headers;
+    var body = opts.body;
 
     if(shouldAbort()){
       var abortErr = new Error('Búsqueda cancelada');
@@ -2102,19 +2105,26 @@
       return Promise.reject(abortErr);
     }
 
-    return fetch(url).then(function(r){
+    function retry(){
+      return sleep(delayMs).then(function(){
+        return fetchWithRetry(url, { maxAttempts: maxAttempts, delayMs: Math.min(delayMs * 1.6, maxDelayMs), maxDelayMs: maxDelayMs, shouldAbort: shouldAbort, method: method, headers: headers, body: body, _attempt: attempt + 1 });
+      });
+    }
+
+    var fetchOpts = {};
+    if(method) fetchOpts.method = method;
+    if(headers) fetchOpts.headers = headers;
+    if(body != null) fetchOpts.body = body;
+
+    return fetch(url, fetchOpts).then(function(r){
       if(isRetryableStatus(r.status) && attempt < maxAttempts){
-        return sleep(delayMs).then(function(){
-          return fetchWithRetry(url, { maxAttempts: maxAttempts, delayMs: Math.min(delayMs * 1.6, maxDelayMs), maxDelayMs: maxDelayMs, shouldAbort: shouldAbort, _attempt: attempt + 1 });
-        });
+        return retry();
       }
       return r;
     }).catch(function(err){
       if(err && err.aborted) throw err;
       if(attempt < maxAttempts){
-        return sleep(delayMs).then(function(){
-          return fetchWithRetry(url, { maxAttempts: maxAttempts, delayMs: Math.min(delayMs * 1.6, maxDelayMs), maxDelayMs: maxDelayMs, shouldAbort: shouldAbort, _attempt: attempt + 1 });
-        });
+        return retry();
       }
       throw err;
     });
@@ -2144,6 +2154,131 @@
     });
   }
 
+  /* ---------- BEDCA (Base de Datos Española de Composición de Alimentos) ----------
+     Fuente oficial de AESAN con alimentos frescos/no envasados españoles (frutas,
+     verduras, carnes, pescados...), complementaria a Open Food Facts (fuerte en
+     productos de marca/envasados pero más flojo en alimentos frescos). Es un
+     servicio antiguo que se consulta con POST de XML, no una API REST/JSON moderna,
+     y no está documentado que admita CORS desde el navegador: si falla (red o CORS),
+     simplemente se omiten sus resultados sin romper el resto de la búsqueda — para
+     eso está pensado el mismo proxy configurable que ya se usa para Open Food Facts. */
+  var BEDCA_URL = 'https://www.bedca.net/bdpub/procquery.php';
+
+  function bedcaXmlEscape(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // Consulta de nivel 2 (detalle) filtrando directamente por nombre, para traer en una
+  // sola llamada tanto los alimentos que coinciden como sus valores nutricionales
+  // (energía, proteínas, grasas, hidratos), en vez de tener que hacer una búsqueda y
+  // luego una petición extra por cada alimento.
+  function bedcaSearchXml(term){
+    return '<?xml version="1.0" encoding="utf-8"?>' +
+      '<foodquery><type level="2"/>' +
+      '<selection>' +
+        '<atribute name="f_id"/><atribute name="f_ori_name"/><atribute name="f_eng_name"/>' +
+        '<atribute name="c_eng_name"/><atribute name="best_location"/><atribute name="v_unit"/><atribute name="value_type"/>' +
+      '</selection>' +
+      '<condition><cond1><atribute1 name="publico"/></cond1><relation type="EQUAL"/><cond3>1</cond3></condition>' +
+      '<condition><cond1><atribute1 name="f_ori_name"/></cond1><relation type="LIKE"/><cond3>' + bedcaXmlEscape(term) + '</cond3></condition>' +
+      '<condition><cond1><atribute1 name="f_origen"/></cond1><relation type="EQUAL"/><cond3>BEDCA</cond3></condition>' +
+      '<order ordtype="ASC"><atribute3 name="f_id"/></order>' +
+      '</foodquery>';
+  }
+
+  var BEDCA_MASS_TO_G = { g:1, mg:0.001, 'µg':0.000001, ug:0.000001, kg:1000 };
+  var BEDCA_KJ_TO_KCAL = 0.239006;
+
+  function bedcaApplyValueRow(nutrients, rowEl){
+    var cEl = rowEl.getElementsByTagName('c_eng_name')[0];
+    if(!cEl || !cEl.textContent) return;
+    var cname = cEl.textContent.trim().toLowerCase();
+    var typeEl = rowEl.getElementsByTagName('value_type')[0];
+    var isTrace = !!(typeEl && typeEl.textContent && typeEl.textContent.trim() === 'TR');
+    var valEl = rowEl.getElementsByTagName('best_location')[0];
+    var raw = isTrace ? 0 : parseFloat(valEl && valEl.textContent);
+    if(isNaN(raw)) raw = 0;
+    var unitEl = rowEl.getElementsByTagName('v_unit')[0];
+    var unit = ((unitEl && unitEl.textContent) || '').trim();
+    if(cname === 'energy, total metabolisable calculated from energy-producing food components'){
+      nutrients.kcal = (unit === 'kJ') ? raw * BEDCA_KJ_TO_KCAL : raw;
+    } else if(cname === 'protein, total'){
+      nutrients.protein = raw * (BEDCA_MASS_TO_G[unit] != null ? BEDCA_MASS_TO_G[unit] : 1);
+    } else if(cname === 'fat, total (total lipid)'){
+      nutrients.fat = raw * (BEDCA_MASS_TO_G[unit] != null ? BEDCA_MASS_TO_G[unit] : 1);
+    } else if(cname === 'carbohydrate'){
+      nutrients.carbs = raw * (BEDCA_MASS_TO_G[unit] != null ? BEDCA_MASS_TO_G[unit] : 1);
+    }
+  }
+
+  // Agrupa por f_id: admite tanto la forma anidada (<food> con varios <foodvalue> hijos)
+  // como, por si el servicio la devolviera así, una forma "plana" (una fila por
+  // alimento+nutriente, todos como hijos directos de <food>).
+  function parseBedcaFoods(xmlText){
+    var doc;
+    try{ doc = new DOMParser().parseFromString(xmlText, 'text/xml'); }
+    catch(e){ return []; }
+    if(!doc || doc.getElementsByTagName('parsererror').length) return [];
+    var foodEls = doc.getElementsByTagName('food');
+    var byId = {};
+    var order = [];
+    for(var i = 0; i < foodEls.length; i++){
+      var el = foodEls[i];
+      var idEl = el.getElementsByTagName('f_id')[0];
+      if(!idEl || !idEl.textContent) continue;
+      var id = idEl.textContent.trim();
+      if(!byId[id]){
+        var nameEl = el.getElementsByTagName('f_ori_name')[0];
+        byId[id] = { id: id, name: (nameEl && nameEl.textContent ? nameEl.textContent.trim() : ''), nutrients: {} };
+        order.push(id);
+      }
+      var valueEls = el.getElementsByTagName('foodvalue');
+      var rows = valueEls.length ? valueEls : [el];
+      for(var j = 0; j < rows.length; j++){ bedcaApplyValueRow(byId[id].nutrients, rows[j]); }
+    }
+    return order.map(function(id){ return byId[id]; })
+      .filter(function(f){ return f.name && f.nutrients.kcal != null; });
+  }
+
+  function bedcaToOffShape(f){
+    return {
+      product_name: f.name,
+      brands: '',
+      code: null,
+      image_front_small_url: null,
+      image_url: null,
+      _bedca: true,
+      nutriments: {
+        'energy-kcal_100g': f.nutrients.kcal || 0,
+        'proteins_100g': f.nutrients.protein || 0,
+        'carbohydrates_100g': f.nutrients.carbs || 0,
+        'fat_100g': f.nutrients.fat || 0
+      }
+    };
+  }
+
+  // A diferencia de Open Food Facts, un fallo aquí (típicamente CORS, al ser un
+  // servicio antiguo sin API REST) casi nunca es transitorio, así que se reintenta
+  // solo un par de veces (no 30) para no retrasar el resto de la búsqueda, y el
+  // error se traga en quien la llama: BEDCA es una fuente adicional, no crítica.
+  function searchBedca(term, shouldAbort){
+    var url = viaProxy(BEDCA_URL);
+    return fetchWithRetry(url, {
+      shouldAbort: shouldAbort,
+      maxAttempts: 2,
+      delayMs: 500,
+      maxDelayMs: 1500,
+      method: 'POST',
+      headers: { 'Content-Type': 'text/xml' },
+      body: bedcaSearchXml(term)
+    }).then(function(r){
+      if(!r.ok){ throw new Error('HTTP ' + r.status + ' de BEDCA'); }
+      return r.text();
+    }).then(function(text){
+      return parseBedcaFoods(text).slice(0, 8).map(bedcaToOffShape);
+    });
+  }
+
   /* --- Buscar ---
      Combina, para el mismo término, alimentos genéricos locales (sin marca) con los
      resultados de Open Food Facts, para no depender solo de productos envasados. Los
@@ -2158,11 +2293,11 @@
       return;
     }
     var html = list.map(function(p, idx){
-      var tag = p._generic ? 'Genérico' : (p.brands || '');
+      var tag = p._generic ? 'Genérico' : (p._bedca ? 'BEDCA' : (p.brands || ''));
       return '<div class="result-row" data-idx="'+idx+'"><span class="rn">'+escapeHtml(p.product_name)+(tag ? ' · <span style="color:var(--ink-soft)">'+escapeHtml(tag)+'</span>' : '')+'</span>'+
         '<span class="factions"><button class="fav" data-favidx="'+idx+'" title="Guardar en favoritos">☆</button></span></div>';
     }).join('');
-    if(stillLoading) html += '<div class="msg">Buscando en Open Food Facts…</div>';
+    if(stillLoading) html += '<div class="msg">Buscando en Open Food Facts y BEDCA…</div>';
     box.innerHTML = html;
     // Pulsar la fila (en cualquier punto salvo el ☆) abre siempre la misma ficha de
     // detalle; el listado en sí nunca tiene un botón de "añadir" propio.
@@ -2174,7 +2309,7 @@
           brand: p._generic ? '' : (p.brands || ''),
           imageUrl: offImageUrl(p),
           per100: per100Of(p),
-          source: p._generic ? 'generic' : 'off'
+          source: p._generic ? 'generic' : (p._bedca ? 'bedca' : 'off')
         });
       });
     });
@@ -2208,23 +2343,48 @@
       return;
     }
     var genericMatches = searchGenericFoods(term);
-    renderSearchResults(genericMatches, true);
+    var bedcaMatches = [];
+    var offMatches = [];
+    var bedcaDone = false, offDone = false;
+    function stale(){ return myToken !== searchToken; }
+    // BEDCA se intercala junto a los genéricos (ambos son alimentos frescos/sin marca),
+    // antes que los resultados de Open Food Facts.
+    function rerender(){
+      if(stale()) return;
+      renderSearchResults(genericMatches.concat(bedcaMatches, offMatches), !(bedcaDone && offDone));
+    }
+    rerender();
+
+    // BEDCA es una fuente adicional y no crítica: si falla (típicamente por CORS, al
+    // ser un servicio sin API REST moderna) se omite en silencio, sin mostrar error
+    // ni afectar al resto de la búsqueda.
+    searchBedca(term, stale).then(function(matches){
+      if(stale()) return;
+      bedcaMatches = matches;
+    }).catch(function(err){
+      if(!stale() && !(err && err.aborted)) console.warn('BEDCA no disponible: ', err);
+    }).then(function(){
+      bedcaDone = true;
+      rerender();
+    });
+
     // Si mientras se reintenta el usuario escribe otro término, esta búsqueda queda
     // obsoleta: se corta (no sigue golpeando Open Food Facts en segundo plano) y su
     // resultado, si llegase, se ignora.
-    searchOff(term, function(){ return myToken !== searchToken; }).then(function(offProducts){
-      if(myToken !== searchToken) return;
-      renderSearchResults(genericMatches.concat(offProducts), false);
+    searchOff(term, stale).then(function(products){
+      if(stale()) return;
+      offMatches = products;
     }).catch(function(err){
-      if(myToken !== searchToken || (err && err.aborted)) return;
-      renderSearchResults(genericMatches, false);
-      if(genericMatches.length === 0){
-        document.getElementById('searchResults').innerHTML =
-          '<div class="msg err">No se pudo conectar con Open Food Facts tras varios intentos. ('+escapeHtml(err && err.message ? err.message : err)+')</div>';
-      } else {
-        document.getElementById('searchResults').innerHTML +=
-          '<div class="msg err">No se pudo conectar con Open Food Facts tras varios intentos. ('+escapeHtml(err && err.message ? err.message : err)+')</div>';
-      }
+      if(stale() || (err && err.aborted)) return;
+      offDone = true;
+      rerender();
+      var msg = '<div class="msg err">No se pudo conectar con Open Food Facts tras varios intentos. ('+escapeHtml(err && err.message ? err.message : err)+')</div>';
+      document.getElementById('searchResults').innerHTML += msg;
+      return;
+    }).then(function(){
+      if(stale() || offDone) return;
+      offDone = true;
+      rerender();
     });
   }
 
@@ -2340,10 +2500,11 @@
     });
   }
 
-  var PHOTO_PROMPT = 'Analiza esta foto de un plato de comida. Identifica cada alimento visible por separado. ' +
-    'Para cada uno, estima el peso en gramos (un número, tu mejor estimación a partir de referencias visuales de tamaño). ' +
+  var PHOTO_PROMPT = 'Analiza esta foto de un plato de comida. Primero identifica el plato en conjunto y ponle un nombre corto y descriptivo en español (ej. "Ensalada César con pollo", "Lentejas con chorizo"). ' +
+    'Después identifica cada ingrediente o alimento visible por separado. Para cada uno, estima su peso en gramos (tu mejor estimación a partir de referencias visuales de tamaño y del tipo de plato) y, a partir de ese peso, calcula sus calorías y sus macronutrientes (proteínas, carbohidratos y grasas, en gramos), usando tu conocimiento nutricional general de ese alimento. ' +
+    'Sé realista: no dejes valores a 0 salvo que ese nutriente realmente sea prácticamente inexistente en ese alimento. ' +
     'Devuelve UNICAMENTE JSON con este formato exacto, sin texto adicional ni markdown: ' +
-    '{"alimentos":[{"nombre":"string","gramos_estimados":number}]}';
+    '{"nombre_plato":"string","ingredientes":[{"nombre":"string","gramos_estimados":number,"kcal":number,"proteinas_g":number,"carbohidratos_g":number,"grasas_g":number}]}';
 
   document.getElementById('btnRetryCam').addEventListener('click', function(){
     startBarcodeScanner();
@@ -2419,67 +2580,91 @@
       try{ parsed = JSON.parse(text); }
       catch(e){ status.innerHTML = '<div class="msg err">No se pudo interpretar la respuesta de Gemini: '+escapeHtml(text.slice(0,200))+'</div>'; return; }
 
-      var items = (parsed.alimentos || []);
+      var items = (parsed.ingredientes || []);
       if(items.length === 0){
         status.innerHTML = '<div class="msg">No se detectaron alimentos en la foto.</div>';
         return;
       }
-      status.innerHTML = '<div class="msg">Detectados '+items.length+' alimentos, buscando coincidencias…</div>';
-      return resolveItemsForReview(items).then(function(reviewItems){
-        status.innerHTML = '<div class="msg">Revisa las cantidades y confirma:</div>';
-        document.getElementById('photoNote').value = '';
-        renderPhotoReview(reviewItems);
+      var dishName = (parsed.nombre_plato || '').trim();
+      var reviewItems = items.map(function(item){
+        var grams = Number(item.gramos_estimados) || 0;
+        var kcal = Number(item.kcal) || 0;
+        var protein = Number(item.proteinas_g) || 0;
+        var carbs = Number(item.carbohidratos_g) || 0;
+        var fat = Number(item.grasas_g) || 0;
+        return {
+          name: (item.nombre || 'Ingrediente').trim(),
+          grams: grams, kcal: kcal, protein: protein, carbs: carbs, fat: fat,
+          per100: grams > 0 ? {
+            kcal: kcal / grams * 100, protein: protein / grams * 100,
+            carbs: carbs / grams * 100, fat: fat / grams * 100
+          } : null
+        };
       });
+      status.innerHTML = '<div class="msg">Revisa el plato y confirma:</div>';
+      document.getElementById('photoNote').value = '';
+      renderPhotoReview(dishName || 'Plato detectado', reviewItems);
     }).catch(function(err){
       status.innerHTML = '<div class="msg err">Error al conectar con la API de Gemini. ('+escapeHtml(err && err.message ? err.message : err)+')</div>';
     });
   }
 
-  function resolveItemsForReview(items){
-    return items.reduce(function(chain, item){
-      return chain.then(function(acc){
-        return searchOff(item.nombre).catch(function(){ return []; }).then(function(products){
-          var grams = Number(item.gramos_estimados) || 100;
-          if(products && products.length > 0){
-            var p = products[0];
-            acc.push({ name: p.product_name, grams: grams, per100: per100Of(p), matched: true });
-          } else {
-            acc.push({ name: item.nombre, grams: grams, per100: null, matched: false });
-          }
-          return acc;
-        });
-      });
-    }, Promise.resolve([]));
-  }
-
+  // Reescala un ingrediente detectado si el usuario cambia sus gramos en la revisión,
+  // usando el "por 100g" derivado de la estimación de Gemini (o los macros tal cual si no
+  // hubiera gramos con los que escalar).
   function reviewRowMacros(row){
     if(row.per100){
-      var factor = row.grams / 100;
+      var factor = (Number(row.grams)||0) / 100;
       return { kcal: row.per100.kcal*factor, protein: row.per100.protein*factor, carbs: row.per100.carbs*factor, fat: row.per100.fat*factor };
     }
-    return { kcal:0, protein:0, carbs:0, fat:0 };
+    return { kcal: row.kcal||0, protein: row.protein||0, carbs: row.carbs||0, fat: row.fat||0 };
   }
 
-  function renderPhotoReview(reviewItems){
+  function photoReviewTotals(reviewItems){
+    return reviewItems.reduce(function(s, row){
+      var m = reviewRowMacros(row);
+      s.kcal += m.kcal; s.protein += m.protein; s.carbs += m.carbs; s.fat += m.fat;
+      s.grams += Number(row.grams)||0;
+      return s;
+    }, {kcal:0, protein:0, carbs:0, fat:0, grams:0});
+  }
+
+  // Ventana de revisión tras analizar la foto: muestra el nombre del plato detectado
+  // (editable) y cada ingrediente con su cantidad y macros (también editables). Al
+  // confirmar, en modo "log" se crea UNA sola entrada del día con el nombre del plato y
+  // sus ingredientes anidados — igual que una comida creada — así que en el listado del
+  // día aparece solo el plato, y al pulsarlo se abre el mismo editor de ingredientes que
+  // usan las comidas creadas. En modo "ingredient" (se está construyendo otra comida)
+  // cada ingrediente se añade por separado, como con cualquier otra fuente.
+  function renderPhotoReview(dishName, reviewItems){
     var box = document.getElementById('photoResults');
     if(reviewItems.length === 0){
       box.innerHTML = '<div class="msg">No queda ningún alimento por añadir.</div>';
       return;
     }
-    box.innerHTML = reviewItems.map(function(row, idx){
+    var isIngredientPick = pickerMode === 'ingredient';
+    var nameFieldHtml = isIngredientPick ? '' :
+      '<div class="m-field"><label>Nombre del plato</label><input type="text" id="phDishName" value="'+escapeHtml(dishName)+'"></div>';
+    box.innerHTML = nameFieldHtml + reviewItems.map(function(row, idx){
       var m = reviewRowMacros(row);
-      var subtitle = row.matched
-        ? round(m.kcal)+' kcal · P '+round(m.protein)+'g · C '+round(m.carbs)+'g · G '+round(m.fat)+'g'
-        : 'Sin coincidencia en Open Food Facts — se guardará sin macros para que lo revises luego';
       return '<div class="detected-item" data-ridx="'+idx+'">'+
         '<div class="dtitle">'+escapeHtml(row.name)+'</div>'+
         '<div class="m-grid2">'+
           '<div class="m-field"><label>Gramos</label><input type="number" class="ri-grams" value="'+row.grams+'"></div>'+
         '</div>'+
-        '<div class="hint ri-sub">'+subtitle+'</div>'+
+        '<div class="hint ri-sub">'+round(m.kcal)+' kcal · P '+round(m.protein)+'g · C '+round(m.carbs)+'g · G '+round(m.fat)+'g</div>'+
         '<button class="secondary-btn ri-remove">✕ Quitar de la lista</button>'+
       '</div>';
-    }).join('') + '<button class="primary-btn" id="btnConfirmPhotoAdd">✓ Añadir todo a Hoy</button>';
+    }).join('') +
+      '<div class="cm-totals" id="phTotalsBox"></div>' +
+      '<button class="primary-btn" id="btnConfirmPhotoAdd">' + (isIngredientPick ? '✓ Añadir ingredientes a la comida' : '✓ Añadir a Hoy') + '</button>';
+
+    function updateTotals(){
+      var t = photoReviewTotals(reviewItems);
+      document.getElementById('phTotalsBox').innerHTML =
+        'Total: <b>'+round(t.grams)+' g</b> · '+round(t.kcal)+' kcal · P '+round(t.protein)+'g · C '+round(t.carbs)+'g · G '+round(t.fat)+'g';
+    }
+    updateTotals();
 
     Array.prototype.forEach.call(box.querySelectorAll('.detected-item'), function(card){
       var idx = Number(card.getAttribute('data-ridx'));
@@ -2487,45 +2672,42 @@
       gramsInput.addEventListener('input', function(){
         reviewItems[idx].grams = Number(gramsInput.value) || 0;
         var m = reviewRowMacros(reviewItems[idx]);
-        if(reviewItems[idx].matched){
-          card.querySelector('.ri-sub').textContent = round(m.kcal)+' kcal · P '+round(m.protein)+'g · C '+round(m.carbs)+'g · G '+round(m.fat)+'g';
-        }
+        card.querySelector('.ri-sub').textContent = round(m.kcal)+' kcal · P '+round(m.protein)+'g · C '+round(m.carbs)+'g · G '+round(m.fat)+'g';
+        updateTotals();
       });
       card.querySelector('.ri-remove').addEventListener('click', function(){
+        var currentName = isIngredientPick ? dishName : (document.getElementById('phDishName').value || dishName);
         reviewItems.splice(idx, 1);
-        renderPhotoReview(reviewItems);
+        renderPhotoReview(currentName, reviewItems);
       });
     });
 
     document.getElementById('btnConfirmPhotoAdd').addEventListener('click', function(){
       var mealVal = document.getElementById('mealSelect').value;
-      var isIngredientPick = pickerMode === 'ingredient';
-      reviewItems.forEach(function(row){
-        var m = reviewRowMacros(row);
-        var entry = {
-          name: row.name,
-          kcal: m.kcal, protein: m.protein, carbs: m.carbs, fat: m.fat,
-          source: row.matched ? 'ai+off' : 'ai-unverified'
-        };
-        if(row.matched){
-          entry.grams = row.grams;
-          entry.per100 = row.per100;
-        }
-        if(isIngredientPick){
-          cmIngredients.push(entry);
-        } else {
-          entry.portionLabel = round(row.grams) + ' g' + (row.matched ? '' : ' (sin verificar)');
-          entry.meal = mealVal;
-          addEntry(viewIso(), entry);
-        }
-      });
       if(isIngredientPick){
+        reviewItems.forEach(function(row){
+          var m = reviewRowMacros(row);
+          cmIngredients.push({ name: row.name, grams: row.grams, kcal: m.kcal, protein: m.protein, carbs: m.carbs, fat: m.fat, per100: row.per100, source: 'ai-photo' });
+        });
         cmRenderIngredients();
         document.getElementById('photoResults').innerHTML = '';
         document.getElementById('photoStatus').innerHTML = '';
         closeIngredientPicker();
         return;
       }
+      var finalName = (document.getElementById('phDishName').value || '').trim() || dishName || 'Plato';
+      var t = photoReviewTotals(reviewItems);
+      addEntry(viewIso(), {
+        name: finalName,
+        kcal: t.kcal, protein: t.protein, carbs: t.carbs, fat: t.fat,
+        portionLabel: t.grams ? (round(t.grams) + ' g') : '',
+        meal: mealVal,
+        source: 'ai-photo',
+        ingredients: reviewItems.map(function(row){
+          var m = reviewRowMacros(row);
+          return { name: row.name, grams: row.grams, kcal: m.kcal, protein: m.protein, carbs: m.carbs, fat: m.fat, per100: row.per100 };
+        })
+      });
       document.getElementById('photoStatus').innerHTML = '<div class="msg">Añadido a tu registro de hoy.</div>';
       document.getElementById('photoResults').innerHTML = '';
       renderDay();
