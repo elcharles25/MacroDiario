@@ -2077,6 +2077,23 @@
 
   function sleep(ms){ return new Promise(function(resolve){ setTimeout(resolve, ms); }); }
 
+  // Envuelve una promesa con un límite de tiempo: si no se resuelve/rechaza a tiempo, se
+  // resuelve con fallbackValue en su lugar (la promesa original sigue su curso, pero deja
+  // de bloquear a quien esperaba el resultado).
+  function promiseTimeout(promise, ms, fallbackValue){
+    return new Promise(function(resolve){
+      var settled = false;
+      var timer = setTimeout(function(){
+        if(!settled){ settled = true; resolve(fallbackValue); }
+      }, ms);
+      promise.then(function(v){
+        if(!settled){ settled = true; clearTimeout(timer); resolve(v); }
+      }, function(){
+        if(!settled){ settled = true; clearTimeout(timer); resolve(fallbackValue); }
+      });
+    });
+  }
+
   // Códigos de estado que consideramos un fallo temporal de Open Food Facts (merece la
   // pena reintentar) en vez de una respuesta definitiva (p.ej. 404 no se reintenta).
   function isRetryableStatus(status){
@@ -2546,6 +2563,12 @@
       promptText += ' Contexto adicional proporcionado por el usuario, tenlo en cuenta para identificar los alimentos y estimar las porciones con más precisión: "' + note + '"';
     }
 
+    // La misma foto que se analiza se guarda (reducida) para usarla luego como foto del
+    // plato en el registro del día — igual que la foto de una comida creada. Con límite de
+    // tiempo: si por lo que sea el redimensionado no terminase, no debe bloquear para
+    // siempre la revisión de lo detectado (se seguiría sin foto).
+    var photoDataUrlPromise = promiseTimeout(resizeImageToDataUrl(file, 640, 0.72).catch(function(){ return null; }), 4000, null);
+
     fileToBase64(file).then(function(b64){
       var body = {
         contents: [{ parts: [
@@ -2601,9 +2624,11 @@
           } : null
         };
       });
-      status.innerHTML = '<div class="msg">Revisa el plato y confirma:</div>';
-      document.getElementById('photoNote').value = '';
-      renderPhotoReview(dishName || 'Plato detectado', reviewItems);
+      return photoDataUrlPromise.then(function(photoDataUrl){
+        status.innerHTML = '<div class="msg">Revisa el plato y confirma:</div>';
+        document.getElementById('photoNote').value = '';
+        renderPhotoReview(dishName || 'Plato detectado', reviewItems, photoDataUrl);
+      });
     }).catch(function(err){
       status.innerHTML = '<div class="msg err">Error al conectar con la API de Gemini. ('+escapeHtml(err && err.message ? err.message : err)+')</div>';
     });
@@ -2634,18 +2659,22 @@
   // confirmar, en modo "log" se crea UNA sola entrada del día con el nombre del plato y
   // sus ingredientes anidados — igual que una comida creada — así que en el listado del
   // día aparece solo el plato, y al pulsarlo se abre el mismo editor de ingredientes que
-  // usan las comidas creadas. En modo "ingredient" (se está construyendo otra comida)
-  // cada ingrediente se añade por separado, como con cualquier otra fuente.
-  function renderPhotoReview(dishName, reviewItems){
+  // usan las comidas creadas. La propia foto analizada se guarda como foto del plato
+  // (igual que la foto de una comida creada). En modo "ingredient" (se está construyendo
+  // otra comida) cada ingrediente se añade por separado, como con cualquier otra fuente,
+  // y la foto no aplica (no hay "foto de un ingrediente suelto").
+  function renderPhotoReview(dishName, reviewItems, photoDataUrl){
     var box = document.getElementById('photoResults');
     if(reviewItems.length === 0){
       box.innerHTML = '<div class="msg">No queda ningún alimento por añadir.</div>';
       return;
     }
     var isIngredientPick = pickerMode === 'ingredient';
+    var photoHtml = (!isIngredientPick && photoDataUrl) ?
+      '<img class="cm-photo-preview" src="'+photoDataUrl+'" alt="">' : '';
     var nameFieldHtml = isIngredientPick ? '' :
       '<div class="m-field"><label>Nombre del plato</label><input type="text" id="phDishName" value="'+escapeHtml(dishName)+'"></div>';
-    box.innerHTML = nameFieldHtml + reviewItems.map(function(row, idx){
+    box.innerHTML = photoHtml + nameFieldHtml + reviewItems.map(function(row, idx){
       var m = reviewRowMacros(row);
       return '<div class="detected-item" data-ridx="'+idx+'">'+
         '<div class="dtitle">'+escapeHtml(row.name)+'</div>'+
@@ -2678,7 +2707,7 @@
       card.querySelector('.ri-remove').addEventListener('click', function(){
         var currentName = isIngredientPick ? dishName : (document.getElementById('phDishName').value || dishName);
         reviewItems.splice(idx, 1);
-        renderPhotoReview(currentName, reviewItems);
+        renderPhotoReview(currentName, reviewItems, photoDataUrl);
       });
     });
 
@@ -2703,6 +2732,7 @@
         portionLabel: t.grams ? (round(t.grams) + ' g') : '',
         meal: mealVal,
         source: 'ai-photo',
+        photo: photoDataUrl || null,
         ingredients: reviewItems.map(function(row){
           var m = reviewRowMacros(row);
           return { name: row.name, grams: row.grams, kcal: m.kcal, protein: m.protein, carbs: m.carbs, fat: m.fat, per100: row.per100 };
@@ -2958,7 +2988,7 @@
     cmIngredients = (e.ingredients || []).map(function(i){
       return {name:i.name, grams:i.grams, kcal:i.kcal, protein:i.protein, carbs:i.carbs, fat:i.fat, per100:i.per100 || null};
     });
-    cmPhotoDataUrl = null;
+    cmPhotoDataUrl = e.photo || null;
     document.getElementById('cmTitle').textContent = 'Editar comida registrada';
     document.getElementById('cmName').value = e.name || '';
     document.getElementById('cmMsg').textContent = '';
@@ -3059,6 +3089,7 @@
         name: name,
         kcal: t.kcal, protein: t.protein, carbs: t.carbs, fat: t.fat,
         portionLabel: t.grams ? (round(t.grams) + ' g') : '',
+        photo: cmPhotoDataUrl,
         ingredients: cmIngredients.map(function(ing){
           return {name: ing.name, grams: ing.grams, kcal: ing.kcal, protein: ing.protein, carbs: ing.carbs, fat: ing.fat, per100: ing.per100};
         })
