@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MacroDiario</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<title>MacroFit</title>
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAAC3ElEQVRYhe2WS2xMURjHf+fcqzOjL1OUSUd0OjVEQqjQSOyliUct2KmVpInYdEEkSOysWEksEGKFiAgJawtpQkvTh0dnpqod1VJDH2bu3N57LKoTnbmNzlVd9b+653uc///k++75juAPRCI7VmXszEmU2KcgIqCEhcF3ED0obq/069fb2trMGYeY+agOb2kEcRMoXyDSudAtlTwUj7/uzQr4TX4fkP+ZfAYjtqZ2f3zfGReRyI5VGcuM8v9Pnov2D7GNu7RS/+pTwN5cryYVwQoTw5RYtnDI/zt8RTaBcpOxlObkDvgrRmM6igO5nmBFhitNfYQqDSYNjdN31vHsbVlB5Afqkpw9mMC7zKYn4ePErRCjE3puWJNUsCHX2tIwRKjSAKDYY3HxyADLPfa8yct8FucaB/Eum87ZXJWipWEoL05BnXT61TYFUrPWJV6LDWvS8xZQs9rAo6tZtm3rJ51C/Y5drzmUXJMq3zgHpEOsPkcb5RVlvvDoivracSxb0Botcd2orgT4imxuN0eJrJ0uy4u+EppvhDCtwkW4unga65JZcoCdoQn2b0+62cqdgOBKI88WLqBJ/1nAQmJJwJKAJQGuBMSGvXm2ga+exRPw6JWfl33F2fWbIR8P2/2uBLiaBaYlOH69hvrwBLqmaI2WkplaxGEEYNmC572lbtOzcCzBlMPoL2TcOsVaczwnJPA919jRXzxrnTYl8S/zb7LeYS8T6dkP0Z5PPqfQHxJoz7VeehqgJzGdkM5ILjyoYtz5ZeuIn4bkzN11TBrTObERL5efBPLiBERFdXjrMeCm00bBigyj4zop09114dEVlWUmiWQRtkMJBOK8gMNadfjdC2C7Kxb3SE4ZVq2Ee5Yl7MPAyCKS21KJpsHB7m8SYCDaFZNK7lHQtQjkSanEwXi84zFAtrOSyc/famuC11JplVCwQkAp4Ni6hUONKUSnRFydMqyj/f2dHTOeX/cV9CaHq5DzAAAAAElFTkSuQmCC">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
@@ -43,6 +44,8 @@
   header{padding:20px 20px 0 20px;}
   header .brand{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
   header .brand h1{font-size:21px;font-weight:800;letter-spacing:-0.01em;margin:0;color:var(--ink);}
+  header .brand-id{display:flex;align-items:center;gap:10px;}
+  header .brand-logo{width:30px;height:30px;border-radius:8px;flex:none;}
   header .brand button.gear{background:var(--card);border:none;border-radius:var(--radius-full);width:38px;height:38px;box-shadow:var(--shadow-card);color:var(--ink-soft);display:flex;align-items:center;justify-content:center;}
   .day-strip-wrap{display:flex;align-items:center;gap:2px;margin:0 0 18px 0;padding:2px 0;}
   .day-strip{display:flex;overflow-x:auto;scroll-snap-type:x proximity;gap:8px;flex:1;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:2px 8px;}
@@ -144,6 +147,13 @@
 
   /* Modal */
   .overlay{position:fixed;inset:0;background:rgba(20,22,30,0.45);display:flex;align-items:flex-end;justify-content:center;z-index:50;}
+  /* Apilado explícito entre modales anidados: el editor de una comida se abre sobre el
+     selector de alimentos (creados), pero el selector debe poder volver a abrirse POR
+     ENCIMA de ese editor cuando se usa para escoger un ingrediente (.overlay-elevated),
+     y la ficha de detalle de un alimento siempre va por encima de todo lo demás. */
+  #createMealOverlay{z-index:55;}
+  #addOverlay.overlay-elevated{z-index:58;}
+  #productOverlay{z-index:60;}
   .sheet{background:var(--bg);width:100%;max-width:640px;max-height:88vh;overflow-y:auto;border-radius:24px 24px 0 0;padding:22px 20px 26px 20px;box-shadow:var(--shadow-pop);position:relative;}
   #addOverlay .sheet{height:75vh;max-height:75vh;}
   .sheet::before{content:'';position:absolute;top:9px;left:50%;transform:translateX(-50%);width:38px;height:4px;border-radius:var(--radius-full);background:var(--border-soft);}
@@ -178,7 +188,7 @@
   .pd-macro-col .pdm-label{font-size:9px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.03em;margin-top:3px;}
   .pd-preview{background:var(--bg);border-radius:var(--radius-sm);padding:11px 13px;font-size:13px;color:var(--ink-soft);margin:12px 0 18px 0;line-height:1.6;}
   .pd-preview b{color:var(--ink);}
-  .recent-row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--border-soft);}
+  .recent-row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--border-soft);cursor:pointer;}
   .recent-row .fn{flex:1;font-size:13px;font-weight:600;min-width:0;}
   .recent-row .fmacros{font-size:11px;color:var(--ink-soft);}
   .recent-row button{background:var(--bg);border:none;border-radius:var(--radius-sm);padding:6px 10px;font-size:11px;font-weight:600;flex:none;margin-left:8px;}
@@ -207,7 +217,7 @@
   .close-x{position:absolute;top:16px;right:14px;background:var(--card);border:none;border-radius:var(--radius-full);width:30px;height:30px;font-size:16px;color:var(--ink-soft);box-shadow:var(--shadow-card);}
   .fav-x{right:52px;color:var(--fat);display:flex;align-items:center;justify-content:center;}
   .sheet-wrap{position:relative;}
-  .result-row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--border-soft);font-size:13px;}
+  .result-row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--border-soft);font-size:13px;cursor:pointer;}
   .result-row .rn{flex:1;padding-right:8px;}
   .result-row button{background:var(--bg);border:none;border-radius:var(--radius-sm);padding:6px 10px;font-size:11px;font-weight:600;}
   .m-field select{width:100%;border:none;border-radius:var(--radius-sm);padding:10px;font-size:14px;background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1px var(--border-soft);}
@@ -218,12 +228,22 @@
   .meal-macros{font-size:11px;color:var(--ink-soft);margin:3px 0 10px 0;}
   .meal-add-btn{background:var(--primary-soft);border:none;border-radius:var(--radius-full);color:var(--primary-dark);font-size:11px;font-weight:700;padding:5px 11px;flex:none;}
   .meal-empty{font-size:12px;color:var(--ink-soft);padding:2px 4px 12px 4px;}
-  .fav-row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--border-soft);}
+  .fav-row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--border-soft);cursor:pointer;}
   .fav-row .fn{flex:1;font-size:13px;font-weight:600;}
   .fav-row .fmacros{font-size:11px;color:var(--ink-soft);}
   .fav-row .factions{display:flex;gap:6px;flex:none;}
   .fav-row button{background:var(--bg);border:none;border-radius:var(--radius-sm);padding:6px 10px;font-size:11px;font-weight:600;}
   .fav-row button.del{color:var(--ink-soft);}
+  .created-meal-row{cursor:pointer;}
+  .cm-totals{font-size:12px;color:var(--ink-soft);margin:4px 0 16px 0;padding:10px 12px;background:var(--card);border-radius:var(--radius-sm);}
+  .cm-log-block{margin-top:22px;padding-top:16px;border-top:1px solid var(--border-soft);}
+  .cm-log-block .section-label{margin-top:0;}
+  .cm-totals b{color:var(--ink);}
+  .cm-ing-row{display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border-soft);cursor:pointer;}
+  .cm-ing-row .fn{flex:1;font-size:13px;font-weight:600;}
+  .cm-ing-row .fmacros{font-size:11px;color:var(--ink-soft);}
+  .cm-ing-row button{background:var(--bg);border:none;border-radius:var(--radius-sm);padding:5px 9px;font-size:11px;font-weight:600;color:var(--ink-soft);flex:none;}
+  .cm-photo-preview{width:100%;max-width:220px;max-height:160px;object-fit:cover;border-radius:var(--radius-md);margin-top:8px;display:block;}
   .qr-box{width:100%;margin-bottom:10px;border-radius:var(--radius-md);overflow:hidden;}
   .detected-item{background:var(--card);border-radius:var(--radius-md);padding:12px;margin-bottom:10px;box-shadow:var(--shadow-card);}
   .detected-item .dtitle{font-weight:700;font-size:13px;margin-bottom:6px;}
@@ -236,7 +256,15 @@
 
   <header>
     <div class="brand">
-      <h1>MacroDiario</h1>
+      <div class="brand-id">
+        <svg class="brand-logo" viewBox="0 0 100 100" aria-hidden="true">
+          <rect width="100" height="100" rx="22" fill="#20232E"/>
+          <rect x="16" y="15" width="16" height="70" rx="8" fill="#F2A900"/>
+          <rect x="42" y="30" width="16" height="40" rx="8" fill="#F2A900"/>
+          <rect x="68" y="15" width="16" height="70" rx="8" fill="#F2A900"/>
+        </svg>
+        <h1>MacroFit</h1>
+      </div>
       <button class="gear" id="btnSettings" title="Ajustes"></button>
     </div>
   </header>
@@ -311,12 +339,7 @@
       <p class="hint" id="editPreview"></p>
     </div>
     <div id="editDirectBlock" class="hidden">
-      <div class="m-grid2">
-        <div class="m-field"><label>Kcal</label><input type="number" id="editKcal"></div>
-        <div class="m-field"><label>Proteína (g)</label><input type="number" id="editProtein"></div>
-        <div class="m-field"><label>Carbohidratos (g)</label><input type="number" id="editCarbs"></div>
-        <div class="m-field"><label>Grasa (g)</label><input type="number" id="editFat"></div>
-      </div>
+      <p class="hint" id="editDirectMacros"></p>
       <div class="m-field"><label>Porción (texto libre)</label><input type="text" id="editPortionLabel"></div>
     </div>
     <button class="primary-btn" id="btnSaveEdit">Guardar cambios</button>
@@ -344,6 +367,7 @@
     <div class="add-subtabs">
       <button data-sub="db" class="active">Base de datos</button>
       <button data-sub="favoritos">Favoritos</button>
+      <button data-sub="creados">Creados</button>
     </div>
 
     <div class="sub-panel active" id="subpanel-db">
@@ -357,10 +381,14 @@
       <div id="favoritesList"></div>
     </div>
 
+    <div class="sub-panel" id="subpanel-creados">
+      <button class="primary-btn" id="btnNewCreatedMeal">+ Crear comida nueva</button>
+      <div id="createdMealsList"></div>
+    </div>
+
     <!-- BUSCAR -->
     <div class="m-panel" id="panel-buscar">
       <div class="m-field"><label>Buscar en Open Food Facts</label><input type="text" id="searchTerm" placeholder="Ej. yogur natural Hacendado"></div>
-      <button class="secondary-btn" id="btnSearchOff">Buscar</button>
       <div id="searchResults"></div>
     </div>
 
@@ -401,6 +429,42 @@
   </div>
 </div>
 
+<!-- CREATE MEAL MODAL (compose a reusable meal from ingredients with adjustable amounts) -->
+<div class="overlay hidden" id="createMealOverlay">
+  <div class="sheet sheet-wrap">
+    <button class="close-x" id="closeCreateMeal">×</button>
+    <h2 id="cmTitle">Nueva comida</h2>
+
+    <div class="m-field"><label>Nombre</label><input type="text" id="cmName" placeholder="Ej. Bowl de pollo y arroz"></div>
+
+    <div class="m-field">
+      <label>Foto (opcional)</label>
+      <input type="file" id="cmPhotoInput" accept="image/*" capture="environment" style="display:none">
+      <button class="secondary-btn" id="cmPhotoBtn" type="button"></button>
+      <div id="cmPhotoPreview"></div>
+    </div>
+
+    <p class="section-label">Ingredientes</p>
+    <div id="cmIngredientsList"></div>
+    <div class="cm-totals" id="cmTotalsBox"></div>
+
+    <button class="secondary-btn" id="cmAddIngredientBtn">+ Añadir ingrediente</button>
+
+    <div class="cm-log-block" id="cmLogQtyField">
+      <p class="section-label">Registrar hoy</p>
+      <div class="m-field">
+        <label>Cantidad a añadir hoy (g)</label>
+        <input type="number" id="cmLogGrams" step="1" min="0" inputmode="decimal">
+        <div class="cm-totals" id="cmLogQtyPreview"></div>
+      </div>
+    </div>
+
+    <div id="cmMsg" class="hint" style="color:var(--fat)"></div>
+    <button class="primary-btn" id="btnLogCreatedMeal">Añadir a la comida</button>
+    <button class="secondary-btn" id="btnSaveCreatedMeal">Guardar sin añadir hoy</button>
+  </div>
+</div>
+
 <!-- PRODUCT DETAIL MODAL (shown after choosing a search or barcode result, before adding) -->
 <div class="overlay hidden" id="productOverlay">
   <div class="sheet sheet-wrap">
@@ -427,6 +491,7 @@
   var LS_GEMINI = 'md_gemini_key_v1';
   var LS_PROXY = 'md_off_proxy_v1';
   var LS_FAVORITES = 'md_favorites_v1';
+  var LS_CREATED_MEALS = 'md_created_meals_v1';
 
   /* ---------- Date helpers (semana natural: lunes-domingo) ---------- */
   function isoDate(d){
@@ -516,6 +581,42 @@
     var n = (name || '').trim().toLowerCase();
     if(!n) return null;
     return favorites.find(function(f){ return (f.name || '').trim().toLowerCase() === n; }) || null;
+  }
+
+  /* ---------- Comidas creadas (recetas propias con ingredientes y cantidades) ---------- */
+  function loadCreatedMeals(){
+    try{
+      var raw = localStorage.getItem(LS_CREATED_MEALS);
+      if(!raw) return [];
+      return JSON.parse(raw);
+    }catch(e){ return []; }
+  }
+  function saveCreatedMeals(list){ localStorage.setItem(LS_CREATED_MEALS, JSON.stringify(list)); }
+  var createdMeals = loadCreatedMeals();
+
+  function createdMealTotals(meal){
+    return (meal.ingredients || []).reduce(function(s, ing){
+      s.kcal += Number(ing.kcal)||0;
+      s.protein += Number(ing.protein)||0;
+      s.carbs += Number(ing.carbs)||0;
+      s.fat += Number(ing.fat)||0;
+      return s;
+    }, {kcal:0, protein:0, carbs:0, fat:0});
+  }
+  function addCreatedMeal(meal){
+    meal.id = 'cm' + Date.now() + Math.random().toString(36).slice(2,7);
+    createdMeals.push(meal);
+    saveCreatedMeals(createdMeals);
+  }
+  function updateCreatedMeal(id, changes){
+    var m = createdMeals.find(function(x){ return x.id === id; });
+    if(!m) return;
+    Object.keys(changes).forEach(function(k){ m[k] = changes[k]; });
+    saveCreatedMeals(createdMeals);
+  }
+  function removeCreatedMeal(id){
+    createdMeals = createdMeals.filter(function(m){ return m.id !== id; });
+    saveCreatedMeals(createdMeals);
   }
   function heartIconSvg(filled){
     return '<svg viewBox="0 0 24 24" width="15" height="15"><path d="M12 21s-6.72-4.35-9.33-8.1C1 10.22 1.6 6.9 4.42 5.4c2.2-1.18 4.66-.4 6 .1.4.15.8.4 1.1.7.3-.3.7-.55 1.1-.7 1.34-.5 3.8-1.28 6-.1 2.82 1.5 3.42 4.82 1.75 7.5C18.72 16.65 12 21 12 21z" fill="'+(filled ? 'currentColor' : 'none')+'" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path></svg>';
@@ -800,12 +901,20 @@
       } else {
         html += group.map(function(e){
           var counted = e.counted !== false;
+          // Para una comida creada (con desglose de ingredientes), la cantidad mostrada se
+          // recalcula siempre a partir de los gramos de sus ingredientes actuales, en vez
+          // de fiarse de un portionLabel que pudiera haber quedado desactualizado.
+          var portionDisplay = e.portionLabel || '';
+          if(e.ingredients && e.ingredients.length){
+            var totalG = e.ingredients.reduce(function(s,i){ return s + (Number(i.grams)||0); }, 0);
+            portionDisplay = totalG ? (round(totalG) + ' g') : portionDisplay;
+          }
           return '<div class="log-row-wrap">'+
             '<button class="log-row-delete" data-del="'+e.id+'">Eliminar</button>'+
             '<div class="log-row'+(counted ? '' : ' is-excluded')+'" data-editid="'+e.id+'">'+
               '<div class="who">'+
                 '<div class="name">'+escapeHtml(e.name)+'</div>'+
-                (e.portionLabel ? '<div class="portion">'+escapeHtml(e.portionLabel)+'</div>' : '')+
+                (portionDisplay ? '<div class="portion">'+escapeHtml(portionDisplay)+'</div>' : '')+
               '</div>'+
               '<div class="kcal">'+round(e.kcal)+' kcal</div>'+
               '<button class="select-btn'+(counted ? ' is-counted' : '')+'" data-select="'+e.id+'" aria-label="Contar en el total diario" title="Contar en el total diario">'+selectIconSvg(counted)+'</button>'+
@@ -1177,9 +1286,17 @@
   var editOverlay = document.getElementById('editOverlay');
   var editingContext = null; // { dateIso, id }
 
+  // Al pulsar un alimento/comida de la lista del día nunca se pueden editar las macros
+  // directamente: para un alimento normal (con per100) solo se ajusta la cantidad en
+  // gramos; para una comida creada registrada (con ingredients) se abre el editor de
+  // ingredientes y cantidades; para cualquier otro caso, solo el nombre y la porción.
   function openEditEntry(dateIso, id){
     var e = getEntry(dateIso, id);
     if(!e) return;
+    if(e.ingredients && e.ingredients.length){
+      openLogEntryIngredientsModal(dateIso, id);
+      return;
+    }
     editingContext = { dateIso: dateIso, id: id };
     document.getElementById('editName').value = e.name || '';
     var favBtn = document.getElementById('btnFavFromEdit');
@@ -1196,10 +1313,8 @@
     } else {
       gramsBlock.classList.add('hidden');
       directBlock.classList.remove('hidden');
-      document.getElementById('editKcal').value = round(e.kcal);
-      document.getElementById('editProtein').value = round(e.protein);
-      document.getElementById('editCarbs').value = round(e.carbs);
-      document.getElementById('editFat').value = round(e.fat);
+      document.getElementById('editDirectMacros').textContent =
+        round(e.kcal)+' kcal · P '+round(e.protein)+'g · C '+round(e.carbs)+'g · G '+round(e.fat)+'g';
       document.getElementById('editPortionLabel').value = e.portionLabel || '';
     }
     editOverlay.classList.remove('hidden');
@@ -1260,10 +1375,8 @@
       changes.fat = e.per100.fat * factor;
       changes.portionLabel = round(grams) + ' g';
     } else {
-      changes.kcal = Number(document.getElementById('editKcal').value) || 0;
-      changes.protein = Number(document.getElementById('editProtein').value) || 0;
-      changes.carbs = Number(document.getElementById('editCarbs').value) || 0;
-      changes.fat = Number(document.getElementById('editFat').value) || 0;
+      // Las macros no se pueden editar directamente aquí: solo cambian el nombre y la
+      // descripción de la porción; kcal/proteína/carbos/grasa se mantienen como estaban.
       changes.portionLabel = document.getElementById('editPortionLabel').value.trim();
     }
     updateEntry(editingContext.dateIso, editingContext.id, changes);
@@ -1280,9 +1393,24 @@
     renderDay();
   });
 
-  /* ---------- Add food modal ---------- */
+  /* ---------- Add food modal ----------
+     Este mismo modal (con sus 3 pestañas Base de datos / Favoritos / Creados y los 3
+     métodos Buscar / Código / Foto) sirve tanto para añadir un alimento al registro del
+     día como para añadir un ingrediente a una comida que se está creando o editando.
+     pickerMode indica cuál de los dos toca en cada momento: 'log' (por defecto) añade al
+     día; 'ingredient' añade a cmIngredients y, al terminar, vuelve al editor de la comida. */
   var addOverlay = document.getElementById('addOverlay');
   var html5QrScanner = null;
+  var pickerMode = 'log'; // 'log' | 'ingredient'
+
+  // Abre el selector de alimentos (las mismas 3 pestañas) para escoger un ingrediente de
+  // la comida que se está creando/editando, en vez de para registrar algo en el día.
+  function openIngredientPicker(){
+    pickerMode = 'ingredient';
+    addOverlay.classList.add('overlay-elevated'); // por encima del editor de la comida
+    addOverlay.classList.remove('hidden');
+    showAddPanel('db');
+  }
 
   function stopScanner(){
     if(html5QrScanner){
@@ -1292,11 +1420,12 @@
     document.getElementById('qrBox').classList.add('hidden');
   }
 
-  var ADD_PANEL_IDS = ['db','favoritos','buscar','barcode','foto'];
+  var ADD_PANEL_IDS = ['db','favoritos','creados','buscar','barcode','foto'];
+  var ADD_PANEL_EL_IDS = {db:'subpanel-db', favoritos:'subpanel-favoritos', creados:'subpanel-creados'};
 
   function showAddPanel(id){
     ADD_PANEL_IDS.forEach(function(p){
-      var el = document.getElementById(p === 'db' ? 'subpanel-db' : (p === 'favoritos' ? 'subpanel-favoritos' : 'panel-' + p));
+      var el = document.getElementById(ADD_PANEL_EL_IDS[p] || ('panel-' + p));
       el.classList.toggle('active', p === id);
     });
     Array.prototype.forEach.call(document.querySelectorAll('.add-subtabs button'), function(b){
@@ -1309,6 +1438,7 @@
     if(id === 'foto') document.getElementById('photoInput').click();
     if(id === 'db') renderRecentLists();
     if(id === 'favoritos') renderFavoritesList();
+    if(id === 'creados') renderCreatedMealsList();
   }
 
   function openAddModal(mealKey){
@@ -1319,6 +1449,8 @@
 
   document.getElementById('closeAdd').addEventListener('click', function(){
     addOverlay.classList.add('hidden');
+    addOverlay.classList.remove('overlay-elevated');
+    pickerMode = 'log';
     stopScanner();
   });
 
@@ -1336,12 +1468,20 @@
 
   function closeAddAndRefresh(){
     addOverlay.classList.add('hidden');
+    addOverlay.classList.remove('overlay-elevated');
+    pickerMode = 'log';
     stopScanner();
     document.getElementById('searchResults').innerHTML = '';
     document.getElementById('barcodeResult').innerHTML = '';
     document.getElementById('photoResults').innerHTML = '';
     document.getElementById('photoStatus').innerHTML = '';
     renderDay();
+  }
+
+  // Cierra el selector de alimentos cuando se usó para escoger un INGREDIENTE (no para
+  // registrar algo en el día): vuelve a dejar visible el editor de la comida.
+  function closeIngredientPicker(){
+    closeAddAndRefresh();
   }
 
   /* --- Recent foods & recent meals (Base de datos tab) --- */
@@ -1394,30 +1534,29 @@
         var sub = e.per100 ? (round(e.per100.kcal) + ' kcal / 100 g') : (round(e.kcal) + ' kcal');
         return '<div class="recent-row" data-fidx="'+idx+'">'+
           '<div><div class="fn">'+escapeHtml(e.name)+'</div><div class="fmacros">'+sub+'</div></div>'+
-          '<button class="use-recent-food">Añadir</button>'+
         '</div>';
       }).join('');
       Array.prototype.forEach.call(foodsBox.querySelectorAll('.recent-row'), function(row){
         var e = foods[Number(row.getAttribute('data-fidx'))];
-        row.querySelector('.use-recent-food').addEventListener('click', function(){
-          var mealVal = document.getElementById('mealSelect').value;
+        // Mismo flujo que cualquier otro alimento: pulsar la fila abre la ficha de detalle
+        // (macros de solo lectura + cantidad editable + botón de añadir), nunca se añade
+        // directamente desde el listado.
+        row.addEventListener('click', function(){
           if(e.per100){
-            var grams = prompt('¿Cuántos gramos vas a registrar de "'+e.name+'"?', String(e.grams || 100));
-            if(grams === null) return;
-            var factor = (Number(grams)||0) / 100;
-            addEntry(viewIso(), {
+            openProductDetail({
               name: e.name,
-              kcal: e.per100.kcal*factor, protein: e.per100.protein*factor, carbs: e.per100.carbs*factor, fat: e.per100.fat*factor,
-              portionLabel: grams + ' g', grams: Number(grams)||0, per100: e.per100,
-              meal: mealVal, source: e.source || 'recent'
+              per100: e.per100,
+              initialGrams: e.grams,
+              source: e.source || 'recent'
             });
           } else {
-            addEntry(viewIso(), {
-              name: e.name, kcal: e.kcal, protein: e.protein, carbs: e.carbs, fat: e.fat,
-              portionLabel: e.portionLabel || '', meal: mealVal, source: e.source || 'recent'
+            openProductDetail({
+              name: e.name,
+              perUnit: { kcal: e.kcal, protein: e.protein, carbs: e.carbs, fat: e.fat },
+              unitPortionLabel: e.portionLabel || '',
+              source: e.source || 'recent'
             });
           }
-          closeAddAndRefresh();
         });
       });
     }
@@ -1439,6 +1578,18 @@
       Array.prototype.forEach.call(mealsBox.querySelectorAll('.recent-meal-card'), function(card){
         var g = groups[Number(card.getAttribute('data-gidx'))];
         card.querySelector('.use-recent-meal').addEventListener('click', function(){
+          if(pickerMode === 'ingredient'){
+            // Cada alimento de aquella comida pasa a ser un ingrediente más de la comida
+            // que se está creando/editando ahora.
+            g.entries.forEach(function(e){
+              var copy = { name: e.name, kcal: e.kcal, protein: e.protein, carbs: e.carbs, fat: e.fat, source: e.source || 'recent' };
+              if(e.per100){ copy.per100 = e.per100; copy.grams = e.grams; }
+              cmIngredients.push(copy);
+            });
+            cmRenderIngredients();
+            closeIngredientPicker();
+            return;
+          }
           var mealVal = document.getElementById('mealSelect').value;
           g.entries.forEach(function(e){
             var copy = {
@@ -1476,6 +1627,279 @@
     };
   }
 
+  /* ---------- Alimentos genéricos (sin marca) ----------
+     Base local de alimentos comunes (café, leche, arroz, pollo, fruta…) para que la
+     búsqueda no dependa solo de productos envasados de Open Food Facts. Valores por
+     100g (o 100ml en líquidos), aproximados a tablas nutricionales estándar. */
+  var GENERIC_FOODS = [
+    {name:'Café solo', kcal:1, protein:0.1, carbs:0, fat:0},
+    {name:'Café con leche', kcal:42, protein:2.2, carbs:4.3, fat:1.9},
+    {name:'Leche entera', kcal:64, protein:3.2, carbs:4.8, fat:3.6},
+    {name:'Leche semidesnatada', kcal:46, protein:3.3, carbs:4.8, fat:1.6},
+    {name:'Leche desnatada', kcal:35, protein:3.4, carbs:5, fat:0.1},
+    {name:'Leche de avena', kcal:47, protein:1, carbs:6.7, fat:1.5},
+    {name:'Leche de almendra', kcal:24, protein:0.4, carbs:2.4, fat:1.1},
+    {name:'Pasta cocida', kcal:131, protein:5, carbs:25, fat:1.1},
+    {name:'Pasta integral cocida', kcal:124, protein:5.3, carbs:23.2, fat:1.4},
+    {name:'Arroz blanco cocido', kcal:130, protein:2.7, carbs:28, fat:0.3},
+    {name:'Arroz integral cocido', kcal:123, protein:2.7, carbs:25.8, fat:1},
+    {name:'Pan blanco', kcal:265, protein:9, carbs:49, fat:3.2},
+    {name:'Pan integral', kcal:247, protein:13, carbs:41, fat:4.2},
+    {name:'Patata cocida', kcal:87, protein:1.9, carbs:20.1, fat:0.1},
+    {name:'Patata frita casera', kcal:274, protein:3.4, carbs:35, fat:14},
+    {name:'Boniato cocido', kcal:90, protein:2, carbs:20.7, fat:0.1},
+    {name:'Pollo pechuga a la plancha', kcal:165, protein:31, carbs:0, fat:3.6},
+    {name:'Pollo muslo asado', kcal:216, protein:24, carbs:0, fat:13},
+    {name:'Pavo pechuga', kcal:135, protein:29, carbs:0, fat:1.7},
+    {name:'Ternera magra', kcal:158, protein:26.4, carbs:0, fat:5.4},
+    {name:'Cerdo lomo', kcal:143, protein:21, carbs:0, fat:6},
+    {name:'Jamón serrano', kcal:241, protein:31, carbs:0, fat:13},
+    {name:'Jamón cocido', kcal:113, protein:18, carbs:1.4, fat:4.3},
+    {name:'Atún al natural (lata)', kcal:116, protein:26, carbs:0, fat:1},
+    {name:'Atún en aceite (lata)', kcal:198, protein:25, carbs:0, fat:10.5},
+    {name:'Salmón a la plancha', kcal:208, protein:20, carbs:0, fat:13},
+    {name:'Merluza a la plancha', kcal:90, protein:19, carbs:0, fat:1.3},
+    {name:'Gambas cocidas', kcal:99, protein:20.9, carbs:0.9, fat:1},
+    {name:'Huevo cocido', kcal:155, protein:13, carbs:1.1, fat:11},
+    {name:'Huevo frito', kcal:196, protein:13.6, carbs:0.8, fat:15},
+    {name:'Tortilla francesa', kcal:154, protein:10.8, carbs:0.6, fat:11.7},
+    {name:'Queso fresco', kcal:98, protein:11, carbs:3.4, fat:4.3},
+    {name:'Queso curado', kcal:392, protein:26, carbs:1.3, fat:32},
+    {name:'Requesón', kcal:98, protein:11.1, carbs:3.4, fat:4.3},
+    {name:'Yogur natural', kcal:61, protein:3.5, carbs:4.7, fat:3.3},
+    {name:'Yogur griego', kcal:97, protein:3.8, carbs:4.5, fat:7.5},
+    {name:'Mantequilla', kcal:717, protein:0.9, carbs:0.1, fat:81},
+    {name:'Aceite de oliva', kcal:884, protein:0, carbs:0, fat:100},
+    {name:'Aguacate', kcal:160, protein:2, carbs:8.5, fat:14.7},
+    {name:'Plátano', kcal:89, protein:1.1, carbs:23, fat:0.3},
+    {name:'Manzana', kcal:52, protein:0.3, carbs:14, fat:0.2},
+    {name:'Naranja', kcal:47, protein:0.9, carbs:12, fat:0.1},
+    {name:'Fresas', kcal:32, protein:0.7, carbs:7.7, fat:0.3},
+    {name:'Uvas', kcal:69, protein:0.7, carbs:18, fat:0.2},
+    {name:'Sandía', kcal:30, protein:0.6, carbs:7.6, fat:0.2},
+    {name:'Melón', kcal:34, protein:0.8, carbs:8.2, fat:0.2},
+    {name:'Kiwi', kcal:61, protein:1.1, carbs:15, fat:0.5},
+    {name:'Tomate', kcal:18, protein:0.9, carbs:3.9, fat:0.2},
+    {name:'Lechuga', kcal:15, protein:1.4, carbs:2.9, fat:0.2},
+    {name:'Zanahoria', kcal:41, protein:0.9, carbs:9.6, fat:0.2},
+    {name:'Brócoli cocido', kcal:35, protein:2.4, carbs:7.2, fat:0.4},
+    {name:'Espinacas cocidas', kcal:23, protein:2.9, carbs:3.8, fat:0.4},
+    {name:'Calabacín', kcal:17, protein:1.2, carbs:3.1, fat:0.3},
+    {name:'Pepino', kcal:15, protein:0.7, carbs:3.6, fat:0.1},
+    {name:'Cebolla', kcal:40, protein:1.1, carbs:9.3, fat:0.1},
+    {name:'Pimiento rojo', kcal:31, protein:1, carbs:6, fat:0.3},
+    {name:'Champiñones', kcal:22, protein:3.1, carbs:3.3, fat:0.3},
+    {name:'Lentejas cocidas', kcal:116, protein:9, carbs:20, fat:0.4},
+    {name:'Garbanzos cocidos', kcal:164, protein:8.9, carbs:27.4, fat:2.6},
+    {name:'Judías blancas cocidas', kcal:127, protein:8.7, carbs:22.8, fat:0.5},
+    {name:'Avena en copos', kcal:389, protein:16.9, carbs:66, fat:6.9},
+    {name:'Almendras', kcal:579, protein:21, carbs:22, fat:50},
+    {name:'Nueces', kcal:654, protein:15, carbs:14, fat:65},
+    {name:'Cacahuetes', kcal:567, protein:25.8, carbs:16, fat:49},
+    {name:'Chocolate negro (70%)', kcal:598, protein:7.8, carbs:45.9, fat:42.6},
+    {name:'Miel', kcal:304, protein:0.3, carbs:82.4, fat:0},
+    {name:'Azúcar blanco', kcal:387, protein:0, carbs:100, fat:0},
+
+    // --- Frutas ---
+    {name:'Pera', kcal:57, protein:0.4, carbs:15, fat:0.1},
+    {name:'Piña', kcal:50, protein:0.5, carbs:13, fat:0.1},
+    {name:'Mango', kcal:60, protein:0.8, carbs:15, fat:0.4},
+    {name:'Papaya', kcal:43, protein:0.5, carbs:11, fat:0.3},
+    {name:'Ciruela', kcal:46, protein:0.7, carbs:11, fat:0.3},
+    {name:'Melocotón', kcal:39, protein:0.9, carbs:10, fat:0.3},
+    {name:'Albaricoque', kcal:48, protein:1.4, carbs:11, fat:0.4},
+    {name:'Cereza', kcal:63, protein:1.1, carbs:16, fat:0.2},
+    {name:'Frambuesa', kcal:52, protein:1.2, carbs:12, fat:0.7},
+    {name:'Arándanos', kcal:57, protein:0.7, carbs:14, fat:0.3},
+    {name:'Arándanos rojos (cranberries)', kcal:46, protein:0.4, carbs:12, fat:0.1},
+    {name:'Mora', kcal:43, protein:1.4, carbs:10, fat:0.5},
+    {name:'Pomelo', kcal:42, protein:0.8, carbs:11, fat:0.1},
+    {name:'Mandarina', kcal:53, protein:0.8, carbs:13, fat:0.3},
+    {name:'Limón', kcal:29, protein:1.1, carbs:9, fat:0.3},
+    {name:'Lima', kcal:30, protein:0.7, carbs:11, fat:0.2},
+    {name:'Higo', kcal:74, protein:0.8, carbs:19, fat:0.3},
+    {name:'Granada', kcal:83, protein:1.7, carbs:19, fat:1.2},
+    {name:'Chirimoya', kcal:75, protein:1.6, carbs:18, fat:0.3},
+    {name:'Caqui', kcal:70, protein:0.6, carbs:19, fat:0.2},
+    {name:'Nectarina', kcal:44, protein:1.1, carbs:10, fat:0.3},
+    {name:'Paraguayo', kcal:42, protein:0.8, carbs:10, fat:0.2},
+    {name:'Dátiles secos', kcal:282, protein:2.5, carbs:75, fat:0.4},
+    {name:'Pasas', kcal:299, protein:3.1, carbs:79, fat:0.5},
+    {name:'Coco (pulpa)', kcal:354, protein:3.3, carbs:15, fat:33},
+    {name:'Plátano macho', kcal:122, protein:1.3, carbs:32, fat:0.4},
+    {name:'Maracuyá', kcal:97, protein:2.2, carbs:23, fat:0.7},
+    {name:'Lichi', kcal:66, protein:0.8, carbs:17, fat:0.4},
+
+    // --- Verduras y hortalizas ---
+    {name:'Pimiento verde', kcal:20, protein:0.9, carbs:4.6, fat:0.2},
+    {name:'Pimiento amarillo', kcal:27, protein:1, carbs:6.3, fat:0.2},
+    {name:'Berenjena', kcal:25, protein:1, carbs:5.9, fat:0.2},
+    {name:'Coliflor cocida', kcal:23, protein:1.8, carbs:4.1, fat:0.3},
+    {name:'Col / Repollo', kcal:25, protein:1.3, carbs:5.8, fat:0.1},
+    {name:'Col rizada (kale)', kcal:49, protein:4.3, carbs:8.8, fat:0.9},
+    {name:'Acelgas cocidas', kcal:20, protein:1.8, carbs:3.7, fat:0.2},
+    {name:'Apio', kcal:16, protein:0.7, carbs:3, fat:0.2},
+    {name:'Espárragos cocidos', kcal:22, protein:2.4, carbs:3.9, fat:0.2},
+    {name:'Judías verdes cocidas', kcal:31, protein:1.8, carbs:7, fat:0.2},
+    {name:'Guisantes cocidos', kcal:84, protein:5.4, carbs:14, fat:0.4},
+    {name:'Maíz dulce cocido', kcal:96, protein:3.4, carbs:21, fat:1.5},
+    {name:'Remolacha cocida', kcal:44, protein:1.7, carbs:10, fat:0.2},
+    {name:'Rábano', kcal:16, protein:0.7, carbs:3.4, fat:0.1},
+    {name:'Puerro cocido', kcal:22, protein:1.2, carbs:5, fat:0.1},
+    {name:'Alcachofa cocida', kcal:47, protein:3.3, carbs:10.5, fat:0.2},
+    {name:'Calabaza', kcal:26, protein:1, carbs:6.5, fat:0.1},
+    {name:'Nabo cocido', kcal:22, protein:0.8, carbs:5, fat:0.1},
+    {name:'Endibia', kcal:17, protein:1.3, carbs:3.4, fat:0.2},
+    {name:'Escarola', kcal:17, protein:1.3, carbs:3.4, fat:0.2},
+    {name:'Canónigos', kcal:21, protein:2, carbs:3.6, fat:0.4},
+    {name:'Rúcula', kcal:25, protein:2.6, carbs:3.7, fat:0.7},
+    {name:'Ajo', kcal:149, protein:6.4, carbs:33, fat:0.5},
+    {name:'Jengibre fresco', kcal:80, protein:1.8, carbs:18, fat:0.8},
+    {name:'Setas shiitake cocidas', kcal:55, protein:2.2, carbs:12.3, fat:0.5},
+    {name:'Setas portobello', kcal:22, protein:2.5, carbs:3.9, fat:0.4},
+
+    // --- Legumbres y derivados de soja ---
+    {name:'Judías pintas cocidas', kcal:143, protein:9.5, carbs:26, fat:0.6},
+    {name:'Alubias negras cocidas', kcal:132, protein:8.9, carbs:23.7, fat:0.5},
+    {name:'Soja cocida', kcal:173, protein:16.6, carbs:9.9, fat:9},
+    {name:'Edamame cocido', kcal:122, protein:11, carbs:10, fat:5.2},
+    {name:'Tofu', kcal:76, protein:8, carbs:1.9, fat:4.8},
+    {name:'Tempeh', kcal:190, protein:19, carbs:9, fat:11},
+    {name:'Hummus', kcal:166, protein:7.9, carbs:14.3, fat:9.6},
+
+    // --- Cereales, pasta y pan ---
+    {name:'Arroz basmati cocido', kcal:121, protein:3.5, carbs:25, fat:0.4},
+    {name:'Quinoa cocida', kcal:120, protein:4.4, carbs:21.3, fat:1.9},
+    {name:'Cuscús cocido', kcal:112, protein:3.8, carbs:23.2, fat:0.2},
+    {name:'Pan de centeno', kcal:219, protein:8.5, carbs:48, fat:1.7},
+    {name:'Pan de pita', kcal:275, protein:9.1, carbs:55.7, fat:1.2},
+    {name:'Tortitas de maíz', kcal:384, protein:8.2, carbs:82, fat:3.5},
+    {name:'Tortitas de arroz', kcal:387, protein:7.5, carbs:81.5, fat:2.8},
+    {name:'Cereales de desayuno (copos de maíz)', kcal:378, protein:7, carbs:84, fat:0.9},
+    {name:'Muesli', kcal:362, protein:9.7, carbs:66.2, fat:6},
+    {name:'Harina de trigo', kcal:364, protein:10.3, carbs:76.3, fat:1},
+    {name:'Harina de avena', kcal:389, protein:16.9, carbs:66, fat:6.9},
+    {name:'Maicena', kcal:381, protein:0.3, carbs:91, fat:0.1},
+
+    // --- Quesos ---
+    {name:'Mozzarella', kcal:280, protein:22, carbs:2.2, fat:21},
+    {name:'Queso de cabra', kcal:364, protein:21.6, carbs:0.1, fat:30.5},
+    {name:'Queso brie', kcal:334, protein:20.8, carbs:0.5, fat:27.7},
+    {name:'Queso camembert', kcal:300, protein:19.8, carbs:0.5, fat:24.3},
+    {name:'Queso cheddar', kcal:402, protein:25, carbs:1.3, fat:33.1},
+    {name:'Queso parmesano', kcal:431, protein:38, carbs:4.1, fat:29},
+    {name:'Queso azul (roquefort)', kcal:369, protein:21.5, carbs:2, fat:30.6},
+    {name:'Queso mascarpone', kcal:429, protein:4.8, carbs:4.8, fat:44},
+    {name:'Queso ricotta', kcal:174, protein:11.3, carbs:3, fat:13},
+    {name:'Queso feta', kcal:264, protein:14.2, carbs:4.1, fat:21.3},
+    {name:'Queso en lonchas', kcal:297, protein:18, carbs:4, fat:23},
+    {name:'Queso crema (tipo Philadelphia)', kcal:342, protein:5.9, carbs:4.1, fat:34.2},
+    {name:'Queso manchego semicurado', kcal:384, protein:26, carbs:0.5, fat:31},
+
+    // --- Embutidos y carnes procesadas ---
+    {name:'Chorizo', kcal:455, protein:24, carbs:1.9, fat:38},
+    {name:'Salchichón', kcal:407, protein:23, carbs:1.5, fat:35},
+    {name:'Lomo embuchado', kcal:233, protein:34, carbs:0.5, fat:10},
+    {name:'Fuet', kcal:435, protein:23, carbs:1.5, fat:38},
+    {name:'Salami', kcal:407, protein:22, carbs:1.6, fat:34.4},
+    {name:'Mortadela', kcal:311, protein:15, carbs:3, fat:26},
+    {name:'Bacon / Panceta frito', kcal:541, protein:37, carbs:1.4, fat:42},
+    {name:'Salchichas Frankfurt', kcal:297, protein:12, carbs:3, fat:26},
+    {name:'Morcilla', kcal:379, protein:14.5, carbs:16, fat:30},
+    {name:'Pavo fiambre', kcal:106, protein:17, carbs:2, fat:3},
+    {name:'Jamón de pavo', kcal:100, protein:17.5, carbs:1.5, fat:2.5},
+
+    // --- Carnes ---
+    {name:'Cordero pierna asada', kcal:206, protein:25, carbs:0, fat:11},
+    {name:'Conejo', kcal:173, protein:21, carbs:0, fat:9},
+    {name:'Hígado de pollo', kcal:119, protein:17.9, carbs:0.7, fat:4.8},
+    {name:'Carne picada de ternera', kcal:215, protein:20, carbs:0, fat:15},
+    {name:'Carne picada mixta (ternera/cerdo)', kcal:232, protein:18, carbs:0, fat:18},
+    {name:'Solomillo de cerdo', kcal:143, protein:21, carbs:0, fat:5.5},
+    {name:'Costillas de cerdo asadas', kcal:277, protein:26, carbs:0, fat:19},
+
+    // --- Pescados y mariscos ---
+    {name:'Bacalao', kcal:82, protein:17.8, carbs:0, fat:0.7},
+    {name:'Lubina', kcal:97, protein:18.4, carbs:0, fat:2.5},
+    {name:'Dorada', kcal:96, protein:19, carbs:0, fat:2},
+    {name:'Sardinas', kcal:208, protein:24.6, carbs:0, fat:11.5},
+    {name:'Boquerones', kcal:131, protein:20.4, carbs:0, fat:4.8},
+    {name:'Calamares', kcal:92, protein:15.6, carbs:3.1, fat:1.4},
+    {name:'Pulpo cocido', kcal:82, protein:14.9, carbs:2.2, fat:1},
+    {name:'Mejillones cocidos', kcal:86, protein:11.9, carbs:3.7, fat:2.2},
+    {name:'Almejas', kcal:74, protein:12.8, carbs:2.6, fat:1},
+    {name:'Langostinos cocidos', kcal:106, protein:20.3, carbs:1.6, fat:1.8},
+    {name:'Caballa', kcal:205, protein:18.6, carbs:0, fat:13.9},
+    {name:'Trucha', kcal:148, protein:20.8, carbs:0, fat:6.6},
+    {name:'Rape', kcal:76, protein:14.5, carbs:0, fat:1.5},
+    {name:'Sepia', kcal:79, protein:16.2, carbs:0.8, fat:0.9},
+    {name:'Surimi', kcal:99, protein:15.2, carbs:6.9, fat:0.9},
+
+    // --- Lácteos y huevos ---
+    {name:'Nata para cocinar', kcal:195, protein:2.5, carbs:3.5, fat:19},
+    {name:'Nata montada', kcal:337, protein:2.1, carbs:3.3, fat:35},
+    {name:'Leche condensada', kcal:321, protein:7.9, carbs:54.4, fat:8.7},
+    {name:'Kéfir', kcal:55, protein:3.3, carbs:4.5, fat:2.5},
+    {name:'Skyr', kcal:63, protein:11, carbs:4, fat:0.2},
+    {name:'Queso batido 0%', kcal:45, protein:8, carbs:3.5, fat:0.2},
+
+    // --- Frutos secos y semillas ---
+    {name:'Anacardos', kcal:553, protein:18.2, carbs:30.2, fat:43.9},
+    {name:'Pistachos', kcal:560, protein:20.6, carbs:27.2, fat:45.3},
+    {name:'Avellanas', kcal:628, protein:15, carbs:16.7, fat:60.8},
+    {name:'Piñones', kcal:673, protein:13.7, carbs:13.1, fat:68.4},
+    {name:'Semillas de chía', kcal:486, protein:16.5, carbs:42.1, fat:30.7},
+    {name:'Semillas de lino', kcal:534, protein:18.3, carbs:28.9, fat:42.2},
+    {name:'Semillas de calabaza', kcal:559, protein:30.2, carbs:10.7, fat:49},
+    {name:'Semillas de girasol', kcal:584, protein:20.8, carbs:20, fat:51.5},
+    {name:'Crema de cacahuete', kcal:588, protein:25, carbs:20, fat:50},
+    {name:'Tahini', kcal:595, protein:17, carbs:21, fat:54},
+
+    // --- Otros y condimentos ---
+    {name:'Chocolate con leche', kcal:535, protein:7.6, carbs:59, fat:29.7},
+    {name:'Cacao en polvo puro', kcal:228, protein:19.6, carbs:57.9, fat:13.7},
+    {name:'Mermelada', kcal:278, protein:0.3, carbs:69, fat:0.1},
+    {name:'Sirope de agave', kcal:310, protein:0, carbs:76, fat:0.5},
+    {name:'Vinagre', kcal:18, protein:0, carbs:0.9, fat:0},
+    {name:'Tomate frito', kcal:82, protein:1.5, carbs:10, fat:4},
+    {name:'Mayonesa', kcal:680, protein:1, carbs:1.5, fat:75},
+    {name:'Ketchup', kcal:112, protein:1.2, carbs:27, fat:0.2},
+    {name:'Mostaza', kcal:66, protein:4.4, carbs:5, fat:3.3},
+    {name:'Guacamole', kcal:155, protein:2, carbs:8.5, fat:13},
+    {name:'Pan rallado', kcal:395, protein:13, carbs:71, fat:5},
+    {name:'Caldo de pollo', kcal:4, protein:0.5, carbs:0.4, fat:0.1}
+  ];
+
+  function normalizeStr(s){
+    return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  }
+  // Convierte un alimento genérico local al mismo formato (product_name/brands/nutriments)
+  // que usan las funciones de OFF (per100Of, offImageUrl, renderizado de resultados),
+  // marcado con _generic para poder distinguirlo (sin marca, sin imagen, sin código).
+  function genericToOffShape(g){
+    return {
+      product_name: g.name,
+      brands: '',
+      code: null,
+      image_front_small_url: null,
+      image_url: null,
+      _generic: true,
+      nutriments: {
+        'energy-kcal_100g': g.kcal,
+        'proteins_100g': g.protein,
+        'carbohydrates_100g': g.carbs,
+        'fat_100g': g.fat
+      }
+    };
+  }
+  function searchGenericFoods(term){
+    var t = normalizeStr(term);
+    if(!t) return [];
+    return GENERIC_FOODS.filter(function(g){
+      return normalizeStr(g.name).indexOf(t) !== -1;
+    }).slice(0, 8).map(genericToOffShape);
+  }
+
   /* ---------- Product detail modal (search / barcode result → review before adding) ---------- */
   var productOverlay = document.getElementById('productOverlay');
   document.getElementById('closeProduct').addEventListener('click', function(){
@@ -1483,65 +1907,105 @@
   });
 
   // name, brand, imageUrl, per100 ({kcal,protein,carbs,fat}), source, fallbackName
+  // Ventana única de detalle de alimento/comida: SIEMPRE se llega aquí tras elegir algo
+  // en el selector de 3 pestañas, y es la ÚNICA vía para añadirlo (a la lista del día o a
+  // una comida que se esté creando). Soporta dos formas de expresar la cantidad:
+  //  - info.per100: base por 100 g, cantidad editable en gramos (productos, ingredientes).
+  //  - info.perUnit: totales de una ración fija (favoritos sin base por 100g, comidas
+  //    creadas sin gramaje), cantidad editable en nº de raciones (por defecto 1).
   function openProductDetail(info){
     var per100 = info.per100;
+    var perUnit = info.perUnit;
     var displayName = info.name || info.fallbackName || 'Producto';
     var body = document.getElementById('productDetailBody');
+    var macrosBase = per100 || perUnit;
 
     body.innerHTML =
       '<div class="pd-image-wrap">'+(info.imageUrl
         ? '<img src="'+escapeHtml(info.imageUrl)+'" alt="" onerror="this.parentNode.innerHTML=\'<span class=&quot;pd-noimg&quot;>🍽️</span>\'">'
         : '<span class="pd-noimg">🍽️</span>')+
       '</div>'+
-      '<div class="pd-fav-row"><button class="pd-fav-btn" id="pdFavBtn" title="Guardar en favoritos">☆</button></div>'+
+      (per100 ? '<div class="pd-fav-row"><button class="pd-fav-btn" id="pdFavBtn" title="Guardar en favoritos">☆</button></div>' : '')+
       '<div class="pd-name">'+escapeHtml(displayName)+'</div>'+
       (info.brand ? '<div class="pd-brand">'+escapeHtml(info.brand)+'</div>' : '')+
-      '<p class="section-label">Valores por 100 g</p>'+
+      '<p class="section-label">'+(per100 ? 'Valores por 100 g' : 'Valores de la ración')+'</p>'+
       '<div class="pd-macros-grid">'+
         [['kcal','Kcal'],['protein','Proteína'],['carbs','Carbs'],['fat','Grasa']].map(function(m){
-          return '<div class="pd-macro-col"><div class="pdm-val">'+round(per100[m[0]])+'</div><div class="pdm-label">'+m[1]+'</div></div>';
+          return '<div class="pd-macro-col"><div class="pdm-val">'+round(macrosBase[m[0]])+'</div><div class="pdm-label">'+m[1]+'</div></div>';
         }).join('')+
       '</div>'+
-      '<div class="m-field"><label>Cantidad a registrar</label><input type="number" id="pdGrams" value="100" inputmode="decimal"></div>'+
+      (per100
+        ? '<div class="m-field"><label>Cantidad a registrar</label><input type="number" id="pdGrams" value="'+(info.initialGrams != null ? round(info.initialGrams) : 100)+'" inputmode="decimal"></div>'
+        : '<div class="m-field"><label>Cantidad (raciones)</label><input type="number" id="pdQty" value="'+(info.initialQty != null ? info.initialQty : 1)+'" step="0.5" min="0" inputmode="decimal"></div>')+
       '<div class="pd-preview" id="pdPreview"></div>'+
-      '<button class="primary-btn" id="pdAddBtn">Añadir a la comida</button>';
+      '<button class="primary-btn" id="pdAddBtn">'+(info.addLabel || 'Añadir a la comida')+'</button>';
 
     function updatePreview(){
-      var grams = Number(document.getElementById('pdGrams').value) || 0;
-      var factor = grams / 100;
+      var factor = per100
+        ? (Number(document.getElementById('pdGrams').value) || 0) / 100
+        : (Number(document.getElementById('pdQty').value) || 0);
       document.getElementById('pdPreview').innerHTML =
-        '<b>'+round(per100.kcal*factor)+' kcal</b> · '+
-        round(per100.protein*factor)+' g proteína · '+
-        round(per100.carbs*factor)+' g carbohidratos · '+
-        round(per100.fat*factor)+' g grasa';
+        '<b>'+round(macrosBase.kcal*factor)+' kcal</b> · '+
+        round(macrosBase.protein*factor)+' g proteína · '+
+        round(macrosBase.carbs*factor)+' g carbohidratos · '+
+        round(macrosBase.fat*factor)+' g grasa';
     }
     updatePreview();
-    document.getElementById('pdGrams').addEventListener('input', updatePreview);
+    document.getElementById(per100 ? 'pdGrams' : 'pdQty').addEventListener('input', updatePreview);
 
-    document.getElementById('pdFavBtn').addEventListener('click', function(){
-      addFavorite({
-        name: displayName, perGram: true,
-        kcal100: per100.kcal, protein100: per100.protein, carbs100: per100.carbs, fat100: per100.fat
+    if(per100){
+      document.getElementById('pdFavBtn').addEventListener('click', function(){
+        addFavorite({
+          name: displayName, perGram: true,
+          kcal100: per100.kcal, protein100: per100.protein, carbs100: per100.carbs, fat100: per100.fat
+        });
+        var btn = document.getElementById('pdFavBtn');
+        btn.textContent = '★';
+        btn.disabled = true;
       });
-      var btn = document.getElementById('pdFavBtn');
-      btn.textContent = '★';
-      btn.disabled = true;
-    });
+    }
 
     document.getElementById('pdAddBtn').addEventListener('click', function(){
-      var grams = Number(document.getElementById('pdGrams').value) || 0;
-      var factor = grams / 100;
-      addEntry(viewIso(), {
-        name: displayName,
-        kcal: per100.kcal*factor, protein: per100.protein*factor, carbs: per100.carbs*factor, fat: per100.fat*factor,
-        portionLabel: grams + ' g',
-        grams: grams,
-        per100: per100,
-        meal: document.getElementById('mealSelect').value,
-        source: info.source || 'off'
-      });
-      productOverlay.classList.add('hidden');
-      closeAddAndRefresh();
+      var built;
+      if(per100){
+        var grams = Number(document.getElementById('pdGrams').value) || 0;
+        var factor = grams / 100;
+        built = {
+          name: displayName,
+          kcal: per100.kcal*factor, protein: per100.protein*factor, carbs: per100.carbs*factor, fat: per100.fat*factor,
+          portionLabel: grams + ' g',
+          grams: grams,
+          per100: per100,
+          source: info.source || 'off'
+        };
+      } else {
+        var qty = Number(document.getElementById('pdQty').value) || 0;
+        built = {
+          name: displayName,
+          kcal: perUnit.kcal*qty, protein: perUnit.protein*qty, carbs: perUnit.carbs*qty, fat: perUnit.fat*qty,
+          portionLabel: qty === 1 ? (info.unitPortionLabel || '') : ('x' + qty + (info.unitPortionLabel ? (' ' + info.unitPortionLabel) : '')),
+          qty: qty,
+          source: info.source || 'favorito'
+        };
+      }
+      if(typeof info.onAdd === 'function'){
+        // Callback explícito: se está AJUSTANDO un ingrediente que ya estaba en la lista, o
+        // añadiendo una comida creada (que reparte el resultado entre sus ingredientes)
+        // (no se pasa por pickerMode porque no cierra el selector de alimentos, solo la
+        // ficha de detalle, y el editor de la comida sigue abierto detrás).
+        info.onAdd(built);
+        productOverlay.classList.add('hidden');
+      } else if(pickerMode === 'ingredient'){
+        cmIngredients.push(built);
+        cmRenderIngredients();
+        productOverlay.classList.add('hidden');
+        closeIngredientPicker();
+      } else {
+        built.meal = document.getElementById('mealSelect').value;
+        addEntry(viewIso(), built);
+        productOverlay.classList.add('hidden');
+        closeAddAndRefresh();
+      }
     });
 
     productOverlay.classList.remove('hidden');
@@ -1591,50 +2055,96 @@
     });
   }
 
-  /* --- Buscar --- */
-  document.getElementById('btnSearchOff').addEventListener('click', function(){
-    var term = document.getElementById('searchTerm').value.trim();
-    if(!term) return;
+  /* --- Buscar ---
+     Combina, para el mismo término, alimentos genéricos locales (sin marca) con los
+     resultados de Open Food Facts, para no depender solo de productos envasados. Los
+     genéricos se muestran al instante (sin esperar a la red) y los de OFF se añaden
+     en cuanto llegan. */
+  var currentSearchResults = [];
+  function renderSearchResults(list, stillLoading){
+    currentSearchResults = list;
     var box = document.getElementById('searchResults');
-    box.innerHTML = '<div class="msg">Buscando…</div>';
-    searchOff(term).then(function(products){
-      if(products.length === 0){
-        box.innerHTML = '<div class="msg">Sin resultados. Prueba con otro término o usa "Manual".</div>';
-        return;
-      }
-      box.innerHTML = products.map(function(p, idx){
-        return '<div class="result-row"><span class="rn">'+escapeHtml(p.product_name)+(p.brands ? ' · <span style="color:var(--ink-soft)">'+escapeHtml(p.brands)+'</span>' : '')+'</span>'+
-          '<span class="factions"><button class="fav" data-favidx="'+idx+'" title="Guardar en favoritos">☆</button><button data-idx="'+idx+'">Elegir</button></span></div>';
-      }).join('');
-      Array.prototype.forEach.call(box.querySelectorAll('[data-idx]'), function(btn){
-        btn.addEventListener('click', function(){
-          var p = products[Number(btn.getAttribute('data-idx'))];
-          openProductDetail({
-            name: p.product_name,
-            brand: p.brands || '',
-            imageUrl: offImageUrl(p),
-            per100: per100Of(p),
-            source: 'off'
-          });
+    if(list.length === 0 && !stillLoading){
+      box.innerHTML = '<div class="msg">Sin resultados. Prueba con otro término o usa "Manual".</div>';
+      return;
+    }
+    var html = list.map(function(p, idx){
+      var tag = p._generic ? 'Genérico' : (p.brands || '');
+      return '<div class="result-row" data-idx="'+idx+'"><span class="rn">'+escapeHtml(p.product_name)+(tag ? ' · <span style="color:var(--ink-soft)">'+escapeHtml(tag)+'</span>' : '')+'</span>'+
+        '<span class="factions"><button class="fav" data-favidx="'+idx+'" title="Guardar en favoritos">☆</button></span></div>';
+    }).join('');
+    if(stillLoading) html += '<div class="msg">Buscando en Open Food Facts…</div>';
+    box.innerHTML = html;
+    // Pulsar la fila (en cualquier punto salvo el ☆) abre siempre la misma ficha de
+    // detalle; el listado en sí nunca tiene un botón de "añadir" propio.
+    Array.prototype.forEach.call(box.querySelectorAll('.result-row[data-idx]'), function(row){
+      row.addEventListener('click', function(){
+        var p = currentSearchResults[Number(row.getAttribute('data-idx'))];
+        openProductDetail({
+          name: p.product_name,
+          brand: p._generic ? '' : (p.brands || ''),
+          imageUrl: offImageUrl(p),
+          per100: per100Of(p),
+          source: p._generic ? 'generic' : 'off'
         });
       });
-      Array.prototype.forEach.call(box.querySelectorAll('[data-favidx]'), function(btn){
-        btn.addEventListener('click', function(){
-          var p = products[Number(btn.getAttribute('data-favidx'))];
-          var n = p.nutriments || {};
-          addFavorite({
-            name: p.product_name, perGram: true,
-            kcal100: Number(n['energy-kcal_100g'])||0,
-            protein100: Number(n['proteins_100g'])||0,
-            carbs100: Number(n['carbohydrates_100g'])||0,
-            fat100: Number(n['fat_100g'])||0
-          });
-          btn.textContent = '★';
-        });
-      });
-    }).catch(function(err){
-      box.innerHTML = '<div class="msg err">No se pudo conectar con Open Food Facts. ('+escapeHtml(err && err.message ? err.message : err)+')</div>';
     });
+    Array.prototype.forEach.call(box.querySelectorAll('[data-favidx]'), function(btn){
+      btn.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        var p = currentSearchResults[Number(btn.getAttribute('data-favidx'))];
+        var n = p.nutriments || {};
+        addFavorite({
+          name: p.product_name, perGram: true,
+          kcal100: Number(n['energy-kcal_100g'])||0,
+          protein100: Number(n['proteins_100g'])||0,
+          carbs100: Number(n['carbohydrates_100g'])||0,
+          fat100: Number(n['fat_100g'])||0
+        });
+        btn.textContent = '★';
+      });
+    });
+  }
+  // La búsqueda se lanza sola mientras se escribe (con un pequeño retardo para no disparar
+  // una petición a Open Food Facts en cada pulsación), sin necesidad de pulsar "Buscar".
+  // searchToken evita que una respuesta antigua (de un término ya abandonado) pise el
+  // resultado de la búsqueda más reciente si llegan desordenadas.
+  var searchDebounceTimer = null;
+  var searchToken = 0;
+
+  function performSearchOff(term){
+    var myToken = ++searchToken;
+    if(!term){
+      document.getElementById('searchResults').innerHTML = '';
+      return;
+    }
+    var genericMatches = searchGenericFoods(term);
+    renderSearchResults(genericMatches, true);
+    searchOff(term).then(function(offProducts){
+      if(myToken !== searchToken) return; // ya se ha escrito algo distinto mientras tanto
+      renderSearchResults(genericMatches.concat(offProducts), false);
+    }).catch(function(err){
+      if(myToken !== searchToken) return;
+      renderSearchResults(genericMatches, false);
+      if(genericMatches.length === 0){
+        document.getElementById('searchResults').innerHTML =
+          '<div class="msg err">No se pudo conectar con Open Food Facts. ('+escapeHtml(err && err.message ? err.message : err)+')</div>';
+      } else {
+        document.getElementById('searchResults').innerHTML +=
+          '<div class="msg err">No se pudo conectar con Open Food Facts. ('+escapeHtml(err && err.message ? err.message : err)+')</div>';
+      }
+    });
+  }
+
+  document.getElementById('searchTerm').addEventListener('input', function(){
+    var term = this.value.trim();
+    clearTimeout(searchDebounceTimer);
+    if(!term){
+      searchToken++; // invalida cualquier búsqueda en curso
+      document.getElementById('searchResults').innerHTML = '';
+      return;
+    }
+    searchDebounceTimer = setTimeout(function(){ performSearchOff(term); }, 400);
   });
 
   /* --- Barcode: manual lookup --- */
@@ -1653,9 +2163,11 @@
         return;
       }
       var p = data.product;
-      box.innerHTML = '<div class="result-row"><span class="rn">'+escapeHtml(p.product_name || code)+(p.brands ? ' · <span style="color:var(--ink-soft)">'+escapeHtml(p.brands)+'</span>' : '')+'</span>'+
-        '<span class="factions"><button class="fav" id="favBarcode" title="Guardar en favoritos">☆</button><button id="btnUseBarcode">Elegir</button></span></div>';
-      document.getElementById('btnUseBarcode').addEventListener('click', function(){
+      box.innerHTML = '<div class="result-row" id="barcodeResultRow"><span class="rn">'+escapeHtml(p.product_name || code)+(p.brands ? ' · <span style="color:var(--ink-soft)">'+escapeHtml(p.brands)+'</span>' : '')+'</span>'+
+        '<span class="factions"><button class="fav" id="favBarcode" title="Guardar en favoritos">☆</button></span></div>';
+      // Igual que en el resto de listados: pulsar la fila abre la ficha de detalle; no hay
+      // un botón de "añadir" aparte.
+      document.getElementById('barcodeResultRow').addEventListener('click', function(){
         openProductDetail({
           name: p.product_name,
           fallbackName: 'Producto ' + code,
@@ -1665,7 +2177,8 @@
           source: 'off-barcode'
         });
       });
-      document.getElementById('favBarcode').addEventListener('click', function(){
+      document.getElementById('favBarcode').addEventListener('click', function(ev){
+        ev.stopPropagation();
         var n = p.nutriments || {};
         addFavorite({
           name: p.product_name || ('Producto ' + code), perGram: true,
@@ -1884,21 +2397,33 @@
 
     document.getElementById('btnConfirmPhotoAdd').addEventListener('click', function(){
       var mealVal = document.getElementById('mealSelect').value;
+      var isIngredientPick = pickerMode === 'ingredient';
       reviewItems.forEach(function(row){
         var m = reviewRowMacros(row);
         var entry = {
           name: row.name,
           kcal: m.kcal, protein: m.protein, carbs: m.carbs, fat: m.fat,
-          portionLabel: round(row.grams) + ' g' + (row.matched ? '' : ' (sin verificar)'),
-          meal: mealVal,
           source: row.matched ? 'ai+off' : 'ai-unverified'
         };
         if(row.matched){
           entry.grams = row.grams;
           entry.per100 = row.per100;
         }
-        addEntry(viewIso(), entry);
+        if(isIngredientPick){
+          cmIngredients.push(entry);
+        } else {
+          entry.portionLabel = round(row.grams) + ' g' + (row.matched ? '' : ' (sin verificar)');
+          entry.meal = mealVal;
+          addEntry(viewIso(), entry);
+        }
       });
+      if(isIngredientPick){
+        cmRenderIngredients();
+        document.getElementById('photoResults').innerHTML = '';
+        document.getElementById('photoStatus').innerHTML = '';
+        closeIngredientPicker();
+        return;
+      }
       document.getElementById('photoStatus').innerHTML = '<div class="msg">Añadido a tu registro de hoy.</div>';
       document.getElementById('photoResults').innerHTML = '';
       renderDay();
@@ -1918,40 +2443,388 @@
         : Math.round(f.kcal)+' kcal';
       return '<div class="fav-row" data-favid="'+f.id+'">'+
         '<div><div class="fn">'+escapeHtml(f.name)+'</div><div class="fmacros">'+sub+'</div></div>'+
-        '<div class="factions"><button class="use-fav">Añadir</button><button class="del">✕</button></div>'+
+        '<div class="factions"><button class="del">✕</button></div>'+
       '</div>';
     }).join('');
     Array.prototype.forEach.call(box.querySelectorAll('.fav-row'), function(row){
       var id = row.getAttribute('data-favid');
       var f = favorites.find(function(x){ return x.id === id; });
-      row.querySelector('.use-fav').addEventListener('click', function(){
-        var entry = { name: f.name, meal: document.getElementById('mealSelect').value, source: 'favorito' };
+      // Igual que en el resto de la app: pulsar el alimento SIEMPRE abre la ficha de
+      // detalle (macros de solo lectura + cantidad editable + botón de añadir); nunca se
+      // añade directamente desde el listado.
+      row.addEventListener('click', function(){
         if(f.perGram){
-          var grams = prompt('¿Cuántos gramos vas a registrar de "'+f.name+'"?', '100');
-          if(grams === null) return;
-          var factor = (Number(grams)||0) / 100;
-          entry.kcal = f.kcal100 * factor;
-          entry.protein = f.protein100 * factor;
-          entry.carbs = f.carbs100 * factor;
-          entry.fat = f.fat100 * factor;
-          entry.portionLabel = grams + ' g';
-          entry.grams = Number(grams)||0;
-          entry.per100 = { kcal: f.kcal100, protein: f.protein100, carbs: f.carbs100, fat: f.fat100 };
+          openProductDetail({
+            name: f.name,
+            per100: { kcal: f.kcal100, protein: f.protein100, carbs: f.carbs100, fat: f.fat100 },
+            source: 'favorito'
+          });
         } else {
-          entry.kcal = f.kcal; entry.protein = f.protein; entry.carbs = f.carbs; entry.fat = f.fat;
+          // Favorito de porción fija (sin base por 100g): la cantidad se expresa como
+          // número de raciones en vez de gramos, pero pasa por la misma ficha de detalle.
+          openProductDetail({
+            name: f.name,
+            perUnit: { kcal: f.kcal, protein: f.protein, carbs: f.carbs, fat: f.fat },
+            source: 'favorito'
+          });
         }
-        addEntry(viewIso(), entry);
-        closeAddAndRefresh();
       });
-      row.querySelector('.del').addEventListener('click', function(){
+      row.querySelector('.del').addEventListener('click', function(ev){
+        ev.stopPropagation();
         removeFavorite(id);
         renderFavoritesList();
       });
     });
   }
 
+  /* ---------- Comidas creadas (pestaña "Creados"): listado + modal de creación/edición ---------- */
+  function renderCreatedMealsList(){
+    var box = document.getElementById('createdMealsList');
+    if(createdMeals.length === 0){
+      box.innerHTML = '<div class="msg">Aún no has creado ninguna comida. Usa "+ Crear comida nueva" para combinar varios alimentos en una comida con tus propias proporciones.</div>';
+      return;
+    }
+    box.innerHTML = createdMeals.map(function(m){
+      var t = createdMealTotals(m);
+      var sub = round(t.kcal)+' kcal · P '+round(t.protein)+'g · C '+round(t.carbs)+'g · G '+round(t.fat)+'g';
+      return '<div class="fav-row created-meal-row" data-cmid="'+m.id+'">'+
+        '<div><div class="fn">'+escapeHtml(m.name)+'</div><div class="fmacros">'+sub+'</div></div>'+
+        '<div class="factions"><button class="del">✕</button></div>'+
+      '</div>';
+    }).join('');
+    Array.prototype.forEach.call(box.querySelectorAll('.created-meal-row'), function(row){
+      var id = row.getAttribute('data-cmid');
+      var m = createdMeals.find(function(x){ return x.id === id; });
+      // Pulsar la comida creada abre su ventana propia: ingredientes, macros y calorías
+      // totales, y un botón para añadirla. No hay un botón de editar aparte: dentro de esa
+      // misma ventana se pueden modificar las cantidades de los ingredientes (pulsando
+      // sobre cada uno), añadir nuevos o eliminarlos, y eso EDITA la receta guardada.
+      row.addEventListener('click', function(){
+        if(pickerMode === 'ingredient'){
+          // Se está eligiendo un ingrediente para OTRA comida que se está construyendo:
+          // no tiene sentido abrir aquí el editor completo de esta receta (usaría el mismo
+          // editor que ya está en uso), así que se incorporan directamente sus alimentos
+          // como ingredientes sueltos de la nueva.
+          (m.ingredients || []).forEach(function(ing){
+            cmIngredients.push({
+              name: ing.name, grams: ing.grams, kcal: ing.kcal, protein: ing.protein,
+              carbs: ing.carbs, fat: ing.fat, per100: ing.per100, source: 'creado'
+            });
+          });
+          cmRenderIngredients();
+          closeIngredientPicker();
+          return;
+        }
+        openCreateMealModal(m);
+      });
+      row.querySelector('.del').addEventListener('click', function(ev){
+        ev.stopPropagation();
+        customConfirm('¿Eliminar la comida "'+m.name+'"?', function(){
+          removeCreatedMeal(id);
+          renderCreatedMealsList();
+        });
+      });
+    });
+  }
+
+  var createMealOverlay = document.getElementById('createMealOverlay');
+  var cmIngredients = [];
+  var cmPhotoDataUrl = null;
+  var cmEditingId = null;
+  // El mismo modal sirve para dos cosas: 'recipe' = crear/editar una comida guardada en
+  // "Creados"; 'logEntry' = editar los ingredientes y cantidades de una comida ya
+  // registrada en el día (sin tocar la receta original ni permitir editar macros directamente).
+  var cmMode = 'recipe';
+  var cmLogEditContext = null; // { dateIso, id } cuando cmMode === 'logEntry'
+
+  // Deriva un "por 100g" para un ingrediente aunque no lo tenga guardado (datos antiguos):
+  // a partir de sus macros totales y sus gramos, para poder seguir ajustando la cantidad.
+  function cmIngredientPer100(ing){
+    if(ing.per100) return ing.per100;
+    var grams = Number(ing.grams) || 0;
+    if(grams <= 0) return null;
+    var factor = 100 / grams;
+    return {
+      kcal: (Number(ing.kcal)||0) * factor,
+      protein: (Number(ing.protein)||0) * factor,
+      carbs: (Number(ing.carbs)||0) * factor,
+      fat: (Number(ing.fat)||0) * factor
+    };
+  }
+
+  // Abre la ventana de detalle del alimento (foto/macros de solo lectura por 100g +
+  // cantidad editable) para AJUSTAR un ingrediente ya presente en la lista, en vez de
+  // editar las macros a mano.
+  function cmOpenIngredientDetail(idx){
+    var ing = cmIngredients[idx];
+    if(!ing) return;
+    var per100 = cmIngredientPer100(ing);
+    if(!per100) return; // sin base por 100g no hay forma segura de re-escalar la cantidad
+    openProductDetail({
+      name: ing.name,
+      per100: per100,
+      initialGrams: ing.grams,
+      addLabel: 'Actualizar cantidad',
+      source: ing.source || 'creado',
+      onAdd: function(built){
+        cmIngredients[idx] = built;
+        cmRenderIngredients();
+      }
+    });
+  }
+
+  function cmRenderIngredients(){
+    var box = document.getElementById('cmIngredientsList');
+    if(cmIngredients.length === 0){
+      box.innerHTML = '<div class="empty-mini">Todavía no has añadido ningún ingrediente.</div>';
+    } else {
+      box.innerHTML = cmIngredients.map(function(ing, idx){
+        var sub = (ing.grams ? (round(ing.grams)+' g · ') : '') + round(ing.kcal) + ' kcal';
+        return '<div class="cm-ing-row" data-ingidx="'+idx+'">'+
+          '<div><div class="fn">'+escapeHtml(ing.name)+'</div><div class="fmacros">'+sub+'</div></div>'+
+          '<button class="cm-del-ing">✕</button>'+
+        '</div>';
+      }).join('');
+      Array.prototype.forEach.call(box.querySelectorAll('.cm-ing-row'), function(row){
+        var idx = Number(row.getAttribute('data-ingidx'));
+        row.addEventListener('click', function(){
+          cmOpenIngredientDetail(idx);
+        });
+        row.querySelector('.cm-del-ing').addEventListener('click', function(ev){
+          ev.stopPropagation();
+          cmIngredients.splice(idx, 1);
+          cmRenderIngredients();
+        });
+      });
+    }
+    var t = cmBaseTotals();
+    document.getElementById('cmTotalsBox').innerHTML =
+      (t.grams ? ('Receta completa: <b>'+round(t.grams)+' g</b> · ') : '') +
+      round(t.kcal)+' kcal · P '+round(t.protein)+'g · C '+round(t.carbs)+'g · G '+round(t.fat)+'g';
+    cmUpdateLogQtyPreview();
+  }
+
+  // Suma de todos los ingredientes tal como están compuestos ahora mismo en "Ingredientes".
+  function cmBaseTotals(){
+    return cmIngredients.reduce(function(s, ing){
+      s.kcal += Number(ing.kcal)||0; s.protein += Number(ing.protein)||0;
+      s.carbs += Number(ing.carbs)||0; s.fat += Number(ing.fat)||0;
+      s.grams += Number(ing.grams)||0;
+      return s;
+    }, {kcal:0, protein:0, carbs:0, fat:0, grams:0});
+  }
+
+  // La cantidad a añadir se indica en gramos de la comida completa (igual que con
+  // cualquier otro alimento), no como un multiplicador de "raciones": se reescalan todos
+  // los ingredientes en proporción a los gramos totales de la receta tal como está ahora.
+  function cmLogScaleFactor(){
+    var gramsEl = document.getElementById('cmLogGrams');
+    if(!gramsEl) return 1;
+    var enteredGrams = Number(gramsEl.value) || 0;
+    var base = cmBaseTotals();
+    if(base.grams > 0) return enteredGrams / base.grams;
+    return base.kcal > 0 ? 1 : 0; // receta sin gramos en sus ingredientes: no hay forma de escalar
+  }
+
+  function cmUpdateLogQtyPreview(){
+    var previewEl = document.getElementById('cmLogQtyPreview');
+    if(!previewEl) return;
+    var factor = cmLogScaleFactor();
+    var t = cmBaseTotals();
+    previewEl.innerHTML = 'Se añadirá: <b>'+round(t.kcal*factor)+' kcal</b> · P '+round(t.protein*factor)+'g · C '+round(t.carbs*factor)+'g · G '+round(t.fat*factor)+'g';
+  }
+  document.getElementById('cmLogGrams').addEventListener('input', cmUpdateLogQtyPreview);
+
+  function cmRenderPhotoPreview(){
+    var box = document.getElementById('cmPhotoPreview');
+    box.innerHTML = cmPhotoDataUrl ? '<img class="cm-photo-preview" src="'+cmPhotoDataUrl+'" alt="">' : '';
+  }
+
+  function openCreateMealModal(existingMeal){
+    cmMode = 'recipe';
+    cmLogEditContext = null;
+    cmEditingId = existingMeal ? existingMeal.id : null;
+    cmIngredients = existingMeal ? (existingMeal.ingredients || []).map(function(i){
+      return {name:i.name, grams:i.grams, kcal:i.kcal, protein:i.protein, carbs:i.carbs, fat:i.fat, per100:i.per100};
+    }) : [];
+    cmPhotoDataUrl = existingMeal ? (existingMeal.photo || null) : null;
+    document.getElementById('cmTitle').textContent = existingMeal ? 'Editar comida' : 'Nueva comida';
+    document.getElementById('cmName').value = existingMeal ? existingMeal.name : '';
+    document.getElementById('cmMsg').textContent = '';
+    document.getElementById('btnLogCreatedMeal').classList.remove('hidden');
+    document.getElementById('btnSaveCreatedMeal').textContent = 'Guardar sin añadir hoy';
+    document.getElementById('cmLogQtyField').classList.remove('hidden');
+    // Por defecto se propone el peso total de la receta tal como está compuesta; el
+    // usuario puede cambiarlo a los gramos que realmente vaya a comer hoy.
+    document.getElementById('cmLogGrams').value = round(cmBaseTotals().grams) || 100;
+    cmRenderPhotoPreview();
+    cmRenderIngredients();
+    createMealOverlay.classList.remove('hidden');
+  }
+
+  // Editor de ingredientes/cantidades para una comida YA registrada en el día (fila con
+  // .ingredients en el log). No permite tocar macros directamente ni afecta a la receta
+  // guardada en "Creados": solo actualiza esta entrada concreta del registro.
+  function openLogEntryIngredientsModal(dateIso, entryId){
+    var e = getEntry(dateIso, entryId);
+    if(!e) return;
+    cmMode = 'logEntry';
+    cmLogEditContext = { dateIso: dateIso, id: entryId };
+    cmEditingId = null;
+    cmIngredients = (e.ingredients || []).map(function(i){
+      return {name:i.name, grams:i.grams, kcal:i.kcal, protein:i.protein, carbs:i.carbs, fat:i.fat, per100:i.per100 || null};
+    });
+    cmPhotoDataUrl = null;
+    document.getElementById('cmTitle').textContent = 'Editar comida registrada';
+    document.getElementById('cmName').value = e.name || '';
+    document.getElementById('cmMsg').textContent = '';
+    document.getElementById('btnLogCreatedMeal').classList.add('hidden');
+    document.getElementById('btnSaveCreatedMeal').textContent = 'Guardar cambios';
+    document.getElementById('cmLogQtyField').classList.add('hidden');
+    cmRenderPhotoPreview();
+    cmRenderIngredients();
+    createMealOverlay.classList.remove('hidden');
+  }
+
+  function closeCreateMealModal(){
+    createMealOverlay.classList.add('hidden');
+    cmMode = 'recipe';
+    cmLogEditContext = null;
+  }
+
+  document.getElementById('btnNewCreatedMeal').addEventListener('click', function(){
+    openCreateMealModal(null);
+  });
+  document.getElementById('closeCreateMeal').addEventListener('click', closeCreateMealModal);
+
+  document.getElementById('cmPhotoBtn').addEventListener('click', function(){
+    document.getElementById('cmPhotoInput').click();
+  });
+
+  function resizeImageToDataUrl(file, maxDim, quality){
+    return new Promise(function(resolve, reject){
+      var reader = new FileReader();
+      reader.onload = function(){
+        var img = new Image();
+        img.onload = function(){
+          var w = img.width || maxDim, h = img.height || maxDim;
+          if(w > h && w > maxDim){ h = Math.round(h * maxDim / w); w = maxDim; }
+          else if(h >= w && h > maxDim){ w = Math.round(w * maxDim / h); h = maxDim; }
+          var canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality || 0.72));
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  document.getElementById('cmPhotoInput').addEventListener('change', function(){
+    var f = this.files && this.files[0];
+    if(!f) return;
+    resizeImageToDataUrl(f, 640, 0.72).then(function(dataUrl){
+      cmPhotoDataUrl = dataUrl;
+      cmRenderPhotoPreview();
+    }).catch(function(){ /* si falla el redimensionado, se mantiene sin foto */ });
+  });
+
+  // Añadir un ingrediente reutiliza exactamente el mismo selector de alimentos (3
+  // pestañas: Base de datos, Favoritos, Creados) que se usa para añadir algo al día;
+  // lo que cambia es que, al elegir un alimento, en vez de registrarlo hoy se añade a
+  // la lista de ingredientes de la comida que se está creando/editando.
+  document.getElementById('cmAddIngredientBtn').addEventListener('click', function(){
+    openIngredientPicker();
+  });
+
+  // Valida el formulario y guarda (crea o actualiza) la comida creada.
+  // Devuelve true si se guardó correctamente, false si faltaba algo (y ya muestra el aviso).
+  function cmValidateAndSave(){
+    var msgEl = document.getElementById('cmMsg');
+    var name = document.getElementById('cmName').value.trim();
+    if(!name){ msgEl.textContent = 'Ponle un nombre a la comida.'; return false; }
+    if(cmIngredients.length === 0){ msgEl.textContent = 'Añade al menos un ingrediente.'; return false; }
+    msgEl.textContent = '';
+    var payload = { name: name, photo: cmPhotoDataUrl, ingredients: cmIngredients };
+    if(cmEditingId){
+      updateCreatedMeal(cmEditingId, payload);
+    } else {
+      var created = { name: payload.name, photo: payload.photo, ingredients: payload.ingredients };
+      addCreatedMeal(created);
+      cmEditingId = created.id;
+    }
+    return true;
+  }
+
+  document.getElementById('btnSaveCreatedMeal').addEventListener('click', function(){
+    if(cmMode === 'logEntry'){
+      var msgEl = document.getElementById('cmMsg');
+      if(cmIngredients.length === 0){ msgEl.textContent = 'Añade al menos un ingrediente.'; return; }
+      msgEl.textContent = '';
+      var name = document.getElementById('cmName').value.trim() || 'Comida';
+      var t = cmIngredients.reduce(function(s, ing){
+        s.kcal += Number(ing.kcal)||0; s.protein += Number(ing.protein)||0;
+        s.carbs += Number(ing.carbs)||0; s.fat += Number(ing.fat)||0;
+        s.grams += Number(ing.grams)||0;
+        return s;
+      }, {kcal:0, protein:0, carbs:0, fat:0, grams:0});
+      updateEntry(cmLogEditContext.dateIso, cmLogEditContext.id, {
+        name: name,
+        kcal: t.kcal, protein: t.protein, carbs: t.carbs, fat: t.fat,
+        portionLabel: t.grams ? (round(t.grams) + ' g') : '',
+        ingredients: cmIngredients.map(function(ing){
+          return {name: ing.name, grams: ing.grams, kcal: ing.kcal, protein: ing.protein, carbs: ing.carbs, fat: ing.fat, per100: ing.per100};
+        })
+      });
+      closeCreateMealModal();
+      renderDay();
+      return;
+    }
+    if(!cmValidateAndSave()) return;
+    closeCreateMealModal();
+    renderCreatedMealsList();
+  });
+
+  document.getElementById('btnLogCreatedMeal').addEventListener('click', function(){
+    // "Guardar" siempre conserva la receta tal cual está compuesta en Ingredientes; los
+    // gramos de aquí abajo solo escalan lo que se registra HOY, sin tocar la receta guardada.
+    if(!cmValidateAndSave()) return;
+    var enteredGrams = Number(document.getElementById('cmLogGrams').value) || 0;
+    var factor = cmLogScaleFactor();
+    var mealVal = document.getElementById('mealSelect').value;
+    var name = document.getElementById('cmName').value.trim();
+    var t = cmBaseTotals();
+    // Se registra como UNA sola entrada con el nombre de la comida creada y sus totales
+    // (ya escalados a los gramos indicados), no un registro por cada ingrediente.
+    addEntry(viewIso(), {
+      name: name,
+      kcal: t.kcal*factor, protein: t.protein*factor, carbs: t.carbs*factor, fat: t.fat*factor,
+      portionLabel: t.grams ? (round(enteredGrams) + ' g') : '',
+      meal: mealVal,
+      source: 'creado',
+      createdMealId: cmEditingId,
+      ingredients: cmIngredients.map(function(ing){
+        return {
+          name: ing.name,
+          grams: ing.grams != null ? round(ing.grams*factor) : ing.grams,
+          kcal: (Number(ing.kcal)||0)*factor, protein: (Number(ing.protein)||0)*factor,
+          carbs: (Number(ing.carbs)||0)*factor, fat: (Number(ing.fat)||0)*factor,
+          per100: ing.per100
+        };
+      })
+    });
+    closeCreateMealModal();
+    renderCreatedMealsList();
+    closeAddAndRefresh();
+  });
+
   /* ---------- Init ---------- */
   document.getElementById('btnSettings').innerHTML = iconSvg('settings', 17);
+  document.getElementById('cmPhotoBtn').innerHTML =
+    '<span style="display:inline-flex;align-items:center;gap:6px;justify-content:center;width:100%;">'+iconSvg('camera', 16)+'<span>Añadir foto</span></span>';
   Array.prototype.forEach.call(document.querySelectorAll('.search-methods-bar button'), function(btn){
     var name = btn.getAttribute('data-m') === 'buscar' ? 'search' : (btn.getAttribute('data-m') === 'barcode' ? 'barcode' : 'camera');
     btn.querySelector('.smb-ic').innerHTML = iconSvg(name, 19);
