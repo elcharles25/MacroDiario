@@ -245,6 +245,12 @@
   .cm-ing-row button{background:var(--bg);border:none;border-radius:var(--radius-sm);padding:5px 9px;font-size:11px;font-weight:600;color:var(--ink-soft);flex:none;}
   .cm-photo-preview{width:100%;max-width:220px;max-height:160px;object-fit:cover;border-radius:var(--radius-md);margin-top:8px;display:block;}
   .qr-box{width:100%;margin-bottom:10px;border-radius:var(--radius-md);overflow:hidden;}
+  .photo-cam-box{width:100%;margin-bottom:10px;border-radius:var(--radius-md);overflow:hidden;background:#000;}
+  .photo-cam-box video{display:block;width:100%;max-height:340px;object-fit:cover;background:#000;}
+  .photo-cam-actions{display:flex;gap:8px;padding:8px;background:var(--card);}
+  .photo-cam-actions button{flex:1;}
+  .photo-choice-buttons{display:flex;gap:8px;}
+  .photo-choice-buttons button{flex:1;}
   .detected-item{background:var(--card);border-radius:var(--radius-md);padding:12px;margin-bottom:10px;box-shadow:var(--shadow-card);}
   .detected-item .dtitle{font-weight:700;font-size:13px;margin-bottom:6px;}
   .msg{font-size:12px;color:var(--ink-soft);padding:8px 0;}
@@ -411,11 +417,21 @@
       </div>
       <div class="m-field">
         <label>Foto del plato</label>
-        <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none">
-        <button class="secondary-btn" id="btnOpenCamPhoto" type="button">📷 Abrir cámara</button>
+        <div class="photo-cam-box hidden" id="photoCamBox">
+          <video id="photoCamVideo" autoplay playsinline muted></video>
+          <div class="photo-cam-actions">
+            <button class="primary-btn" id="btnCapturePhoto" type="button">📸 Capturar</button>
+            <button class="secondary-btn" id="btnCancelCamPhoto" type="button">✕ Cancelar</button>
+          </div>
+        </div>
+        <div class="photo-choice-buttons" id="photoChoiceButtons">
+          <button class="secondary-btn" id="btnOpenCamPhoto" type="button">📷 Hacer foto</button>
+          <button class="secondary-btn" id="btnOpenGalleryPhoto" type="button">🖼️ Elegir de galería</button>
+        </div>
+        <input type="file" id="photoGalleryInput" accept="image/*" style="display:none">
         <div id="photoPreviewName" class="hint"></div>
       </div>
-      <p class="hint">Escribe el contexto antes de la foto si quieres — al hacerla, se analiza y se añade sola al registro de hoy.</p>
+      <p class="hint">Escribe el contexto antes de la foto si quieres — al hacerla o elegirla, se analiza y se añade sola al registro de hoy.</p>
       <div id="photoStatus"></div>
       <div id="photoResults"></div>
     </div>
@@ -1420,6 +1436,48 @@
     document.getElementById('qrBox').classList.add('hidden');
   }
 
+  var photoCamStream = null;
+  function stopPhotoCamera(){
+    if(photoCamStream){
+      photoCamStream.getTracks().forEach(function(t){ t.stop(); });
+      photoCamStream = null;
+    }
+    var video = document.getElementById('photoCamVideo');
+    if(video) video.srcObject = null;
+    document.getElementById('photoCamBox').classList.add('hidden');
+    document.getElementById('photoChoiceButtons').classList.remove('hidden');
+  }
+  function startPhotoCamera(){
+    if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
+      document.getElementById('photoStatus').innerHTML = '<div class="msg err">Este navegador no permite acceder a la cámara aquí. Usa "Elegir de galería".</div>';
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false }).then(function(stream){
+      photoCamStream = stream;
+      var video = document.getElementById('photoCamVideo');
+      video.srcObject = stream;
+      document.getElementById('photoCamBox').classList.remove('hidden');
+      document.getElementById('photoChoiceButtons').classList.add('hidden');
+    }).catch(function(err){
+      document.getElementById('photoStatus').innerHTML = '<div class="msg err">No se pudo acceder a la cámara: '+escapeHtml(err && err.message ? err.message : err)+'. Puedes usar "Elegir de galería".</div>';
+    });
+  }
+  function capturePhotoFromCamera(){
+    var video = document.getElementById('photoCamVideo');
+    if(!video || !video.videoWidth){ return; }
+    var canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(function(blob){
+      if(!blob) return;
+      var file = new File([blob], 'foto-plato.jpg', { type: 'image/jpeg' });
+      document.getElementById('photoPreviewName').textContent = 'Foto lista';
+      stopPhotoCamera();
+      analyzeAndAutoAddPhoto(file);
+    }, 'image/jpeg', 0.92);
+  }
+
   var ADD_PANEL_IDS = ['db','favoritos','creados','buscar','barcode','foto'];
   var ADD_PANEL_EL_IDS = {db:'subpanel-db', favoritos:'subpanel-favoritos', creados:'subpanel-creados'};
 
@@ -1435,7 +1493,7 @@
       b.classList.toggle('active', b.getAttribute('data-m') === id);
     });
     if(id === 'barcode'){ startBarcodeScanner(); } else { stopScanner(); }
-    if(id === 'foto') document.getElementById('photoInput').click();
+    if(id !== 'foto') stopPhotoCamera();
     if(id === 'db') renderRecentLists();
     if(id === 'favoritos') renderFavoritesList();
     if(id === 'creados') renderCreatedMealsList();
@@ -1452,6 +1510,7 @@
     addOverlay.classList.remove('overlay-elevated');
     pickerMode = 'log';
     stopScanner();
+    stopPhotoCamera();
   });
 
   Array.prototype.forEach.call(document.querySelectorAll('.add-subtabs button'), function(btn){
@@ -1471,6 +1530,7 @@
     addOverlay.classList.remove('overlay-elevated');
     pickerMode = 'log';
     stopScanner();
+    stopPhotoCamera();
     document.getElementById('searchResults').innerHTML = '';
     document.getElementById('barcodeResult').innerHTML = '';
     document.getElementById('photoResults').innerHTML = '';
@@ -2290,12 +2350,22 @@
   });
 
   document.getElementById('btnOpenCamPhoto').addEventListener('click', function(){
-    document.getElementById('photoInput').click();
+    startPhotoCamera();
   });
-  document.getElementById('photoInput').addEventListener('change', function(){
+  document.getElementById('btnCancelCamPhoto').addEventListener('click', function(){
+    stopPhotoCamera();
+  });
+  document.getElementById('btnCapturePhoto').addEventListener('click', function(){
+    capturePhotoFromCamera();
+  });
+  document.getElementById('btnOpenGalleryPhoto').addEventListener('click', function(){
+    document.getElementById('photoGalleryInput').click();
+  });
+  document.getElementById('photoGalleryInput').addEventListener('change', function(){
     var f = this.files && this.files[0];
     document.getElementById('photoPreviewName').textContent = f ? ('Foto lista: ' + f.name) : '';
     if(f) analyzeAndAutoAddPhoto(f);
+    this.value = '';
   });
 
   function analyzeAndAutoAddPhoto(file){
