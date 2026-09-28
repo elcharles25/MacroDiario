@@ -2017,26 +2017,55 @@
 
   function sleep(ms){ return new Promise(function(resolve){ setTimeout(resolve, ms); }); }
 
-  function fetchWithRetry(url, retriesLeft, delayMs){
+  // Códigos de estado que consideramos un fallo temporal de Open Food Facts (merece la
+  // pena reintentar) en vez de una respuesta definitiva (p.ej. 404 no se reintenta).
+  function isRetryableStatus(status){
+    return status === 429 || status === 503 || (status >= 500 && status < 600);
+  }
+
+  // Reintenta la llamada a Open Food Facts prácticamente sin límite mientras siga
+  // fallando (error de red, servidor saturado/caído...), con una espera entre intentos
+  // que crece hasta un máximo para no saturar ni la red ni la batería.
+  // opts.shouldAbort() permite cortar los reintentos si, por ejemplo, el usuario ya ha
+  // escrito otro término de búsqueda y esta llamada ha quedado obsoleta.
+  function fetchWithRetry(url, opts){
+    opts = opts || {};
+    var attempt = opts._attempt || 0;
+    var maxAttempts = opts.maxAttempts != null ? opts.maxAttempts : 30;
+    var delayMs = opts.delayMs != null ? opts.delayMs : 600;
+    var maxDelayMs = opts.maxDelayMs != null ? opts.maxDelayMs : 8000;
+    var shouldAbort = opts.shouldAbort || function(){ return false; };
+
+    if(shouldAbort()){
+      var abortErr = new Error('Búsqueda cancelada');
+      abortErr.aborted = true;
+      return Promise.reject(abortErr);
+    }
+
     return fetch(url).then(function(r){
-      if(r.status === 503 && retriesLeft > 0){
-        return sleep(delayMs).then(function(){ return fetchWithRetry(url, retriesLeft - 1, delayMs * 2); });
+      if(isRetryableStatus(r.status) && attempt < maxAttempts){
+        return sleep(delayMs).then(function(){
+          return fetchWithRetry(url, { maxAttempts: maxAttempts, delayMs: Math.min(delayMs * 1.6, maxDelayMs), maxDelayMs: maxDelayMs, shouldAbort: shouldAbort, _attempt: attempt + 1 });
+        });
       }
       return r;
     }).catch(function(err){
-      if(retriesLeft > 0){
-        return sleep(delayMs).then(function(){ return fetchWithRetry(url, retriesLeft - 1, delayMs * 2); });
+      if(err && err.aborted) throw err;
+      if(attempt < maxAttempts){
+        return sleep(delayMs).then(function(){
+          return fetchWithRetry(url, { maxAttempts: maxAttempts, delayMs: Math.min(delayMs * 1.6, maxDelayMs), maxDelayMs: maxDelayMs, shouldAbort: shouldAbort, _attempt: attempt + 1 });
+        });
       }
       throw err;
     });
   }
 
-  function searchOff(term){
+  function searchOff(term, shouldAbort){
     var url = viaProxy('https://world.openfoodfacts.org/cgi/search.pl?search_terms=' + encodeURIComponent(term) +
       '&search_simple=1&action=process&json=1&page_size=12' +
       '&fields=product_name,brands,nutriments,code,image_front_small_url,image_url');
-    return fetchWithRetry(url, 2, 700).then(function(r){
-      if(!r.ok){ throw new Error('HTTP ' + r.status + ' de Open Food Facts' + (r.status === 503 ? ' (saturado, incluso tras reintentar)' : '')); }
+    return fetchWithRetry(url, { shouldAbort: shouldAbort }).then(function(r){
+      if(!r.ok){ throw new Error('HTTP ' + r.status + ' de Open Food Facts'); }
       return r.text();
     }).then(function(text){
       var data;
@@ -2049,8 +2078,8 @@
   function productByBarcode(code){
     var url = viaProxy('https://world.openfoodfacts.org/api/v2/product/' + encodeURIComponent(code) +
       '.json?fields=product_name,brands,nutriments,code,image_front_small_url,image_url');
-    return fetchWithRetry(url, 2, 700).then(function(r){
-      if(!r.ok){ throw new Error('HTTP ' + r.status + ' de Open Food Facts' + (r.status === 503 ? ' (saturado, incluso tras reintentar)' : '')); }
+    return fetchWithRetry(url).then(function(r){
+      if(!r.ok){ throw new Error('HTTP ' + r.status + ' de Open Food Facts'); }
       return r.json();
     });
   }
@@ -2120,18 +2149,21 @@
     }
     var genericMatches = searchGenericFoods(term);
     renderSearchResults(genericMatches, true);
-    searchOff(term).then(function(offProducts){
-      if(myToken !== searchToken) return; // ya se ha escrito algo distinto mientras tanto
+    // Si mientras se reintenta el usuario escribe otro término, esta búsqueda queda
+    // obsoleta: se corta (no sigue golpeando Open Food Facts en segundo plano) y su
+    // resultado, si llegase, se ignora.
+    searchOff(term, function(){ return myToken !== searchToken; }).then(function(offProducts){
+      if(myToken !== searchToken) return;
       renderSearchResults(genericMatches.concat(offProducts), false);
     }).catch(function(err){
-      if(myToken !== searchToken) return;
+      if(myToken !== searchToken || (err && err.aborted)) return;
       renderSearchResults(genericMatches, false);
       if(genericMatches.length === 0){
         document.getElementById('searchResults').innerHTML =
-          '<div class="msg err">No se pudo conectar con Open Food Facts. ('+escapeHtml(err && err.message ? err.message : err)+')</div>';
+          '<div class="msg err">No se pudo conectar con Open Food Facts tras varios intentos. ('+escapeHtml(err && err.message ? err.message : err)+')</div>';
       } else {
         document.getElementById('searchResults').innerHTML +=
-          '<div class="msg err">No se pudo conectar con Open Food Facts. ('+escapeHtml(err && err.message ? err.message : err)+')</div>';
+          '<div class="msg err">No se pudo conectar con Open Food Facts tras varios intentos. ('+escapeHtml(err && err.message ? err.message : err)+')</div>';
       }
     });
   }
@@ -2190,7 +2222,7 @@
         document.getElementById('favBarcode').textContent = '★';
       });
     }).catch(function(err){
-      box.innerHTML = '<div class="msg err">No se pudo conectar con Open Food Facts. ('+escapeHtml(err && err.message ? err.message : err)+')</div>';
+      box.innerHTML = '<div class="msg err">No se pudo conectar con Open Food Facts tras varios intentos. ('+escapeHtml(err && err.message ? err.message : err)+')</div>';
     });
   }
 
