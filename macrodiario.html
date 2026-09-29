@@ -253,7 +253,9 @@
   #cmNameField.cm-hero-name label{display:none;}
   #cmNameField.cm-hero-name input{text-align:center;font-size:21px;font-weight:800;font-family:'Poppins',sans-serif;background:transparent;box-shadow:none;padding:6px 4px;}
   .cm-hero-sub{text-align:center;font-size:12px;color:var(--ink-soft);margin:0 0 14px 0;}
-  .qr-box{width:100%;margin-bottom:10px;border-radius:var(--radius-md);overflow:hidden;}
+  .qr-box{width:100%;height:150px;margin-bottom:10px;border-radius:var(--radius-md);overflow:hidden;background:#000;position:relative;}
+  .qr-box #qrReader{width:100%;height:100%;}
+  .qr-box video{width:100% !important;height:100% !important;object-fit:cover !important;}
   .photo-cam-box{width:100%;margin-bottom:10px;border-radius:var(--radius-md);overflow:hidden;background:#000;}
   .photo-cam-box video{display:block;width:100%;max-height:340px;object-fit:cover;background:#000;}
   .photo-cam-actions{display:flex;gap:8px;padding:8px;background:var(--card);}
@@ -608,6 +610,17 @@
     var n = (name || '').trim().toLowerCase();
     if(!n) return null;
     return favorites.find(function(f){ return (f.name || '').trim().toLowerCase() === n; }) || null;
+  }
+  // Cada vez que se añade un alimento (a la lista del día, a una comida creada, o se ajusta
+  // una cantidad), si ese alimento ya está en favoritos, recordamos la cantidad usada para
+  // que la próxima vez que se abra desde Favoritos aparezca precargada esa misma cantidad.
+  function updateFavoriteQuantity(name, grams, qty){
+    var f = findFavoriteByName(name);
+    if(!f) return;
+    var changed = false;
+    if(f.perGram && grams != null && grams > 0 && f.grams !== grams){ f.grams = grams; changed = true; }
+    else if(!f.perGram && qty != null && qty > 0 && f.qty !== qty){ f.qty = qty; changed = true; }
+    if(changed) saveFavorites(favorites);
   }
 
   /* ---------- Comidas creadas (recetas propias con ingredientes y cantidades) ---------- */
@@ -1377,7 +1390,7 @@
       btn.innerHTML = heartIconSvg(false);
     } else {
       if(e.per100){
-        addFavorite({ name: name, perGram: true, kcal100: e.per100.kcal, protein100: e.per100.protein, carbs100: e.per100.carbs, fat100: e.per100.fat });
+        addFavorite({ name: name, perGram: true, kcal100: e.per100.kcal, protein100: e.per100.protein, carbs100: e.per100.carbs, fat100: e.per100.fat, grams: e.grams || 100 });
       } else {
         addFavorite({ name: name, kcal: e.kcal, protein: e.protein, carbs: e.carbs, fat: e.fat });
       }
@@ -1535,6 +1548,31 @@
   var currentViewDate = new Date();
   function viewIso(){ return isoDate(currentViewDate); }
   function parseIso(iso){ var p = iso.split('-'); return new Date(Number(p[0]), Number(p[1])-1, Number(p[2])); }
+
+  // Como PWA en iOS, la app no siempre se recarga al reabrirla: a menudo el sistema solo
+  // "despierta" la página que quedó en segundo plano, con las variables tal cual estaban.
+  // Si eso ocurre pasada la medianoche, currentViewDate se queda anclada al día anterior.
+  // Por eso, cada vez que la app vuelve a primer plano comprobamos si ha cambiado el día
+  // real y, si el usuario estaba viendo "hoy" (no un día pasado/futuro elegido a propósito),
+  // saltamos automáticamente al nuevo día actual.
+  var lastKnownTodayIso = todayIso();
+  function checkDayRollover(){
+    var nowIso = todayIso();
+    if(nowIso === lastKnownTodayIso) return;
+    var wasOnToday = (viewIso() === lastKnownTodayIso);
+    lastKnownTodayIso = nowIso;
+    buildDayStrip();
+    if(wasOnToday){
+      selectDate(nowIso, false);
+    } else {
+      markSelectedChip();
+    }
+  }
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden) checkDayRollover();
+  });
+  window.addEventListener('pageshow', function(){ checkDayRollover(); });
+  window.addEventListener('focus', function(){ checkDayRollover(); });
 
   function closeAddAndRefresh(){
     addOverlay.classList.add('hidden');
@@ -2028,7 +2066,8 @@
       document.getElementById('pdFavBtn').addEventListener('click', function(){
         addFavorite({
           name: displayName, perGram: true,
-          kcal100: per100.kcal, protein100: per100.protein, carbs100: per100.carbs, fat100: per100.fat
+          kcal100: per100.kcal, protein100: per100.protein, carbs100: per100.carbs, fat100: per100.fat,
+          grams: Number(document.getElementById('pdGrams').value) || 100
         });
         var btn = document.getElementById('pdFavBtn');
         btn.textContent = '★';
@@ -2059,6 +2098,8 @@
           source: info.source || 'favorito'
         };
       }
+      updateFavoriteQuantity(displayName, per100 ? grams : null, per100 ? null : qty);
+
       if(typeof info.onAdd === 'function'){
         // Callback explícito: se está AJUSTANDO un ingrediente que ya estaba en la lista, o
         // añadiendo una comida creada (que reparte el resultado entre sus ingredientes)
@@ -2478,7 +2519,7 @@
     stopScanner();
     var qrBox = document.getElementById('qrBox');
     qrBox.classList.remove('hidden');
-    qrBox.innerHTML = '<div id="qrReader" style="width:100%"></div>';
+    qrBox.innerHTML = '<div id="qrReader" style="width:100%;height:100%"></div>';
     if(typeof Html5Qrcode === 'undefined'){
       qrBox.innerHTML = '<div class="msg err">No se pudo cargar el lector de cámara.</div>';
       return;
@@ -2498,7 +2539,15 @@
       { facingMode: 'environment' },
       {
         fps: 10,
-        qrbox: { width: 280, height: 120 },
+        // Que la zona de escaneo ocupe prácticamente todo el recuadro visible (que ya es
+        // pequeño, ver .qr-box), en vez de ser un recuadro pequeño dentro de una vista de
+        // cámara mucho más grande.
+        qrbox: function(viewfinderWidth, viewfinderHeight){
+          return {
+            width: Math.floor(viewfinderWidth * 0.94),
+            height: Math.floor(viewfinderHeight * 0.86)
+          };
+        },
         aspectRatio: 1.777778,
         videoConstraints: {
           facingMode: 'environment',
@@ -2784,7 +2833,8 @@
           openProductDetail({
             name: f.name,
             per100: { kcal: f.kcal100, protein: f.protein100, carbs: f.carbs100, fat: f.fat100 },
-            source: 'favorito'
+            source: 'favorito',
+            initialGrams: f.grams
           });
         } else {
           // Favorito de porción fija (sin base por 100g): la cantidad se expresa como
@@ -2792,7 +2842,8 @@
           openProductDetail({
             name: f.name,
             perUnit: { kcal: f.kcal, protein: f.protein, carbs: f.carbs, fat: f.fat },
-            source: 'favorito'
+            source: 'favorito',
+            initialQty: f.qty
           });
         }
       });
