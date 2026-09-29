@@ -259,13 +259,15 @@
   #cmNameField.cm-hero-name label{display:none;}
   #cmNameField.cm-hero-name input{text-align:center;font-size:21px;font-weight:800;font-family:'Poppins',sans-serif;background:transparent;box-shadow:none;padding:6px 4px;}
   .cm-hero-sub{text-align:center;font-size:12px;color:var(--ink-soft);margin:0 0 14px 0;}
-  /* Quagga2 (lector de códigos de barras) analiza TODO el fotograma visible en vez de un
-     recuadro de escaneo fijo, así que aquí solo hace falta un recorte "seguro": limitar la
-     altura visible y centrar el vídeo, sin forzar su ancho/alto ni deformarlo (evita volver a
-     introducir el problema de que la zona analizada no coincida con lo que se ve en pantalla).
-     Quagga coloca su vídeo y su canvas interno con position:absolute, por eso el contenedor
-     necesita position:relative con una altura ya definida (no solo max-height). */
+  /* A diferencia de html5-qrcode, Quagga2 analiza el fotograma a su resolución nativa
+     directamente (no compara el tamaño mostrado en pantalla con el de la cámara para decidir
+     qué recortar), así que aquí SÍ podemos ajustar el vídeo con CSS sin miedo a desalinear la
+     detección: lo que se ve en pantalla y lo que se analiza son independientes. Sin este ajuste,
+     el <video> se queda a su resolución nativa (p. ej. 1920x1080) dentro de un hueco mucho más
+     pequeño, y solo se ve una esquina a tamaño real — el efecto de "mucho zoom" que se veía. */
   .qr-box{width:100%;height:230px;margin-bottom:10px;border-radius:var(--radius-md);overflow:hidden;background:#000;position:relative;}
+  .qr-box video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;}
+  .qr-box canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
   .photo-cam-box{width:100%;margin-bottom:10px;border-radius:var(--radius-md);overflow:hidden;background:#000;}
   .photo-cam-box video{display:block;width:100%;max-height:340px;object-fit:cover;background:#000;}
   .photo-cam-actions{display:flex;gap:8px;padding:8px;background:var(--card);}
@@ -2595,9 +2597,12 @@
         patchSize: 'medium',
         halfSample: true
       },
-      // Reparte el análisis de cada fotograma entre varios hilos en paralelo (si el
-      // dispositivo los tiene) para detectar más rápido.
-      numOfWorkers: (navigator.hardwareConcurrency ? Math.min(navigator.hardwareConcurrency, 4) : 2),
+      // numOfWorkers a 0: los web workers de Quagga2 están pensados para proyectos que
+      // empaquetan el código con un bundler (webpack). Cargando la librería directamente
+      // desde un <script> (como aquí), la carga de esos workers puede fallar en silencio —
+      // sin ningún error visible, pero sin detectar nunca nada — así que se desactivan y el
+      // análisis se hace en el hilo principal, algo más lento pero fiable.
+      numOfWorkers: 0,
       frequency: 10,
       decoder: {
         readers: ['ean_reader', 'ean_8_reader', 'upc_reader', 'upc_e_reader', 'code_128_reader']
