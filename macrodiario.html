@@ -268,7 +268,11 @@
      la lectura lenta). Por eso aquí solo limitamos la altura visible con max-height +
      overflow:hidden (recorte "seguro": no cambia el tamaño que la librería mide), en vez de
      forzar el vídeo a rellenar un recuadro con otra proporción.*/
-  .qr-box{width:100%;max-height:230px;margin-bottom:10px;border-radius:var(--radius-md);overflow:hidden;background:#000;}
+  /* display:flex + align-items:center centra el vídeo verticalmente dentro del recorte: si la
+     cámara entrega una imagen más alta que el hueco visible, se recorta por igual arriba y
+     abajo (no solo por abajo), así el recuadro de detección (que la librería centra sobre el
+     vídeo completo) queda dentro de la parte visible en vez de quedar cortado por arriba. */
+  .qr-box{width:100%;max-height:230px;margin-bottom:10px;border-radius:var(--radius-md);overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center;}
   .photo-cam-box{width:100%;margin-bottom:10px;border-radius:var(--radius-md);overflow:hidden;background:#000;}
   .photo-cam-box video{display:block;width:100%;max-height:340px;object-fit:cover;background:#000;}
   .photo-cam-actions{display:flex;gap:8px;padding:8px;background:var(--card);}
@@ -428,9 +432,11 @@
 
     <!-- BARCODE -->
     <div class="m-panel" id="panel-barcode">
-      <div class="qr-box hidden" id="qrBox"></div>
-      <p class="hint">Encuadra el código de barras horizontal, llenando el ancho del recuadro, con buena luz y a unos 10-15 cm.</p>
-      <button class="secondary-btn" id="btnRetryCam">↻ Reintentar cámara</button>
+      <div id="barcodeCamGroup">
+        <div class="qr-box hidden" id="qrBox"></div>
+        <p class="hint">Encuadra el código de barras horizontal, llenando el ancho del recuadro, con buena luz y a unos 10-15 cm.</p>
+        <button class="secondary-btn" id="btnRetryCam">↻ Reintentar cámara</button>
+      </div>
       <div id="barcodeResult"></div>
       <p class="hint">¿No puedes usar la cámara? Escribe el código a mano:</p>
       <div class="m-field"><input type="text" id="barcodeInput" placeholder="Ej. 8410297121125" inputmode="numeric"></div>
@@ -2504,11 +2510,12 @@
     lookupBarcodeAndShow(code);
   });
 
-  function lookupBarcodeAndShow(code){
+  function lookupBarcodeAndShow(code, autoDetected){
     var box = document.getElementById('barcodeResult');
-    box.innerHTML = '<div class="msg">Buscando '+escapeHtml(code)+'…</div>';
+    box.innerHTML = '<div class="msg">'+(autoDetected ? 'Procesando código detectado: ' : 'Buscando ')+escapeHtml(code)+'…</div>';
     productByBarcode(code).then(function(data){
       if(data.status !== 1){
+        if(autoDetected) document.getElementById('barcodeCamGroup').classList.remove('hidden');
         box.innerHTML = '<div class="msg err">Código no encontrado en Open Food Facts. Prueba "Manual" o "Buscar".</div>';
         return;
       }
@@ -2540,12 +2547,14 @@
         document.getElementById('favBarcode').textContent = '★';
       });
     }).catch(function(err){
+      if(autoDetected) document.getElementById('barcodeCamGroup').classList.remove('hidden');
       box.innerHTML = '<div class="msg err">No se pudo conectar con Open Food Facts tras varios intentos. ('+escapeHtml(err && err.message ? err.message : err)+')</div>';
     });
   }
 
   function startBarcodeScanner(){
     stopScanner();
+    document.getElementById('barcodeCamGroup').classList.remove('hidden');
     var qrBox = document.getElementById('qrBox');
     qrBox.classList.remove('hidden');
     qrBox.innerHTML = '<div id="qrReader" style="width:100%"></div>';
@@ -2567,21 +2576,24 @@
     html5QrScanner.start(
       { facingMode: 'environment' },
       {
-        fps: 10,
-        // Que la zona de escaneo ocupe prácticamente todo el recuadro visible (que ya es
-        // pequeño, ver .qr-box), en vez de ser un recuadro pequeño dentro de una vista de
-        // cámara mucho más grande.
+        fps: 12,
+        // Un recuadro de tamaño moderado (no casi toda la vista): así el código de barras no
+        // tiene que ocupar casi todo el encuadre para detectarse, y se puede escanear a una
+        // distancia normal (10-15 cm) sin tener que acercar tanto el teléfono (lo que antes
+        // obligaba a acercarse demasiado y salía borroso). Además, al ser pequeño respecto al
+        // vídeo completo, encaja dentro de la zona visible aunque la cámara del móvil entregue
+        // una imagen más alta de lo que se ve en pantalla (ver .qr-box más abajo).
         qrbox: function(viewfinderWidth, viewfinderHeight){
           return {
-            width: Math.floor(viewfinderWidth * 0.94),
-            height: Math.floor(viewfinderHeight * 0.86)
+            width: Math.min(280, Math.floor(viewfinderWidth * 0.85)),
+            height: Math.min(120, Math.floor(viewfinderHeight * 0.5))
           };
         },
         aspectRatio: 1.777778,
         videoConstraints: {
           facingMode: 'environment',
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
         },
         // Cuando el navegador soporta la API nativa BarcodeDetector (Chrome/Android), la usa
         // en vez del decodificador en JS: es más rápida y detecta el código en menos tiempo.
@@ -2592,7 +2604,8 @@
       function(decodedText){
         document.getElementById('barcodeInput').value = decodedText;
         stopScanner();
-        lookupBarcodeAndShow(decodedText);
+        document.getElementById('barcodeCamGroup').classList.add('hidden');
+        lookupBarcodeAndShow(decodedText, true);
       },
       function(){ /* ignore per-frame scan errors */ }
     ).catch(function(err){
