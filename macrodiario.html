@@ -197,6 +197,11 @@
   .pd-preview b{color:var(--ink);}
   .pd-serving-hint{display:inline-block;margin-top:6px;background:var(--bg);border:1px solid var(--border-soft);border-radius:var(--radius-full);padding:5px 12px;font-size:12px;color:var(--ink-soft);font-family:'Inter',sans-serif;cursor:pointer;}
   .pd-serving-hint:active{opacity:0.7;}
+  .pd-qty-row{display:flex;gap:8px;align-items:stretch;}
+  .pd-qty-row input{flex:1;min-width:0;}
+  .pd-unit-toggle{display:flex;flex:none;background:var(--bg);border-radius:var(--radius-sm);padding:3px;gap:2px;}
+  .pd-unit-btn{border:none;background:transparent;border-radius:calc(var(--radius-sm) - 2px);padding:0 10px;font-size:12px;font-family:'Inter',sans-serif;color:var(--ink-soft);cursor:pointer;white-space:nowrap;}
+  .pd-unit-btn.active{background:#fff;color:var(--ink);font-weight:700;box-shadow:var(--shadow-card);}
   .recent-row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--border-soft);cursor:pointer;}
   .recent-row .fn{flex:1;font-size:13px;font-weight:600;min-width:0;}
   .recent-row .fmacros{font-size:11px;color:var(--ink-soft);}
@@ -769,6 +774,9 @@
     });
   }
   function round(n){ return Math.round(Number(n)||0); }
+  // Redondeo a 2 decimales sin ceros sobrantes (0.5, 1.25, 2 en vez de 2.00) — usado para
+  // cantidades en "raciones", donde un número entero como los gramos sería poco útil.
+  function round2(n){ return Math.round((Number(n)||0) * 100) / 100; }
   function pct(consumed, target){
     if(!target) return 0;
     return Math.max(0, Math.min(100, (consumed/target)*100));
@@ -2085,7 +2093,11 @@
     var serving = offServingInfo(product);
     return {
       initialGrams: favGrams != null ? favGrams : (serving ? serving.value : null),
-      servingHint: (favGrams == null && serving) ? (round(serving.value) + ' ' + serving.unit) : null
+      servingHint: (favGrams == null && serving) ? (round(serving.value) + ' ' + serving.unit) : null,
+      // Independiente del favorito: si el producto declara una ración, se ofrece el
+      // selector de magnitud (g/ración) aunque ya haya una cantidad memorizada distinta.
+      servingValue: serving ? serving.value : null,
+      servingUnit: serving ? serving.unit : null
     };
   }
 
@@ -2123,17 +2135,38 @@
           return '<div class="pd-macro-col"><div class="pdm-val">'+round(macrosBase[m[0]])+'</div><div class="pdm-label">'+m[1]+'</div></div>';
         }).join('')+
       '</div>'+
+      // Si el producto tiene una ración conocida (info.servingValue, p.ej. 330 ml de una
+      // lata), se ofrece un pequeño selector para introducir la cantidad en esa unidad
+      // ("raciones") en vez de siempre en gramos/ml — más cómodo cuando la ración del
+      // envase tiene un valor "raro" (p.ej. 37 g) que nadie recuerda de memoria.
       (per100
-        ? '<div class="m-field"><label>Cantidad a registrar</label><input type="number" id="pdGrams" value="'+(info.initialGrams != null ? round(info.initialGrams) : 100)+'" inputmode="decimal">'+
+        ? '<div class="m-field"><label id="pdGramsLabel">Cantidad a registrar</label>'+
+          '<div class="pd-qty-row">'+
+            '<input type="number" id="pdGrams" value="'+(info.initialGrams != null ? round(info.initialGrams) : 100)+'" inputmode="decimal">'+
+            (info.servingValue
+              ? '<div class="pd-unit-toggle" id="pdUnitToggle">'+
+                  '<button type="button" class="pd-unit-btn active" data-unit="g">'+escapeHtml(info.servingUnit === 'ml' ? 'ml' : 'g')+'</button>'+
+                  '<button type="button" class="pd-unit-btn" data-unit="serving">ración ('+round2(info.servingValue)+' '+escapeHtml(info.servingUnit || 'g')+')</button>'+
+                '</div>'
+              : '')+
+          '</div>'+
           (info.servingHint ? '<button type="button" class="pd-serving-hint" id="pdServingHint">Ración típica: '+escapeHtml(info.servingHint)+'</button>' : '')+
           '</div>'
         : '<div class="m-field"><label>Cantidad (raciones)</label><input type="number" id="pdQty" value="'+(info.initialQty != null ? info.initialQty : 1)+'" step="0.5" min="0" inputmode="decimal"></div>')+
       '<div class="pd-preview" id="pdPreview"></div>'+
       '<button class="primary-btn" id="pdAddBtn">'+(info.addLabel || 'Añadir a la comida')+'</button>';
 
+    // 'g': el campo pdGrams contiene gramos/ml directamente. 'serving': contiene un nº de
+    // raciones, que se multiplica por el tamaño de ración conocido (info.servingValue)
+    // para obtener los gramos reales usados en los cálculos y al guardar.
+    var pdUnitMode = 'g';
+    function currentGrams(){
+      var raw = Number(document.getElementById('pdGrams').value) || 0;
+      return pdUnitMode === 'serving' ? raw * info.servingValue : raw;
+    }
     function updatePreview(){
       var factor = per100
-        ? (Number(document.getElementById('pdGrams').value) || 0) / 100
+        ? currentGrams() / 100
         : (Number(document.getElementById('pdQty').value) || 0);
       document.getElementById('pdPreview').innerHTML =
         '<b>'+round(macrosBase.kcal*factor)+' kcal</b> · '+
@@ -2144,11 +2177,30 @@
     updatePreview();
     document.getElementById(per100 ? 'pdGrams' : 'pdQty').addEventListener('input', updatePreview);
 
+    var unitToggle = document.getElementById('pdUnitToggle');
+    if(unitToggle){
+      Array.prototype.forEach.call(unitToggle.querySelectorAll('.pd-unit-btn'), function(btn){
+        btn.addEventListener('click', function(){
+          var newUnit = btn.getAttribute('data-unit');
+          if(newUnit === pdUnitMode) return;
+          var grams = currentGrams();
+          pdUnitMode = newUnit;
+          var gramsInput = document.getElementById('pdGrams');
+          gramsInput.value = pdUnitMode === 'serving' ? round2(grams / info.servingValue) : round(grams);
+          Array.prototype.forEach.call(unitToggle.querySelectorAll('.pd-unit-btn'), function(b){
+            b.classList.toggle('active', b === btn);
+          });
+          document.getElementById('pdGramsLabel').textContent = pdUnitMode === 'serving' ? 'Cantidad (raciones)' : 'Cantidad a registrar';
+          updatePreview();
+        });
+      });
+    }
+
     var servingHintBtn = document.getElementById('pdServingHint');
     if(servingHintBtn){
       servingHintBtn.addEventListener('click', function(){
         var gramsInput = document.getElementById('pdGrams');
-        gramsInput.value = round(info.initialGrams);
+        gramsInput.value = pdUnitMode === 'serving' ? round2(info.initialGrams / info.servingValue) : round(info.initialGrams);
         updatePreview();
       });
     }
@@ -2158,7 +2210,7 @@
         addFavorite({
           name: displayName, perGram: true,
           kcal100: per100.kcal, protein100: per100.protein, carbs100: per100.carbs, fat100: per100.fat,
-          grams: Number(document.getElementById('pdGrams').value) || 100
+          grams: currentGrams() || 100
         });
         var btn = document.getElementById('pdFavBtn');
         btn.textContent = '★';
@@ -2169,7 +2221,7 @@
     document.getElementById('pdAddBtn').addEventListener('click', function(){
       var built;
       if(per100){
-        var grams = Number(document.getElementById('pdGrams').value) || 0;
+        var grams = currentGrams();
         var factor = grams / 100;
         built = {
           name: displayName,
@@ -2472,7 +2524,9 @@
           per100: per100Of(p),
           source: p._generic ? 'generic' : (p._bedca ? 'bedca' : 'off'),
           initialGrams: sug.initialGrams,
-          servingHint: sug.servingHint
+          servingHint: sug.servingHint,
+          servingValue: sug.servingValue,
+          servingUnit: sug.servingUnit
         });
       });
     });
@@ -2593,7 +2647,9 @@
           per100: per100Of(p),
           source: 'off-barcode',
           initialGrams: sug.initialGrams,
-          servingHint: sug.servingHint
+          servingHint: sug.servingHint,
+          servingValue: sug.servingValue,
+          servingUnit: sug.servingUnit
         });
       });
       document.getElementById('favBarcode').addEventListener('click', function(ev){
