@@ -156,7 +156,7 @@
   #addOverlay.overlay-elevated{z-index:58;}
   #productOverlay{z-index:60;}
   .sheet{background:var(--bg);width:100%;max-width:640px;max-height:88vh;overflow-y:auto;border-radius:24px 24px 0 0;padding:22px 20px 26px 20px;box-shadow:var(--shadow-pop);position:relative;}
-  #addOverlay .sheet{height:94vh;max-height:94vh;}
+  #addOverlay .sheet{height:85vh;max-height:85vh;}
   /* La cabecera (título + botón de cerrar) queda fija arriba, y solo el contenido de debajo
      hace scroll, para que siempre se pueda cerrar la ventana sin tener que subir primero. */
   .sheet.sheet-fixed-header{display:flex;flex-direction:column;padding:0;overflow:hidden;}
@@ -434,7 +434,7 @@
     <div class="m-panel" id="panel-barcode">
       <div id="barcodeCamGroup">
         <div class="qr-box hidden" id="qrBox"></div>
-        <p class="hint">Encuadra el código de barras horizontal, llenando el ancho del recuadro, con buena luz y a unos 10-15 cm.</p>
+        <p class="hint">Encuadra el código de barras horizontal dentro del recuadro, con buena luz, a unos 10-15 cm. No hace falta que lo llene entero: si lo acercas demasiado la cámara no podrá enfocar.</p>
         <button class="secondary-btn" id="btnRetryCam">↻ Reintentar cámara</button>
       </div>
       <div id="barcodeResult"></div>
@@ -2579,10 +2579,11 @@
         fps: 12,
         // Un recuadro de tamaño moderado (no casi toda la vista): así el código de barras no
         // tiene que ocupar casi todo el encuadre para detectarse, y se puede escanear a una
-        // distancia normal (10-15 cm) sin tener que acercar tanto el teléfono (lo que antes
-        // obligaba a acercarse demasiado y salía borroso). Además, al ser pequeño respecto al
-        // vídeo completo, encaja dentro de la zona visible aunque la cámara del móvil entregue
-        // una imagen más alta de lo que se ve en pantalla (ver .qr-box más abajo).
+        // distancia normal (10-15 cm) sin tener que acercar tanto el teléfono. Además, al ser
+        // pequeño respecto al vídeo completo, encaja dentro de la zona visible aunque la
+        // cámara del móvil entregue una imagen más alta de lo que se ve en pantalla (ver
+        // .qr-box más abajo). El código NO necesita llenar el recuadro; basta con que quepa
+        // entero dentro de él a una distancia cómoda donde la cámara enfoque bien.
         qrbox: function(viewfinderWidth, viewfinderHeight){
           return {
             width: Math.min(280, Math.floor(viewfinderWidth * 0.85)),
@@ -2590,10 +2591,16 @@
           };
         },
         aspectRatio: 1.777778,
+        // Resolución alta (no baja): a una distancia normal donde la cámara sí puede enfocar
+        // (10-15 cm), el código necesita suficientes píxeles por barra para poder decodificarse.
+        // Si se pide poca resolución, para compensarlo hay que acercar mucho el teléfono, y ahí
+        // es donde la cámara deja de poder enfocar (la mayoría de móviles no enfocan bien por
+        // debajo de unos 8-10 cm) y sale borroso. Pedir más resolución permite escanear desde
+        // una distancia donde el enfoque funciona sin perder nitidez en el código.
         videoConstraints: {
           facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
         },
         // Cuando el navegador soporta la API nativa BarcodeDetector (Chrome/Android), la usa
         // en vez del decodificador en JS: es más rápida y detecta el código en menos tiempo.
