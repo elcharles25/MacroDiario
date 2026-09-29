@@ -156,7 +156,13 @@
   #addOverlay.overlay-elevated{z-index:58;}
   #productOverlay{z-index:60;}
   .sheet{background:var(--bg);width:100%;max-width:640px;max-height:88vh;overflow-y:auto;border-radius:24px 24px 0 0;padding:22px 20px 26px 20px;box-shadow:var(--shadow-pop);position:relative;}
-  #addOverlay .sheet{height:75vh;max-height:75vh;}
+  #addOverlay .sheet{height:94vh;max-height:94vh;}
+  /* La cabecera (título + botón de cerrar) queda fija arriba, y solo el contenido de debajo
+     hace scroll, para que siempre se pueda cerrar la ventana sin tener que subir primero. */
+  .sheet.sheet-fixed-header{display:flex;flex-direction:column;padding:0;overflow:hidden;}
+  .sheet-fixed-top{flex:none;padding:22px 20px 12px 20px;border-bottom:1px solid var(--border-soft);}
+  .sheet-fixed-top h2{margin:6px 0 0 0;}
+  .sheet-scroll-body{flex:1 1 auto;overflow-y:auto;padding:14px 20px 26px 20px;-webkit-overflow-scrolling:touch;}
   .sheet::before{content:'';position:absolute;top:9px;left:50%;transform:translateX(-50%);width:38px;height:4px;border-radius:var(--radius-full);background:var(--border-soft);}
   .sheet h2{font-size:17px;font-weight:800;margin:6px 0 16px 0;font-family:'Poppins',sans-serif;}
   .method-tabs{display:flex;gap:6px;margin-bottom:16px;}
@@ -253,9 +259,16 @@
   #cmNameField.cm-hero-name label{display:none;}
   #cmNameField.cm-hero-name input{text-align:center;font-size:21px;font-weight:800;font-family:'Poppins',sans-serif;background:transparent;box-shadow:none;padding:6px 4px;}
   .cm-hero-sub{text-align:center;font-size:12px;color:var(--ink-soft);margin:0 0 14px 0;}
-  .qr-box{width:100%;height:150px;margin-bottom:10px;border-radius:var(--radius-md);overflow:hidden;background:#000;position:relative;}
-  .qr-box #qrReader{width:100%;height:100%;}
-  .qr-box video{width:100% !important;height:100% !important;object-fit:cover !important;}
+  /* Importante: NO forzar aquí el ancho/alto ni el object-fit del <video> del lector de
+     códigos por CSS. La librería html5-qrcode calcula la zona de escaneo comparando el
+     tamaño renderizado del vídeo (clientWidth/clientHeight) con la resolución real de la
+     cámara; si el CSS recorta o deforma el vídeo de forma distinta a como la librería lo
+     mide, el recuadro que se ve en pantalla deja de corresponder a los píxeles que realmente
+     se analizan, y el código deja de detectarse aunque esté centrado (justo lo que causaba
+     la lectura lenta). Por eso aquí solo limitamos la altura visible con max-height +
+     overflow:hidden (recorte "seguro": no cambia el tamaño que la librería mide), en vez de
+     forzar el vídeo a rellenar un recuadro con otra proporción.*/
+  .qr-box{width:100%;max-height:230px;margin-bottom:10px;border-radius:var(--radius-md);overflow:hidden;background:#000;}
   .photo-cam-box{width:100%;margin-bottom:10px;border-radius:var(--radius-md);overflow:hidden;background:#000;}
   .photo-cam-box video{display:block;width:100%;max-height:340px;object-fit:cover;background:#000;}
   .photo-cam-actions{display:flex;gap:8px;padding:8px;background:var(--card);}
@@ -367,9 +380,12 @@
 
 <!-- ADD FOOD MODAL -->
 <div class="overlay hidden" id="addOverlay">
-  <div class="sheet sheet-wrap">
-    <button class="close-x" id="closeAdd">×</button>
-    <h2>Añadir alimento</h2>
+  <div class="sheet sheet-wrap sheet-fixed-header">
+    <div class="sheet-fixed-top">
+      <button class="close-x" id="closeAdd">×</button>
+      <h2>Añadir alimento</h2>
+    </div>
+    <div class="sheet-scroll-body">
 
     <div class="m-field">
       <label>Comida</label>
@@ -454,6 +470,7 @@
       <button data-m="foto"><span class="smb-ic"></span><span class="smb-lb">Foto</span></button>
     </div>
 
+    </div>
   </div>
 </div>
 
@@ -1529,12 +1546,24 @@
     showAddPanel('db');
   }
 
-  document.getElementById('closeAdd').addEventListener('click', function(){
+  function closeAddOverlay(){
     addOverlay.classList.add('hidden');
     addOverlay.classList.remove('overlay-elevated');
     pickerMode = 'log';
     stopScanner();
     stopPhotoCamera();
+  }
+  document.getElementById('closeAdd').addEventListener('click', closeAddOverlay);
+  // Pulsar fuera de la ventana (sobre el fondo oscuro) también la cierra, igual que el botón
+  // de cerrar. Solo se cierra si el clic empieza Y termina en el propio fondo (no arrastrando
+  // desde dentro de la ficha hasta fuera), para no cerrar por accidente al hacer scroll.
+  var addOverlayMouseDownOnBackdrop = false;
+  addOverlay.addEventListener('mousedown', function(ev){
+    addOverlayMouseDownOnBackdrop = (ev.target === addOverlay);
+  });
+  addOverlay.addEventListener('click', function(ev){
+    if(ev.target === addOverlay && addOverlayMouseDownOnBackdrop) closeAddOverlay();
+    addOverlayMouseDownOnBackdrop = false;
   });
 
   Array.prototype.forEach.call(document.querySelectorAll('.add-subtabs button'), function(btn){
@@ -2519,7 +2548,7 @@
     stopScanner();
     var qrBox = document.getElementById('qrBox');
     qrBox.classList.remove('hidden');
-    qrBox.innerHTML = '<div id="qrReader" style="width:100%;height:100%"></div>';
+    qrBox.innerHTML = '<div id="qrReader" style="width:100%"></div>';
     if(typeof Html5Qrcode === 'undefined'){
       qrBox.innerHTML = '<div class="msg err">No se pudo cargar el lector de cámara.</div>';
       return;
@@ -2553,7 +2582,12 @@
           facingMode: 'environment',
           width: { ideal: 1920 },
           height: { ideal: 1080 }
-        }
+        },
+        // Cuando el navegador soporta la API nativa BarcodeDetector (Chrome/Android), la usa
+        // en vez del decodificador en JS: es más rápida y detecta el código en menos tiempo.
+        // Si no está disponible (p. ej. Safari/iOS), se ignora sin más y sigue con el
+        // decodificador normal.
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true }
       },
       function(decodedText){
         document.getElementById('barcodeInput').value = decodedText;
@@ -2814,9 +2848,14 @@
       return;
     }
     box.innerHTML = favorites.map(function(f){
-      var sub = f.perGram
-        ? Math.round(f.kcal100)+' kcal / 100 g'
-        : Math.round(f.kcal)+' kcal';
+      var sub;
+      if(f.perGram){
+        var grams = f.grams || 100;
+        sub = Math.round(f.kcal100 * grams / 100)+' kcal / '+round(grams)+' g';
+      } else {
+        var qty = f.qty || 1;
+        sub = Math.round(f.kcal * qty)+' kcal'+(qty !== 1 ? ' / x' + qty : '');
+      }
       return '<div class="fav-row" data-favid="'+f.id+'">'+
         '<div><div class="fn">'+escapeHtml(f.name)+'</div><div class="fmacros">'+sub+'</div></div>'+
         '<div class="factions"><button class="del">✕</button></div>'+
