@@ -195,6 +195,8 @@
   .pd-macro-col .pdm-label{font-size:9px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.03em;margin-top:3px;}
   .pd-preview{background:var(--bg);border-radius:var(--radius-sm);padding:11px 13px;font-size:13px;color:var(--ink-soft);margin:12px 0 18px 0;line-height:1.6;}
   .pd-preview b{color:var(--ink);}
+  .pd-serving-hint{display:inline-block;margin-top:6px;background:var(--bg);border:1px solid var(--border-soft);border-radius:var(--radius-full);padding:5px 12px;font-size:12px;color:var(--ink-soft);font-family:'Inter',sans-serif;cursor:pointer;}
+  .pd-serving-hint:active{opacity:0.7;}
   .recent-row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--border-soft);cursor:pointer;}
   .recent-row .fn{flex:1;font-size:13px;font-weight:600;min-width:0;}
   .recent-row .fmacros{font-size:11px;color:var(--ink-soft);}
@@ -1554,6 +1556,8 @@
     pickerMode = 'log';
     stopScanner();
     stopPhotoCamera();
+    document.getElementById('searchTerm').value = '';
+    document.getElementById('searchResults').innerHTML = '';
   }
   document.getElementById('closeAdd').addEventListener('click', closeAddOverlay);
   // Pulsar fuera de la ventana (sobre el fondo oscuro) también la cierra, igual que el botón
@@ -1611,6 +1615,7 @@
     pickerMode = 'log';
     stopScanner();
     stopPhotoCamera();
+    document.getElementById('searchTerm').value = '';
     document.getElementById('searchResults').innerHTML = '';
     document.getElementById('barcodeResult').innerHTML = '';
     document.getElementById('photoResults').innerHTML = '';
@@ -1783,8 +1788,8 @@
     {name:'Pasta integral cocida', kcal:124, protein:5.3, carbs:23.2, fat:1.4},
     {name:'Arroz blanco cocido', kcal:130, protein:2.7, carbs:28, fat:0.3},
     {name:'Arroz integral cocido', kcal:123, protein:2.7, carbs:25.8, fat:1},
-    {name:'Pan blanco', kcal:265, protein:9, carbs:49, fat:3.2},
-    {name:'Pan integral', kcal:247, protein:13, carbs:41, fat:4.2},
+    {name:'Pan blanco', kcal:265, protein:9, carbs:49, fat:3.2, portion:30},
+    {name:'Pan integral', kcal:247, protein:13, carbs:41, fat:4.2, portion:30},
     {name:'Patata cocida', kcal:87, protein:1.9, carbs:20.1, fat:0.1},
     {name:'Patata frita casera', kcal:274, protein:3.4, carbs:35, fat:14},
     {name:'Boniato cocido', kcal:90, protein:2, carbs:20.7, fat:0.1},
@@ -1793,41 +1798,41 @@
     {name:'Pavo pechuga', kcal:135, protein:29, carbs:0, fat:1.7},
     {name:'Ternera magra', kcal:158, protein:26.4, carbs:0, fat:5.4},
     {name:'Cerdo lomo', kcal:143, protein:21, carbs:0, fat:6},
-    {name:'Jamón serrano', kcal:241, protein:31, carbs:0, fat:13},
-    {name:'Jamón cocido', kcal:113, protein:18, carbs:1.4, fat:4.3},
+    {name:'Jamón serrano', kcal:241, protein:31, carbs:0, fat:13, portion:15},
+    {name:'Jamón cocido', kcal:113, protein:18, carbs:1.4, fat:4.3, portion:20},
     {name:'Atún al natural (lata)', kcal:116, protein:26, carbs:0, fat:1},
     {name:'Atún en aceite (lata)', kcal:198, protein:25, carbs:0, fat:10.5},
     {name:'Salmón a la plancha', kcal:208, protein:20, carbs:0, fat:13},
     {name:'Merluza a la plancha', kcal:90, protein:19, carbs:0, fat:1.3},
     {name:'Gambas cocidas', kcal:99, protein:20.9, carbs:0.9, fat:1},
-    {name:'Huevo cocido', kcal:155, protein:13, carbs:1.1, fat:11},
-    {name:'Huevo frito', kcal:196, protein:13.6, carbs:0.8, fat:15},
-    {name:'Tortilla francesa', kcal:154, protein:10.8, carbs:0.6, fat:11.7},
+    {name:'Huevo cocido', kcal:155, protein:13, carbs:1.1, fat:11, portion:50},
+    {name:'Huevo frito', kcal:196, protein:13.6, carbs:0.8, fat:15, portion:50},
+    {name:'Tortilla francesa', kcal:154, protein:10.8, carbs:0.6, fat:11.7, portion:120},
     {name:'Queso fresco', kcal:98, protein:11, carbs:3.4, fat:4.3},
     {name:'Queso curado', kcal:392, protein:26, carbs:1.3, fat:32},
     {name:'Requesón', kcal:98, protein:11.1, carbs:3.4, fat:4.3},
-    {name:'Yogur natural', kcal:61, protein:3.5, carbs:4.7, fat:3.3},
-    {name:'Yogur griego', kcal:97, protein:3.8, carbs:4.5, fat:7.5},
+    {name:'Yogur natural', kcal:61, protein:3.5, carbs:4.7, fat:3.3, portion:125},
+    {name:'Yogur griego', kcal:97, protein:3.8, carbs:4.5, fat:7.5, portion:150},
     {name:'Mantequilla', kcal:717, protein:0.9, carbs:0.1, fat:81},
     {name:'Aceite de oliva', kcal:884, protein:0, carbs:0, fat:100},
-    {name:'Aguacate', kcal:160, protein:2, carbs:8.5, fat:14.7},
-    {name:'Plátano', kcal:89, protein:1.1, carbs:23, fat:0.3},
-    {name:'Manzana', kcal:52, protein:0.3, carbs:14, fat:0.2},
-    {name:'Naranja', kcal:47, protein:0.9, carbs:12, fat:0.1},
-    {name:'Fresas', kcal:32, protein:0.7, carbs:7.7, fat:0.3},
-    {name:'Uvas', kcal:69, protein:0.7, carbs:18, fat:0.2},
-    {name:'Sandía', kcal:30, protein:0.6, carbs:7.6, fat:0.2},
-    {name:'Melón', kcal:34, protein:0.8, carbs:8.2, fat:0.2},
-    {name:'Kiwi', kcal:61, protein:1.1, carbs:15, fat:0.5},
-    {name:'Tomate', kcal:18, protein:0.9, carbs:3.9, fat:0.2},
+    {name:'Aguacate', kcal:160, protein:2, carbs:8.5, fat:14.7, portion:150},
+    {name:'Plátano', kcal:89, protein:1.1, carbs:23, fat:0.3, portion:120},
+    {name:'Manzana', kcal:52, protein:0.3, carbs:14, fat:0.2, portion:180},
+    {name:'Naranja', kcal:47, protein:0.9, carbs:12, fat:0.1, portion:200},
+    {name:'Fresas', kcal:32, protein:0.7, carbs:7.7, fat:0.3, portion:150},
+    {name:'Uvas', kcal:69, protein:0.7, carbs:18, fat:0.2, portion:100},
+    {name:'Sandía', kcal:30, protein:0.6, carbs:7.6, fat:0.2, portion:280},
+    {name:'Melón', kcal:34, protein:0.8, carbs:8.2, fat:0.2, portion:200},
+    {name:'Kiwi', kcal:61, protein:1.1, carbs:15, fat:0.5, portion:75},
+    {name:'Tomate', kcal:18, protein:0.9, carbs:3.9, fat:0.2, portion:120},
     {name:'Lechuga', kcal:15, protein:1.4, carbs:2.9, fat:0.2},
-    {name:'Zanahoria', kcal:41, protein:0.9, carbs:9.6, fat:0.2},
+    {name:'Zanahoria', kcal:41, protein:0.9, carbs:9.6, fat:0.2, portion:70},
     {name:'Brócoli cocido', kcal:35, protein:2.4, carbs:7.2, fat:0.4},
     {name:'Espinacas cocidas', kcal:23, protein:2.9, carbs:3.8, fat:0.4},
     {name:'Calabacín', kcal:17, protein:1.2, carbs:3.1, fat:0.3},
     {name:'Pepino', kcal:15, protein:0.7, carbs:3.6, fat:0.1},
-    {name:'Cebolla', kcal:40, protein:1.1, carbs:9.3, fat:0.1},
-    {name:'Pimiento rojo', kcal:31, protein:1, carbs:6, fat:0.3},
+    {name:'Cebolla', kcal:40, protein:1.1, carbs:9.3, fat:0.1, portion:110},
+    {name:'Pimiento rojo', kcal:31, protein:1, carbs:6, fat:0.3, portion:150},
     {name:'Champiñones', kcal:22, protein:3.1, carbs:3.3, fat:0.3},
     {name:'Lentejas cocidas', kcal:116, protein:9, carbs:20, fat:0.4},
     {name:'Garbanzos cocidos', kcal:164, protein:8.9, carbs:27.4, fat:2.6},
@@ -1841,39 +1846,39 @@
     {name:'Azúcar blanco', kcal:387, protein:0, carbs:100, fat:0},
 
     // --- Frutas ---
-    {name:'Pera', kcal:57, protein:0.4, carbs:15, fat:0.1},
-    {name:'Piña', kcal:50, protein:0.5, carbs:13, fat:0.1},
-    {name:'Mango', kcal:60, protein:0.8, carbs:15, fat:0.4},
-    {name:'Papaya', kcal:43, protein:0.5, carbs:11, fat:0.3},
-    {name:'Ciruela', kcal:46, protein:0.7, carbs:11, fat:0.3},
-    {name:'Melocotón', kcal:39, protein:0.9, carbs:10, fat:0.3},
-    {name:'Albaricoque', kcal:48, protein:1.4, carbs:11, fat:0.4},
-    {name:'Cereza', kcal:63, protein:1.1, carbs:16, fat:0.2},
-    {name:'Frambuesa', kcal:52, protein:1.2, carbs:12, fat:0.7},
-    {name:'Arándanos', kcal:57, protein:0.7, carbs:14, fat:0.3},
-    {name:'Arándanos rojos (cranberries)', kcal:46, protein:0.4, carbs:12, fat:0.1},
-    {name:'Mora', kcal:43, protein:1.4, carbs:10, fat:0.5},
-    {name:'Pomelo', kcal:42, protein:0.8, carbs:11, fat:0.1},
-    {name:'Mandarina', kcal:53, protein:0.8, carbs:13, fat:0.3},
-    {name:'Limón', kcal:29, protein:1.1, carbs:9, fat:0.3},
-    {name:'Lima', kcal:30, protein:0.7, carbs:11, fat:0.2},
-    {name:'Higo', kcal:74, protein:0.8, carbs:19, fat:0.3},
-    {name:'Granada', kcal:83, protein:1.7, carbs:19, fat:1.2},
-    {name:'Chirimoya', kcal:75, protein:1.6, carbs:18, fat:0.3},
-    {name:'Caqui', kcal:70, protein:0.6, carbs:19, fat:0.2},
-    {name:'Nectarina', kcal:44, protein:1.1, carbs:10, fat:0.3},
-    {name:'Paraguayo', kcal:42, protein:0.8, carbs:10, fat:0.2},
-    {name:'Dátiles secos', kcal:282, protein:2.5, carbs:75, fat:0.4},
-    {name:'Pasas', kcal:299, protein:3.1, carbs:79, fat:0.5},
-    {name:'Coco (pulpa)', kcal:354, protein:3.3, carbs:15, fat:33},
-    {name:'Plátano macho', kcal:122, protein:1.3, carbs:32, fat:0.4},
-    {name:'Maracuyá', kcal:97, protein:2.2, carbs:23, fat:0.7},
-    {name:'Lichi', kcal:66, protein:0.8, carbs:17, fat:0.4},
+    {name:'Pera', kcal:57, protein:0.4, carbs:15, fat:0.1, portion:180},
+    {name:'Piña', kcal:50, protein:0.5, carbs:13, fat:0.1, portion:200},
+    {name:'Mango', kcal:60, protein:0.8, carbs:15, fat:0.4, portion:200},
+    {name:'Papaya', kcal:43, protein:0.5, carbs:11, fat:0.3, portion:300},
+    {name:'Ciruela', kcal:46, protein:0.7, carbs:11, fat:0.3, portion:60},
+    {name:'Melocotón', kcal:39, protein:0.9, carbs:10, fat:0.3, portion:150},
+    {name:'Albaricoque', kcal:48, protein:1.4, carbs:11, fat:0.4, portion:40},
+    {name:'Cereza', kcal:63, protein:1.1, carbs:16, fat:0.2, portion:70},
+    {name:'Frambuesa', kcal:52, protein:1.2, carbs:12, fat:0.7, portion:120},
+    {name:'Arándanos', kcal:57, protein:0.7, carbs:14, fat:0.3, portion:125},
+    {name:'Arándanos rojos (cranberries)', kcal:46, protein:0.4, carbs:12, fat:0.1, portion:40},
+    {name:'Mora', kcal:43, protein:1.4, carbs:10, fat:0.5, portion:120},
+    {name:'Pomelo', kcal:42, protein:0.8, carbs:11, fat:0.1, portion:200},
+    {name:'Mandarina', kcal:53, protein:0.8, carbs:13, fat:0.3, portion:80},
+    {name:'Limón', kcal:29, protein:1.1, carbs:9, fat:0.3, portion:60},
+    {name:'Lima', kcal:30, protein:0.7, carbs:11, fat:0.2, portion:60},
+    {name:'Higo', kcal:74, protein:0.8, carbs:19, fat:0.3, portion:50},
+    {name:'Granada', kcal:83, protein:1.7, carbs:19, fat:1.2, portion:200},
+    {name:'Chirimoya', kcal:75, protein:1.6, carbs:18, fat:0.3, portion:200},
+    {name:'Caqui', kcal:70, protein:0.6, carbs:19, fat:0.2, portion:170},
+    {name:'Nectarina', kcal:44, protein:1.1, carbs:10, fat:0.3, portion:140},
+    {name:'Paraguayo', kcal:42, protein:0.8, carbs:10, fat:0.2, portion:120},
+    {name:'Dátiles secos', kcal:282, protein:2.5, carbs:75, fat:0.4, portion:40},
+    {name:'Pasas', kcal:299, protein:3.1, carbs:79, fat:0.5, portion:40},
+    {name:'Coco (pulpa)', kcal:354, protein:3.3, carbs:15, fat:33, portion:80},
+    {name:'Plátano macho', kcal:122, protein:1.3, carbs:32, fat:0.4, portion:150},
+    {name:'Maracuyá', kcal:97, protein:2.2, carbs:23, fat:0.7, portion:50},
+    {name:'Lichi', kcal:66, protein:0.8, carbs:17, fat:0.4, portion:70},
 
     // --- Verduras y hortalizas ---
-    {name:'Pimiento verde', kcal:20, protein:0.9, carbs:4.6, fat:0.2},
-    {name:'Pimiento amarillo', kcal:27, protein:1, carbs:6.3, fat:0.2},
-    {name:'Berenjena', kcal:25, protein:1, carbs:5.9, fat:0.2},
+    {name:'Pimiento verde', kcal:20, protein:0.9, carbs:4.6, fat:0.2, portion:100},
+    {name:'Pimiento amarillo', kcal:27, protein:1, carbs:6.3, fat:0.2, portion:150},
+    {name:'Berenjena', kcal:25, protein:1, carbs:5.9, fat:0.2, portion:250},
     {name:'Coliflor cocida', kcal:23, protein:1.8, carbs:4.1, fat:0.3},
     {name:'Col / Repollo', kcal:25, protein:1.3, carbs:5.8, fat:0.1},
     {name:'Col rizada (kale)', kcal:49, protein:4.3, carbs:8.8, fat:0.9},
@@ -1911,8 +1916,8 @@
     {name:'Arroz basmati cocido', kcal:121, protein:3.5, carbs:25, fat:0.4},
     {name:'Quinoa cocida', kcal:120, protein:4.4, carbs:21.3, fat:1.9},
     {name:'Cuscús cocido', kcal:112, protein:3.8, carbs:23.2, fat:0.2},
-    {name:'Pan de centeno', kcal:219, protein:8.5, carbs:48, fat:1.7},
-    {name:'Pan de pita', kcal:275, protein:9.1, carbs:55.7, fat:1.2},
+    {name:'Pan de centeno', kcal:219, protein:8.5, carbs:48, fat:1.7, portion:30},
+    {name:'Pan de pita', kcal:275, protein:9.1, carbs:55.7, fat:1.2, portion:60},
     {name:'Tortitas de maíz', kcal:384, protein:8.2, carbs:82, fat:3.5},
     {name:'Tortitas de arroz', kcal:387, protein:7.5, carbs:81.5, fat:2.8},
     {name:'Cereales de desayuno (copos de maíz)', kcal:378, protein:7, carbs:84, fat:0.9},
@@ -1932,7 +1937,7 @@
     {name:'Queso mascarpone', kcal:429, protein:4.8, carbs:4.8, fat:44},
     {name:'Queso ricotta', kcal:174, protein:11.3, carbs:3, fat:13},
     {name:'Queso feta', kcal:264, protein:14.2, carbs:4.1, fat:21.3},
-    {name:'Queso en lonchas', kcal:297, protein:18, carbs:4, fat:23},
+    {name:'Queso en lonchas', kcal:297, protein:18, carbs:4, fat:23, portion:20},
     {name:'Queso crema (tipo Philadelphia)', kcal:342, protein:5.9, carbs:4.1, fat:34.2},
     {name:'Queso manchego semicurado', kcal:384, protein:26, carbs:0.5, fat:31},
 
@@ -1979,8 +1984,8 @@
     {name:'Nata para cocinar', kcal:195, protein:2.5, carbs:3.5, fat:19},
     {name:'Nata montada', kcal:337, protein:2.1, carbs:3.3, fat:35},
     {name:'Leche condensada', kcal:321, protein:7.9, carbs:54.4, fat:8.7},
-    {name:'Kéfir', kcal:55, protein:3.3, carbs:4.5, fat:2.5},
-    {name:'Skyr', kcal:63, protein:11, carbs:4, fat:0.2},
+    {name:'Kéfir', kcal:55, protein:3.3, carbs:4.5, fat:2.5, portion:200},
+    {name:'Skyr', kcal:63, protein:11, carbs:4, fat:0.2, portion:150},
     {name:'Queso batido 0%', kcal:45, protein:8, carbs:3.5, fat:0.2},
 
     // --- Frutos secos y semillas ---
@@ -2024,6 +2029,10 @@
       image_front_small_url: null,
       image_url: null,
       _generic: true,
+      // Peso típico de una unidad/ración habitual (p.ej. 1 plátano ≈ 120 g), reutilizando
+      // el mismo campo que Open Food Facts para que una única función (offServingInfo)
+      // sirva para sugerir cantidad tanto en genéricos como en productos envasados.
+      serving_quantity: g.portion || null,
       nutriments: {
         'energy-kcal_100g': g.kcal,
         'proteins_100g': g.protein,
@@ -2038,6 +2047,46 @@
     return GENERIC_FOODS.filter(function(g){
       return normalizeStr(g.name).indexOf(t) !== -1;
     }).slice(0, 8).map(genericToOffShape);
+  }
+
+  // Ración/unidad típica de un producto: para genéricos, el peso aproximado de una unidad
+  // habitual (1 plátano, 1 huevo...); para productos de Open Food Facts, el "serving_size"
+  ///"serving_quantity" que la propia marca declara (p.ej. una lata de cerveza = 330 ml).
+  // Devuelve null si no hay ninguna sugerencia disponible (se usa entonces el valor por
+  // defecto de 100 g/ración).
+  function offServingInfo(product){
+    if(!product) return null;
+    var qty = Number(product.serving_quantity);
+    if(qty > 0){
+      var unit = 'g';
+      if(product.serving_size && /ml|mililitro/i.test(String(product.serving_size))) unit = 'ml';
+      return { value: qty, unit: unit };
+    }
+    var size = product.serving_size;
+    if(size){
+      var m = String(size).match(/([\d.,]+)\s*(ml|mililitros|g|gr|gramos)?/i);
+      if(m){
+        var val = parseFloat(m[1].replace(',', '.'));
+        if(!isNaN(val) && val > 0){
+          var u = (m[2] && /ml/i.test(m[2])) ? 'ml' : 'g';
+          return { value: val, unit: u };
+        }
+      }
+    }
+    return null;
+  }
+
+  // Cantidad a precargar al abrir la ficha de un alimento: la última cantidad usada (si ya
+  // está en favoritos) tiene prioridad; si no, la ración típica del producto/alimento; si
+  // tampoco hay, se deja sin precargar (la ficha usará su valor por defecto, 100).
+  function suggestedQuantityFor(name, product){
+    var fav = findFavoriteByName(name);
+    var favGrams = (fav && fav.perGram && fav.grams) ? fav.grams : null;
+    var serving = offServingInfo(product);
+    return {
+      initialGrams: favGrams != null ? favGrams : (serving ? serving.value : null),
+      servingHint: (favGrams == null && serving) ? (round(serving.value) + ' ' + serving.unit) : null
+    };
   }
 
   /* ---------- Product detail modal (search / barcode result → review before adding) ---------- */
@@ -2075,7 +2124,9 @@
         }).join('')+
       '</div>'+
       (per100
-        ? '<div class="m-field"><label>Cantidad a registrar</label><input type="number" id="pdGrams" value="'+(info.initialGrams != null ? round(info.initialGrams) : 100)+'" inputmode="decimal"></div>'
+        ? '<div class="m-field"><label>Cantidad a registrar</label><input type="number" id="pdGrams" value="'+(info.initialGrams != null ? round(info.initialGrams) : 100)+'" inputmode="decimal">'+
+          (info.servingHint ? '<button type="button" class="pd-serving-hint" id="pdServingHint">Ración típica: '+escapeHtml(info.servingHint)+'</button>' : '')+
+          '</div>'
         : '<div class="m-field"><label>Cantidad (raciones)</label><input type="number" id="pdQty" value="'+(info.initialQty != null ? info.initialQty : 1)+'" step="0.5" min="0" inputmode="decimal"></div>')+
       '<div class="pd-preview" id="pdPreview"></div>'+
       '<button class="primary-btn" id="pdAddBtn">'+(info.addLabel || 'Añadir a la comida')+'</button>';
@@ -2092,6 +2143,15 @@
     }
     updatePreview();
     document.getElementById(per100 ? 'pdGrams' : 'pdQty').addEventListener('input', updatePreview);
+
+    var servingHintBtn = document.getElementById('pdServingHint');
+    if(servingHintBtn){
+      servingHintBtn.addEventListener('click', function(){
+        var gramsInput = document.getElementById('pdGrams');
+        gramsInput.value = round(info.initialGrams);
+        updatePreview();
+      });
+    }
 
     if(per100){
       document.getElementById('pdFavBtn').addEventListener('click', function(){
@@ -2233,7 +2293,7 @@
   function searchOff(term, shouldAbort){
     var url = viaProxy('https://world.openfoodfacts.org/cgi/search.pl?search_terms=' + encodeURIComponent(term) +
       '&search_simple=1&action=process&json=1&page_size=12' +
-      '&fields=product_name,brands,nutriments,code,image_front_small_url,image_url');
+      '&fields=product_name,brands,nutriments,code,image_front_small_url,image_url,serving_size,serving_quantity');
     return fetchWithRetry(url, { shouldAbort: shouldAbort }).then(function(r){
       if(!r.ok){ throw new Error('HTTP ' + r.status + ' de Open Food Facts'); }
       return r.text();
@@ -2247,7 +2307,7 @@
 
   function productByBarcode(code){
     var url = viaProxy('https://world.openfoodfacts.org/api/v2/product/' + encodeURIComponent(code) +
-      '.json?fields=product_name,brands,nutriments,code,image_front_small_url,image_url');
+      '.json?fields=product_name,brands,nutriments,code,image_front_small_url,image_url,serving_size,serving_quantity');
     return fetchWithRetry(url).then(function(r){
       if(!r.ok){ throw new Error('HTTP ' + r.status + ' de Open Food Facts'); }
       return r.json();
@@ -2404,12 +2464,15 @@
     Array.prototype.forEach.call(box.querySelectorAll('.result-row[data-idx]'), function(row){
       row.addEventListener('click', function(){
         var p = currentSearchResults[Number(row.getAttribute('data-idx'))];
+        var sug = suggestedQuantityFor(p.product_name, p);
         openProductDetail({
           name: p.product_name,
           brand: p._generic ? '' : (p.brands || ''),
           imageUrl: offImageUrl(p),
           per100: per100Of(p),
-          source: p._generic ? 'generic' : (p._bedca ? 'bedca' : 'off')
+          source: p._generic ? 'generic' : (p._bedca ? 'bedca' : 'off'),
+          initialGrams: sug.initialGrams,
+          servingHint: sug.servingHint
         });
       });
     });
@@ -2521,13 +2584,16 @@
       // Igual que en el resto de listados: pulsar la fila abre la ficha de detalle; no hay
       // un botón de "añadir" aparte.
       document.getElementById('barcodeResultRow').addEventListener('click', function(){
+        var sug = suggestedQuantityFor(p.product_name || ('Producto ' + code), p);
         openProductDetail({
           name: p.product_name,
           fallbackName: 'Producto ' + code,
           brand: p.brands || '',
           imageUrl: offImageUrl(p),
           per100: per100Of(p),
-          source: 'off-barcode'
+          source: 'off-barcode',
+          initialGrams: sug.initialGrams,
+          servingHint: sug.servingHint
         });
       });
       document.getElementById('favBarcode').addEventListener('click', function(ev){
