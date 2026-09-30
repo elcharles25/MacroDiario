@@ -168,7 +168,7 @@
   .log-row-icon{width:30px;height:30px;border-radius:8px;flex:none;margin-right:6px;display:flex;align-items:center;justify-content:center;background:#fff;font-size:22px;line-height:1;overflow:hidden;}
   .log-row-icon img{width:100%;height:100%;object-fit:cover;display:block;}
   .log-row.is-excluded .log-row-icon{opacity:0.4;}
-  .select-btn{background:none;border:none;padding:6px 0 6px 10px;flex:none;color:var(--ink-soft);display:flex;align-items:center;}
+  .select-btn{background:none;border:none;padding:6px 0 6px 16px;flex:none;color:var(--ink-soft);display:flex;align-items:center;}
   .select-btn.is-counted{color:var(--primary);}
   .empty{padding:26px 0;text-align:center;color:var(--ink-soft);font-size:13px;}
 
@@ -1256,7 +1256,11 @@
     });
     Array.prototype.forEach.call(listEl.querySelectorAll('[data-editid]'), function(rowEl){
       attachRowSwipe(rowEl);
-      rowEl.addEventListener('click', function(){
+      rowEl.addEventListener('click', function(ev){
+        // Pulsar las kcal/ración (columna a la izquierda del botón de contar) no abre la
+        // ficha: así un toque impreciso al querer activar/desactivar el alimento no se
+        // convierte en abrir el detalle por error.
+        if(ev.target && ev.target.closest && ev.target.closest('.amount')) return;
         if(rowEl.classList.contains('is-open')){
           closeSwipeRow(rowEl);
           return;
@@ -2335,7 +2339,116 @@
     {name:'Zarzuela de marisco', kcal:110, protein:14, carbs:4, fat:4, portion:350},
     {name:'Arroz a banda', kcal:150, protein:6, carbs:22, fat:4, portion:350},
     {name:'Pollo al ajillo', kcal:210, protein:22, carbs:2, fat:13, portion:250},
-    {name:'Solomillo al whisky', kcal:220, protein:25, carbs:3, fat:12, portion:200}
+    {name:'Solomillo al whisky', kcal:220, protein:25, carbs:3, fat:12, portion:200},
+    // --- Mercado: Aves y caza ---
+    {name:'Pollo pechuga cruda', kcal:114, protein:23, carbs:0, fat:2, portion:150},
+    {name:'Pollo muslo crudo con piel', kcal:177, protein:17.5, carbs:0, fat:11.5, portion:120},
+    {name:'Pollo contramuslo deshuesado crudo', kcal:125, protein:19, carbs:0, fat:5.5, portion:120},
+    {name:'Pollo entero asado', kcal:200, protein:25, carbs:0, fat:11, portion:200},
+    {name:'Pollo picado', kcal:143, protein:17.5, carbs:0, fat:8, portion:100},
+    {name:'Pavo picado', kcal:148, protein:20, carbs:0, fat:7.5, portion:100},
+    {name:'Pavo muslo guisado', kcal:150, protein:22, carbs:0, fat:6.5, portion:150},
+    {name:'Pato magret a la plancha', kcal:240, protein:22, carbs:0, fat:17, portion:150},
+    {name:'Codorniz asada', kcal:192, protein:25, carbs:0, fat:10, portion:150},
+    {name:'Perdiz estofada', kcal:190, protein:27, carbs:1, fat:8, portion:200},
+    {name:'Venado a la plancha', kcal:158, protein:30, carbs:0, fat:3.2, portion:150},
+    {name:'Jabalí guisado', kcal:170, protein:28, carbs:0, fat:5, portion:200},
+    {name:'Liebre estofada', kcal:170, protein:26, carbs:2, fat:6, portion:200},
+    {name:'Conejo al ajillo', kcal:170, protein:22, carbs:1, fat:8.5, portion:200},
+    // --- Mercado: Vacuno ---
+    {name:'Ternera solomillo a la plancha', kcal:175, protein:27, carbs:0, fat:7, portion:200},
+    {name:'Ternera entrecot a la plancha', kcal:230, protein:26, carbs:0, fat:14, portion:250},
+    {name:'Ternera chuletón a la parrilla', kcal:270, protein:25, carbs:0, fat:19, portion:400},
+    {name:'Ternera filete a la plancha', kcal:165, protein:28, carbs:0, fat:6, portion:150},
+    {name:'Ternera redondo asado', kcal:160, protein:27, carbs:0, fat:5.5, portion:150},
+    {name:'Ternera estofada', kcal:190, protein:26, carbs:0, fat:9, portion:200},
+    {name:'Ternera osobuco estofado', kcal:190, protein:27, carbs:0, fat:8.5, portion:250},
+    {name:'Ternera carrillada estofada', kcal:220, protein:26, carbs:0, fat:13, portion:200},
+    {name:'Ternera rabo de toro estofado', kcal:200, protein:22, carbs:0, fat:12, portion:250},
+    {name:'Ternera costilla asada', kcal:290, protein:22, carbs:0, fat:22, portion:200},
+    {name:'Ternera lengua cocida', kcal:224, protein:19, carbs:0, fat:16, portion:100},
+    {name:'Ternera hígado a la plancha', kcal:165, protein:26, carbs:4, fat:5, portion:120},
+    {name:'Callos', kcal:105, protein:16, carbs:0, fat:4, portion:200},
+    {name:'Hamburguesa de ternera a la plancha', kcal:250, protein:24, carbs:1, fat:17, portion:120},
+    {name:'Cecina de vaca', kcal:210, protein:35, carbs:0, fat:7, portion:50},
+    // --- Mercado: Cerdo ---
+    {name:'Cerdo chuleta a la plancha', kcal:230, protein:26, carbs:0, fat:14, portion:180},
+    {name:'Cerdo magro (jamón fresco) a la plancha', kcal:170, protein:27, carbs:0, fat:6.5, portion:150},
+    {name:'Cerdo secreto ibérico a la plancha', kcal:290, protein:24, carbs:0, fat:21, portion:150},
+    {name:'Cerdo presa ibérica a la plancha', kcal:260, protein:24, carbs:0, fat:18, portion:150},
+    {name:'Cerdo pluma ibérica a la plancha', kcal:245, protein:25, carbs:0, fat:16, portion:150},
+    {name:'Cerdo carrillada ibérica estofada', kcal:250, protein:24, carbs:0, fat:17, portion:150},
+    {name:'Cerdo codillo asado', kcal:260, protein:25, carbs:0, fat:18, portion:250},
+    {name:'Cerdo cinta de lomo adobada', kcal:160, protein:22, carbs:1, fat:7, portion:150},
+    {name:'Cerdo picado', kcal:210, protein:18, carbs:0, fat:15, portion:100},
+    {name:'Panceta de cerdo asada', kcal:400, protein:17, carbs:0, fat:37, portion:100},
+    {name:'Cerdo oreja cocida', kcal:215, protein:22, carbs:0, fat:14, portion:100},
+    {name:'Manitas de cerdo cocidas', kcal:210, protein:23, carbs:0, fat:13, portion:150},
+    // --- Mercado: Cordero y cabrito ---
+    {name:'Cordero chuletillas a la plancha', kcal:260, protein:21, carbs:0, fat:19, portion:150},
+    {name:'Cordero paletilla asada', kcal:270, protein:24, carbs:0, fat:19, portion:250},
+    {name:'Cordero estofado', kcal:210, protein:20, carbs:3, fat:13, portion:250},
+    {name:'Cabrito asado', kcal:180, protein:27, carbs:0, fat:7.5, portion:200},
+    // --- Mercado: Charcutería ---
+    {name:'Sobrasada', kcal:500, protein:14, carbs:1, fat:48, portion:30},
+    {name:'Butifarra fresca', kcal:300, protein:15, carbs:1, fat:26, portion:100},
+    {name:'Longaniza', kcal:400, protein:20, carbs:1, fat:35, portion:50},
+    {name:'Chistorra', kcal:450, protein:18, carbs:1, fat:42, portion:50},
+    {name:'Salchichas frescas de cerdo', kcal:290, protein:14, carbs:2, fat:25, portion:100},
+    {name:'Salchichas tipo frankfurt', kcal:270, protein:11, carbs:3, fat:24, portion:60},
+    {name:'Bacon / beicon', kcal:420, protein:14, carbs:1, fat:40, portion:30},
+    {name:'Jamón paleta ibérica', kcal:320, protein:30, carbs:0, fat:22, portion:50},
+    {name:'Morcón', kcal:420, protein:22, carbs:1, fat:36, portion:30},
+    {name:'Paté de cerdo', kcal:320, protein:12, carbs:4, fat:29, portion:30},
+    {name:'Foie gras', kcal:460, protein:11, carbs:4, fat:44, portion:30},
+    // --- Mercado: Pescado blanco ---
+    {name:'Merluza rebozada', kcal:180, protein:14, carbs:9, fat:9, portion:200},
+    {name:'Merluza en salsa verde', kcal:100, protein:13, carbs:3, fat:4, portion:250},
+    {name:'Bacalao fresco', kcal:82, protein:18, carbs:0, fat:0.7, portion:150},
+    {name:'Bacalao a la vizcaína', kcal:115, protein:11, carbs:5, fat:6, portion:250},
+    {name:'Bacalao con tomate', kcal:100, protein:12, carbs:4, fat:4, portion:250},
+    {name:'Bacalao rebozado', kcal:200, protein:15, carbs:10, fat:11, portion:150},
+    {name:'Lenguado a la plancha', kcal:100, protein:20, carbs:0, fat:1.7, portion:150},
+    {name:'San Pedro a la plancha', kcal:110, protein:21, carbs:0, fat:2.5, portion:150},
+    {name:'Rodaballo a la plancha', kcal:130, protein:21, carbs:0, fat:4.5, portion:200},
+    {name:'Besugo al horno', kcal:130, protein:22, carbs:0, fat:4.5, portion:200},
+    {name:'Pescadilla cocida', kcal:95, protein:19, carbs:0, fat:1.8, portion:150},
+    {name:'Mero a la plancha', kcal:120, protein:24, carbs:0, fat:2.5, portion:150},
+    {name:'Cabracho al horno', kcal:95, protein:19, carbs:0, fat:2, portion:200},
+    {name:'Pez espada a la plancha', kcal:145, protein:23, carbs:0, fat:5.5, portion:150},
+    {name:'Panga', kcal:95, protein:16, carbs:0, fat:3, portion:150},
+    {name:'Tilapia', kcal:128, protein:26, carbs:0, fat:2.7, portion:150},
+    {name:'Fletán a la plancha', kcal:125, protein:23, carbs:0, fat:3, portion:150},
+    {name:'Bacaladilla', kcal:100, protein:19, carbs:0, fat:2.5, portion:150},
+    {name:'Sepia a la plancha', kcal:110, protein:21, carbs:1, fat:2, portion:150},
+    {name:'Chipirones a la plancha', kcal:100, protein:17, carbs:1, fat:3, portion:150},
+    // --- Mercado: Pescado azul ---
+    {name:'Salmón ahumado', kcal:160, protein:22, carbs:0, fat:8, portion:50},
+    {name:'Atún rojo a la plancha', kcal:180, protein:29, carbs:0, fat:7, portion:150},
+    {name:'Bonito del norte a la plancha', kcal:170, protein:27, carbs:0, fat:6.5, portion:150},
+    {name:'Bonito del norte en conserva', kcal:210, protein:26, carbs:0, fat:11, portion:60},
+    {name:'Caballa a la plancha', kcal:230, protein:24, carbs:0, fat:15, portion:150},
+    {name:'Caballa en conserva', kcal:210, protein:22, carbs:0, fat:13, portion:70},
+    {name:'Sardinas en lata (aceite)', kcal:200, protein:23, carbs:0, fat:12, portion:60},
+    {name:'Jurel a la plancha', kcal:160, protein:24, carbs:0, fat:6.5, portion:150},
+    {name:'Anchoas en aceite', kcal:210, protein:29, carbs:0, fat:10, portion:20},
+    {name:'Boquerones fritos', kcal:240, protein:20, carbs:7, fat:15, portion:150},
+    {name:'Salmonete a la plancha', kcal:125, protein:20, carbs:0, fat:5, portion:150},
+    // --- Mercado: Marisco ---
+    {name:'Gambas a la plancha', kcal:110, protein:20, carbs:1, fat:2.5, portion:150},
+    {name:'Langostinos a la plancha', kcal:100, protein:20, carbs:0, fat:2, portion:150},
+    {name:'Cigalas cocidas', kcal:90, protein:18, carbs:0, fat:1.5, portion:150},
+    {name:'Bogavante cocido', kcal:90, protein:19, carbs:0.5, fat:1, portion:250},
+    {name:'Centollo cocido', kcal:90, protein:18, carbs:0, fat:1.5, portion:150},
+    {name:'Nécoras cocidas', kcal:85, protein:16, carbs:0, fat:1.8, portion:120},
+    {name:'Mejillones en escabeche', kcal:110, protein:13, carbs:3, fat:5, portion:60},
+    {name:'Berberechos al natural', kcal:79, protein:13, carbs:3, fat:1.5, portion:60},
+    {name:'Navajas a la plancha', kcal:70, protein:12, carbs:3, fat:1.2, portion:120},
+    {name:'Ostras', kcal:70, protein:9, carbs:4, fat:2, portion:60},
+    {name:'Vieiras a la plancha', kcal:110, protein:20, carbs:3, fat:1, portion:100},
+    {name:'Zamburiñas a la plancha', kcal:85, protein:14, carbs:3, fat:1.5, portion:100},
+    {name:'Chopitos fritos', kcal:220, protein:14, carbs:14, fat:12, portion:120},
+    {name:'Surimi (palitos de cangrejo)', kcal:95, protein:7, carbs:13, fat:1, portion:60}
   ];
 
   function normalizeStr(s){
@@ -2383,7 +2496,7 @@
       var bStarts = normalizeStr(b.name).indexOf(t) === 0 ? 0 : 1;
       return aStarts - bStarts;
     });
-    return matches.slice(0, 8).map(genericToOffShape);
+    return matches.slice(0, 12).map(genericToOffShape);
   }
 
   // Ración/unidad típica de un producto: para genéricos, el peso aproximado de una unidad
