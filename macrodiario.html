@@ -55,6 +55,12 @@
   .day-chip .dc-dow{font-size:9px;text-transform:uppercase;letter-spacing:0.03em;font-weight:600;}
   .day-chip .dc-num{font-size:15px;font-weight:700;}
   .day-chip.is-today:not(.is-selected){box-shadow:var(--shadow-card), inset 0 0 0 2px var(--primary);color:var(--primary-dark);}
+  /* Estado del día (según cuánto se ha comido respecto al objetivo, mismos umbrales que el
+     anillo de calorías): solo se aplica a días con algo registrado, y prevalece sobre el
+     aro genérico de "hoy" de arriba — un día ya completado muestra su propio color. */
+  .day-chip.status-green:not(.is-selected){box-shadow:var(--shadow-card), inset 0 0 0 2px var(--primary);color:var(--primary-dark);}
+  .day-chip.status-yellow:not(.is-selected){box-shadow:var(--shadow-card), inset 0 0 0 2px var(--carbs);color:var(--carbs);}
+  .day-chip.status-red:not(.is-selected){box-shadow:var(--shadow-card), inset 0 0 0 2px var(--fat);color:var(--fat);}
   .day-chip.is-selected{background:var(--ink);color:#fff;}
 
   main{padding:0 20px 110px 20px;}
@@ -765,6 +771,39 @@
   function emptyTarget(){ return {kcal:0, protein:0, carbs:0, fat:0}; }
   function targetFor(dayKey){ return targets[dayKey] || emptyTarget(); }
 
+  // Estado de un día concreto (para colorear su chip en el carrusel), usando los mismos
+  // umbrales que el anillo de calorías de renderFacts(): sin objetivo o sin nada registrado
+  // ese día, no se pinta ('').
+  function dayStatusClass(iso){
+    var entries = logs[iso] || [];
+    var hasCounted = entries.some(function(e){ return e.counted !== false; });
+    if(!hasCounted) return '';
+    var target = targetFor(dayKeyFromDate(parseIso(iso)));
+    if(!target.kcal || target.kcal <= 0) return '';
+    var consumed = totalsFor(iso);
+    var relPct = consumed.kcal / target.kcal * 100;
+    if(relPct > 115) return 'status-red';
+    if(relPct > 102) return 'status-yellow';
+    if(relPct >= 90) return 'status-green';
+    return 'status-yellow';
+  }
+
+  function applyDayChipStatus(iso){
+    var chip = document.querySelector('.day-chip[data-date="'+iso+'"]');
+    if(!chip) return;
+    chip.classList.remove('status-green', 'status-yellow', 'status-red');
+    var cls = dayStatusClass(iso);
+    if(cls) chip.classList.add(cls);
+  }
+
+  function refreshAllDayChipStatuses(){
+    Array.prototype.forEach.call(document.querySelectorAll('.day-chip'), function(chip){
+      chip.classList.remove('status-green', 'status-yellow', 'status-red');
+      var cls = dayStatusClass(chip.getAttribute('data-date'));
+      if(cls) chip.classList.add(cls);
+    });
+  }
+
   function totalsFor(dateIso){
     var entries = logs[dateIso] || [];
     var t = {kcal:0, protein:0, carbs:0, fat:0};
@@ -1062,6 +1101,8 @@
         openAddModal(btn.getAttribute('data-addmeal'));
       });
     });
+
+    applyDayChipStatus(iso);
   }
 
   /* ---------- Swipe-to-delete for log rows ---------- */
@@ -1138,6 +1179,7 @@
         selectDate(chip.getAttribute('data-date'), true);
       });
     });
+    refreshAllDayChipStatuses();
   }
 
   function markSelectedChip(){
