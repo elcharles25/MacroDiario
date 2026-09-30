@@ -119,6 +119,13 @@
   .log-row .portion{font-size:11px;color:var(--ink-soft);}
   .log-row .kcal{font-size:14px;font-weight:700;margin-left:10px;flex:none;}
   .log-row.is-excluded .name,.log-row.is-excluded .kcal{opacity:0.4;}
+  /* Icono/foto por registro: para distinguir de un vistazo qué es cada cosa en la lista,
+     sin tener que leer el nombre. Si el alimento viene de un análisis por foto (o de una
+     comida creada que se hizo a partir de una foto), se usa esa misma foto; si no, un
+     emoji según el tipo de alimento (fruta, lácteo, carne, pescado, bebida...). */
+  .log-row-icon{width:34px;height:34px;border-radius:10px;flex:none;margin-right:10px;display:flex;align-items:center;justify-content:center;background:var(--bg);font-size:17px;overflow:hidden;}
+  .log-row-icon img{width:100%;height:100%;object-fit:cover;display:block;}
+  .log-row.is-excluded .log-row-icon{opacity:0.4;}
   .select-btn{background:none;border:none;padding:6px 0 6px 10px;flex:none;color:var(--ink-soft);display:flex;align-items:center;}
   .select-btn.is-counted{color:var(--primary);}
   .empty{padding:26px 0;text-align:center;color:var(--ink-soft);font-size:13px;}
@@ -881,6 +888,71 @@
     return Math.max(0, Math.min(100, (consumed/target)*100));
   }
 
+  // Icono/foto de cada registro en la lista del día, para distinguirlo de un vistazo sin
+  // tener que leer el nombre (como hace Fitia). Un poco de normalizeStr()-matching por
+  // palabras clave asigna un emoji según el tipo de alimento; no hace falta red ni guardar
+  // imágenes de producto. La única foto REAL que se usa es la que el propio usuario tomó al
+  // analizar un plato por foto (o la de la comida creada, si se creó a partir de una foto).
+  var FOOD_EMOJI_GROUPS = [
+    ['🍺', ['cerveza']],
+    ['🍷', ['vino', 'cava', 'champan', 'sangria']],
+    ['🥃', ['whisky', ' ron', 'vodka', 'ginebra', 'tequila', 'orujo', 'licor', 'vermut']],
+    ['☕', ['cafe', 'capuchino', 'cortado']],
+    ['🥛', ['leche', 'yogur', 'kefir', 'cuajada', 'requeson']],
+    ['🥤', ['whey', 'batido', 'isolate', 'creatina', 'bcaa', 'colageno', 'gin-tonic', 'gintonic', 'refresco', 'zumo']],
+    ['🧀', ['queso']],
+    ['🥚', ['huevo']],
+    ['🍌', ['platano', 'manzana', 'naranja', 'fresa', 'pera', 'pina', 'mango', 'papaya', 'sandia',
+            'melon', 'kiwi', 'uva', 'ciruela', 'melocoton', 'albaricoque', 'cereza', 'frambuesa',
+            'arandano', 'mora', 'pomelo', 'mandarina', 'limon', 'lima', 'higo', 'granada',
+            'chirimoya', 'caqui', 'nectarina', 'paraguayo', 'datil', 'pasas', 'coco', 'maracuya',
+            'lichi', 'fruta', 'aguacate']],
+    ['🥦', ['brocoli', 'espinaca', 'calabacin', 'pepino', 'cebolla', 'pimiento', 'champinon',
+            'lechuga', 'tomate', 'zanahoria', 'coliflor', 'col', 'acelga', 'apio', 'esparrago',
+            'guisante', 'remolacha', 'rabano', 'puerro', 'alcachofa', 'calabaza', 'nabo',
+            'endibia', 'verdura', 'ensalada', 'ensaladilla', 'escalivada', 'menestra', 'pisto',
+            'guacamole', 'aceituna']],
+    ['🍞', ['pan ', 'tostada']],
+    ['🍚', ['arroz', 'paella', 'fideua']],
+    ['🍝', ['pasta', 'macarrones', 'espagueti', 'canelon', 'lasagna']],
+    ['🥣', ['avena', 'cuscus', 'lenteja', 'garbanzo', 'judia', 'legumbre', 'cocido', 'fabada',
+            'callos', 'pote gallego', 'gazpacho', 'salmorejo', 'sopa', 'crema de'],],
+    ['🥜', ['almendra', 'nuez', 'nueces', 'cacahuete', 'anacardo', 'pistacho', 'avellana',
+            'pinon', 'semilla', 'tahini']],
+    ['🍫', ['chocolate', 'cacao', 'miel', 'mermelada', 'sirope', 'azucar', 'galleta', 'bizcocho',
+            'flan', 'natillas', 'postre', 'dulce']],
+    ['🍗', ['pollo', 'pavo']],
+    ['🥩', ['ternera', 'cerdo', 'lomo', 'cordero', 'solomillo', 'rabo de toro', 'jamon',
+            'chorizo', 'salchichon', 'fuet', 'salami', 'mortadela', 'bacon', 'panceta',
+            'salchicha', 'morcilla', 'albondiga', 'torrezno', 'cochinillo', 'carne']],
+    ['🐟', ['atun', 'salmon', 'merluza', 'gamba', 'langostino', 'pulpo', 'bacalao', 'marmitako',
+            'mejillon', 'marisco', 'zarzuela', 'calamar', 'boqueron', 'pescado']],
+    ['🍕', ['pizza']],
+    ['🍔', ['hamburguesa']],
+    ['🍟', ['patata frita', 'patatas fritas', 'nachos', 'bravas', 'alioli']],
+    ['🥐', ['bolleria', 'croissant', 'donut', 'napolitana', 'magdalena']],
+    ['🍽️', ['croqueta', 'empanad', 'alita', 'canelone']]
+  ];
+  function foodEmoji(name){
+    var n = normalizeStr(name);
+    for(var i=0; i<FOOD_EMOJI_GROUPS.length; i++){
+      var emoji = FOOD_EMOJI_GROUPS[i][0], keywords = FOOD_EMOJI_GROUPS[i][1];
+      for(var j=0; j<keywords.length; j++){
+        if(n.indexOf(normalizeStr(keywords[j])) !== -1) return emoji;
+      }
+    }
+    return '🍽️';
+  }
+  function entryIconHtml(e){
+    var photo = e.photo;
+    if(!photo && e.createdMealId){
+      var m = createdMeals.find(function(x){ return x.id === e.createdMealId; });
+      if(m && m.photo) photo = m.photo;
+    }
+    if(photo) return '<div class="log-row-icon"><img src="'+photo+'" alt=""></div>';
+    return '<div class="log-row-icon">'+foodEmoji(e.name)+'</div>';
+  }
+
   /* ---------- Oval arc-gauge helpers (ring open at the bottom, uniform stroke width) ----------
      A true ellipse is drawn point-by-point (instead of stretching a circle with a CSS
      transform), so the stroke offset is computed perpendicular to the real curve and
@@ -1079,6 +1151,7 @@
           return '<div class="log-row-wrap">'+
             '<button class="log-row-delete" data-del="'+e.id+'">Eliminar</button>'+
             '<div class="log-row'+(counted ? '' : ' is-excluded')+'" data-editid="'+e.id+'">'+
+              entryIconHtml(e)+
               '<div class="who">'+
                 '<div class="name">'+escapeHtml(e.name)+'</div>'+
                 (portionDisplay ? '<div class="portion">'+escapeHtml(portionDisplay)+'</div>' : '')+
