@@ -203,6 +203,9 @@
   .pd-preview b{color:var(--ink);}
   .pd-serving-hint{display:inline-block;margin-top:6px;background:var(--bg);border:1px solid var(--border-soft);border-radius:var(--radius-full);padding:5px 12px;font-size:12px;color:var(--ink-soft);font-family:'Inter',sans-serif;cursor:pointer;}
   .pd-serving-hint:active{opacity:0.7;}
+  .pd-custom-serving-actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .pd-custom-serving-actions .pd-serving-hint{margin-right:0;}
+  .pd-serving-hint-danger{color:var(--fat);border-color:var(--fat);}
   .pd-qty-row{display:flex;gap:8px;align-items:stretch;}
   .pd-qty-row input{flex:1;min-width:0;}
   .pd-unit-select{flex:none;max-width:52%;border:none;border-radius:var(--radius-sm);padding:0 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--ink);background:var(--bg);box-shadow:inset 0 0 0 1px var(--border-soft);}
@@ -687,6 +690,24 @@
     list.push(serving);
     saveCustomServings(customServingsMap);
     return serving;
+  }
+  function updateCustomServing(name, id, label, grams){
+    var key = normalizeStr(name);
+    var list = key && customServingsMap[key];
+    if(!list) return null;
+    var serving = list.filter(function(s){ return s.id === id; })[0];
+    if(!serving) return null;
+    serving.label = label;
+    serving.grams = grams;
+    saveCustomServings(customServingsMap);
+    return serving;
+  }
+  function deleteCustomServing(name, id){
+    var key = normalizeStr(name);
+    var list = key && customServingsMap[key];
+    if(!list) return;
+    customServingsMap[key] = list.filter(function(s){ return s.id !== id; });
+    saveCustomServings(customServingsMap);
   }
 
   /* ---------- Comidas creadas (recetas propias con ingredientes y cantidades) ---------- */
@@ -2266,6 +2287,12 @@
               '<button type="button" id="pdNewServingSave">Guardar ración</button>'+
               '<button type="button" id="pdNewServingCancel">Cancelar</button>'+
             '</div>'+
+            // Solo visibles cuando la unidad elegida es una ración creada a mano por el
+            // usuario (no las de Open Food Facts, que no se pueden editar/borrar aquí).
+            '<div class="pd-custom-serving-actions hidden" id="pdCustomServingActions">'+
+              '<button type="button" class="pd-serving-hint" id="pdEditServingBtn">Editar ración</button>'+
+              '<button type="button" class="pd-serving-hint pd-serving-hint-danger" id="pdDeleteServingBtn">Eliminar ración</button>'+
+            '</div>'+
             (info.servingHint ? '<button type="button" class="pd-serving-hint" id="pdServingHint">Ración típica: '+escapeHtml(info.servingHint)+'</button>' : '')+
             '</div>'
           : '<div class="m-field"><label>Cantidad (raciones)</label><input type="number" id="pdQty" value="'+(info.initialQty != null ? info.initialQty : 1)+'" step="0.5" min="0" inputmode="decimal"></div>';
@@ -2276,6 +2303,9 @@
     // pdUnitOptions/pdSelectedUnitId se rellenan en el IIFE de arriba (necesitan existir ya
     // al construir el HTML, para marcar la opción seleccionada por defecto en el desplegable).
     var pdUnitOptions, pdSelectedUnitId;
+    // Cuando no es null, el formulario "pdNewServingForm" está en modo edición de esta
+    // ración existente (el id sin el prefijo "custom:"), en vez de creando una nueva.
+    var pdEditingServingId = null;
     function unitById(id){
       return pdUnitOptions.filter(function(u){ return u.id === id; })[0] || pdUnitOptions[0];
     }
@@ -2298,6 +2328,25 @@
 
     var unitSelect = document.getElementById('pdUnitSelect');
     var newServingForm = document.getElementById('pdNewServingForm');
+    var customActionsRow = document.getElementById('pdCustomServingActions');
+    var newServingSaveBtn = document.getElementById('pdNewServingSave');
+    // Los botones "Editar ración"/"Eliminar ración" solo tienen sentido cuando la unidad
+    // elegida ahora mismo es una ración creada a mano (no las de Open Food Facts).
+    function refreshCustomServingActions(){
+      if(!customActionsRow) return;
+      customActionsRow.classList.toggle('hidden', pdSelectedUnitId.indexOf('custom:') !== 0);
+    }
+    if(customActionsRow) refreshCustomServingActions();
+
+    function closeNewServingForm(){
+      newServingForm.classList.add('hidden');
+      unitSelect.value = pdSelectedUnitId;
+      document.getElementById('pdNewServingLabel').value = '';
+      document.getElementById('pdNewServingGrams').value = '';
+      pdEditingServingId = null;
+      if(newServingSaveBtn) newServingSaveBtn.textContent = 'Guardar ración';
+    }
+
     if(unitSelect){
       unitSelect.addEventListener('change', function(){
         var val = unitSelect.value;
@@ -2305,6 +2354,10 @@
           // Se deja el desplegable en la unidad actual mientras se rellena el formulario
           // (la nueva opción "+ Crear ración nueva…" es una acción, no una unidad en sí).
           unitSelect.value = pdSelectedUnitId;
+          pdEditingServingId = null;
+          document.getElementById('pdNewServingLabel').value = '';
+          document.getElementById('pdNewServingGrams').value = '';
+          if(newServingSaveBtn) newServingSaveBtn.textContent = 'Guardar ración';
           newServingForm.classList.remove('hidden');
           document.getElementById('pdNewServingLabel').focus();
           return;
@@ -2312,31 +2365,83 @@
         var grams = currentGrams();
         pdSelectedUnitId = val;
         document.getElementById('pdGrams').value = round2(grams / unitById(pdSelectedUnitId).gramsPerUnit);
+        refreshCustomServingActions();
         updatePreview();
       });
 
-      document.getElementById('pdNewServingCancel').addEventListener('click', function(){
-        newServingForm.classList.add('hidden');
-        unitSelect.value = pdSelectedUnitId;
-      });
+      document.getElementById('pdNewServingCancel').addEventListener('click', closeNewServingForm);
       document.getElementById('pdNewServingSave').addEventListener('click', function(){
         var label = document.getElementById('pdNewServingLabel').value.trim();
         var grams = Number(document.getElementById('pdNewServingGrams').value) || 0;
         if(!label || grams <= 0) return;
+
+        if(pdEditingServingId){
+          // Editando una ración existente: se conservan los gramos reales que había puesto
+          // el usuario (no se resetea a "1"), igual que al cambiar de unidad.
+          var oldGrams = currentGrams();
+          var updated = updateCustomServing(displayName, pdEditingServingId, label, grams);
+          if(!updated) return;
+          var unitEntry = unitById(pdSelectedUnitId);
+          unitEntry.label = label+' ('+round2(grams)+' g)';
+          unitEntry.gramsPerUnit = grams;
+          var opt = unitSelect.querySelector('option[value="'+pdSelectedUnitId+'"]');
+          if(opt) opt.textContent = unitEntry.label;
+          document.getElementById('pdGrams').value = round2(oldGrams / grams);
+          closeNewServingForm();
+          updatePreview();
+          return;
+        }
+
         var created = addCustomServing(displayName, label, grams);
         var unit = { id: 'custom:'+created.id, label: label+' ('+round2(grams)+' g)', gramsPerUnit: grams };
         pdUnitOptions.push(unit);
-        var opt = document.createElement('option');
-        opt.value = unit.id;
-        opt.textContent = unit.label;
-        unitSelect.insertBefore(opt, unitSelect.lastElementChild); // antes de "+ Crear ración nueva…"
+        var newOpt = document.createElement('option');
+        newOpt.value = unit.id;
+        newOpt.textContent = unit.label;
+        unitSelect.insertBefore(newOpt, unitSelect.lastElementChild); // antes de "+ Crear ración nueva…"
         pdSelectedUnitId = unit.id;
         unitSelect.value = unit.id;
         document.getElementById('pdGrams').value = 1;
-        newServingForm.classList.add('hidden');
-        document.getElementById('pdNewServingLabel').value = '';
-        document.getElementById('pdNewServingGrams').value = '';
+        closeNewServingForm();
+        refreshCustomServingActions();
         updatePreview();
+      });
+    }
+
+    var editServingBtn = document.getElementById('pdEditServingBtn');
+    if(editServingBtn){
+      editServingBtn.addEventListener('click', function(){
+        var rawId = pdSelectedUnitId.replace(/^custom:/, '');
+        var unitEntry = unitById(pdSelectedUnitId);
+        pdEditingServingId = rawId;
+        document.getElementById('pdNewServingLabel').value = unitEntry.label.replace(/\s*\([^)]*\)\s*$/, '');
+        document.getElementById('pdNewServingGrams').value = unitEntry.gramsPerUnit;
+        if(newServingSaveBtn) newServingSaveBtn.textContent = 'Guardar cambios';
+        newServingForm.classList.remove('hidden');
+        document.getElementById('pdNewServingLabel').focus();
+      });
+    }
+    var deleteServingBtn = document.getElementById('pdDeleteServingBtn');
+    if(deleteServingBtn){
+      deleteServingBtn.addEventListener('click', function(){
+        var rawId = pdSelectedUnitId.replace(/^custom:/, '');
+        var unitEntry = unitById(pdSelectedUnitId);
+        var labelOnly = unitEntry.label.replace(/\s*\([^)]*\)\s*$/, '');
+        customConfirm('¿Eliminar la ración "'+labelOnly+'"?', function(){
+          var grams = currentGrams();
+          deleteCustomServing(displayName, rawId);
+          pdUnitOptions = pdUnitOptions.filter(function(u){ return u.id !== pdSelectedUnitId; });
+          var opt = unitSelect.querySelector('option[value="'+pdSelectedUnitId+'"]');
+          if(opt) opt.parentNode.removeChild(opt);
+          var fallback = pdUnitOptions.filter(function(u){ return u.id.indexOf('custom:') === 0; })[0]
+            || pdUnitOptions.filter(function(u){ return u.id === 'off'; })[0]
+            || pdUnitOptions.filter(function(u){ return u.id === 'g'; })[0];
+          pdSelectedUnitId = fallback.id;
+          unitSelect.value = fallback.id;
+          document.getElementById('pdGrams').value = round2(grams / fallback.gramsPerUnit);
+          refreshCustomServingActions();
+          updatePreview();
+        });
       });
     }
 
