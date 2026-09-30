@@ -2170,6 +2170,11 @@
     var serving = offServingInfo(product);
     return {
       initialGrams: favGrams != null ? favGrams : (serving ? serving.value : null),
+      // true cuando initialGrams es solo la suposición de "1 ración" de Open Food Facts, no
+      // una cantidad realmente memorizada (favorito): si al final la unidad por defecto que
+      // se selecciona no es esa ración de OFF (p.ej. porque hay una ración creada a mano con
+      // preferencia), esta suposición no debe usarse para precargar la cantidad.
+      initialGramsIsSuggestion: favGrams == null,
       servingHint: (favGrams == null && serving) ? (round(serving.value) + ' ' + serving.unit) : null,
       // Independiente del favorito: si el producto declara una ración, se ofrece el
       // selector de magnitud (g/ración) aunque ya haya una cantidad memorizada distinta.
@@ -2227,10 +2232,24 @@
           unitOptions.push({ id: 'custom:'+c.id, label: c.label+' ('+round2(c.grams)+' g)', gramsPerUnit: c.grams });
         });
         pdUnitOptions = unitOptions;
+        // Por defecto se muestra la ración, si hay alguna disponible para este alimento: si
+        // además el usuario ha creado una ración manualmente, esa tiene preferencia sobre la
+        // ración de Open Food Facts (se usa la más reciente que haya creado).
         var hasServing = info.servingValue != null;
-        pdSelectedUnitId = hasServing ? 'off' : 'g';
-        var initialGramsVal = info.initialGrams != null ? info.initialGrams : (hasServing ? info.servingValue : 100);
-        var selectedUnit = unitOptions[hasServing ? 1 : 0];
+        var defaultCustom = customServings.length ? customServings[customServings.length - 1] : null;
+        pdSelectedUnitId = defaultCustom ? ('custom:' + defaultCustom.id) : (hasServing ? 'off' : 'g');
+        var selectedUnit = unitOptions.filter(function(u){ return u.id === pdSelectedUnitId; })[0];
+        // info.initialGrams es una cantidad real y precisa (memorizada en un favorito, o la
+        // de una entrada/ingrediente que se está editando) EXCEPTO cuando viene marcada como
+        // "solo sugerencia" (la ración típica de OFF, sin favorito de por medio): en ese caso
+        // solo es válida si la unidad seleccionada por defecto es justo esa ración; si en su
+        // lugar se ha preferido una ración creada a mano, se ignora y se muestra "1" de ella.
+        var initialGramsVal;
+        if(info.initialGrams != null && !(info.initialGramsIsSuggestion && pdSelectedUnitId !== 'off')){
+          initialGramsVal = info.initialGrams;
+        } else {
+          initialGramsVal = selectedUnit.gramsPerUnit;
+        }
         var initialDisplay = round2(initialGramsVal / selectedUnit.gramsPerUnit);
         var optionsHtml = unitOptions.map(function(u){
           return '<option value="'+u.id+'"'+(u.id === pdSelectedUnitId ? ' selected' : '')+'>'+escapeHtml(u.label)+'</option>';
@@ -2657,6 +2676,7 @@
           per100: per100Of(p),
           source: p._generic ? 'generic' : (p._bedca ? 'bedca' : 'off'),
           initialGrams: sug.initialGrams,
+          initialGramsIsSuggestion: sug.initialGramsIsSuggestion,
           servingHint: sug.servingHint,
           servingValue: sug.servingValue,
           servingUnit: sug.servingUnit
@@ -2790,6 +2810,7 @@
           per100: per100Of(p),
           source: 'off-barcode',
           initialGrams: sug.initialGrams,
+          initialGramsIsSuggestion: sug.initialGramsIsSuggestion,
           servingHint: sug.servingHint,
           servingValue: sug.servingValue,
           servingUnit: sug.servingUnit
