@@ -103,10 +103,21 @@
 
   /* "¿Qué como con lo que me queda?": botón dentro de la caja de balance, abre una hoja con
      sugerencias sacadas de los favoritos (ver whatToEatOverlay). */
-  .what-to-eat-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:16px;padding:12px;background:var(--bg);color:var(--ink);border:none;border-radius:var(--radius-md);font-weight:600;font-size:13px;font-family:'Inter',sans-serif;box-shadow:inset 0 0 0 1px var(--border-soft);}
+  .wte-card{background:var(--card);border-radius:var(--radius-lg);padding:10px;margin:18px 0 14px;box-shadow:var(--shadow-card);position:relative;z-index:1;}
+  .what-to-eat-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:12px;background:var(--bg);color:var(--ink);border:none;border-radius:var(--radius-md);font-weight:600;font-size:13px;font-family:'Inter',sans-serif;}
   .what-to-eat-btn:active{opacity:0.7;}
   .wte-remaining{background:var(--bg);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--ink-soft);}
   .wte-remaining b{color:var(--ink);font-family:'Poppins',sans-serif;}
+  .wte-section-title{font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.4px;margin:18px 0 4px;}
+  .wte-ai-card{background:var(--bg);border-radius:var(--radius-md);padding:14px;margin-bottom:6px;}
+  .wte-ai-head{font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
+  .wte-ai-title{font-family:'Poppins',sans-serif;font-size:16px;font-weight:700;margin-bottom:4px;}
+  .wte-ai-comment{font-size:12px;color:var(--ink-soft);margin-bottom:8px;}
+  .wte-ai-ing{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:6px 0;border-bottom:1px solid var(--border-soft);}
+  .wte-ai-ing span:last-child{flex:none;color:var(--ink-soft);}
+  .wte-ai-ing b{color:var(--ink);}
+  .wte-ai-total{font-size:12px;color:var(--ink-soft);margin:10px 0 6px;}
+  .wte-ai-total b{color:var(--ink);font-family:'Poppins',sans-serif;}
   .wte-row{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid var(--border-soft);cursor:pointer;}
   .wte-row:last-child{border-bottom:none;}
   .wte-row .who{flex:1;min-width:0;}
@@ -122,7 +133,7 @@
   /* Log list */
   .log-title{display:flex;justify-content:space-between;align-items:center;margin:26px 0 4px 0;}
   .log-title h2{font-size:13px;text-transform:uppercase;letter-spacing:0.08em;margin:0;color:var(--ink-soft);}
-  .log-list{margin-top:18px;}
+  .log-list{margin-top:0;}
   .log-row-wrap{position:relative;overflow:hidden;border-radius:var(--radius-sm);margin-bottom:1px;}
   .log-row-delete{position:absolute;top:0;right:0;bottom:0;width:76px;background:var(--fat);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:none;}
   .log-row{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:10px 0;background:var(--card);cursor:pointer;touch-action:pan-y;}
@@ -358,6 +369,8 @@
       <h2 class="day-date" id="dayDate">—</h2>
 
       <div class="facts" id="factsPanel"></div>
+
+      <div class="wte-card"><button type="button" class="what-to-eat-btn" id="whatToEatBtn">🍽️ ¿Qué como con lo que me queda?</button></div>
 
       <div class="log-list" id="logList"></div>
     </section>
@@ -1102,7 +1115,6 @@
       '</div>';
     });
     html += '</div>';
-    html += '<button type="button" class="what-to-eat-btn" id="whatToEatBtn">🍽️ ¿Qué como con lo que me queda?</button>';
     container.innerHTML = html;
 
     // El usuario puede estar mirando un día distinto de "hoy" en el carrusel; se guarda el
@@ -1110,8 +1122,8 @@
     // "lo que queda" sobre el día correcto.
     lastFactsConsumed = consumed;
     lastFactsTarget = target;
-    document.getElementById('whatToEatBtn').addEventListener('click', openWhatToEatSheet);
   }
+  document.getElementById('whatToEatBtn').addEventListener('click', openWhatToEatSheet);
 
   /* ---------- Week balance for the week that contains the day being viewed ----------
      Follows the day carousel: navigating to a different week recomputes this against
@@ -3448,14 +3460,18 @@
   // ingrediente"), pero para revisar/confirmar un plato recién detectado por foto ANTES de
   // registrarlo. Al confirmar (mismo botón "Guardar", relabeled aquí) se crea la entrada del
   // día; no se guarda como comida reutilizable en "Creados".
-  function openPhotoLogReview(dishName, ingredients, photoDataUrl){
+  function openPhotoLogReview(dishName, ingredients, photoDataUrl, opts){
+    opts = opts || {};
     cmMode = 'photoLog';
     cmLogEditContext = null;
     cmEditingId = null;
-    cmIsAiPhotoSource = true;
+    // Por defecto es un plato detectado por foto; "¿Qué como?" lo reutiliza con otro
+    // título y otro origen (sin foto ni subtítulo "Identificado a partir de una foto").
+    cmLogSource = opts.source || 'ai-photo';
+    cmIsAiPhotoSource = cmLogSource === 'ai-photo';
     cmIngredients = ingredients;
     cmPhotoDataUrl = photoDataUrl || null;
-    document.getElementById('cmTitle').textContent = 'Plato detectado';
+    document.getElementById('cmTitle').textContent = opts.title || 'Plato detectado';
     document.getElementById('cmName').value = dishName;
     document.getElementById('cmMsg').textContent = '';
     document.getElementById('btnLogCreatedMeal').classList.add('hidden');
@@ -3589,8 +3605,9 @@
     } else {
       var suggestions = computeWhatToEatSuggestions(remaining);
       var html = '<div class="wte-remaining">Te quedan <b>'+round(remaining.kcal)+' kcal</b> · '
-        +'P '+round(Math.max(0,remaining.protein))+'g · C '+round(Math.max(0,remaining.carbs))+'g · G '+round(Math.max(0,remaining.fat))+'g. '
-        +'Sugerencias de tus favoritos, ajustadas a lo que te queda:</div>';
+        +'P '+round(Math.max(0,remaining.protein))+'g · C '+round(Math.max(0,remaining.carbs))+'g · G '+round(Math.max(0,remaining.fat))+'g.</div>'
+        +'<div id="wteAi"></div>'
+        +'<div class="wte-section-title">Tus favoritos, ajustados a lo que te queda</div>';
       if(suggestions.length === 0){
         html += '<div class="msg">Ninguno de tus favoritos encaja bien en lo que te queda ahora mismo. Prueba a añadir uno ajustando la cantidad manualmente.</div>';
       } else {
@@ -3635,16 +3652,176 @@
           }
         });
       });
+      runWhatToEatAi(remaining, '');
     }
     whatToEatOverlay.classList.remove('hidden');
   }
 
+  /* ---- Propuesta con IA: un plato (o un único favorito si quedan pocas kcal) ---- */
+  // Por debajo de este margen no tiene sentido montar un plato: se sugiere un solo favorito.
+  var WTE_FEW_KCAL = 100;
+  var wteAiToken = 0;
+
+  function buildWhatToEatPrompt(remaining, avoidName){
+    var few = remaining.kcal < WTE_FEW_KCAL;
+    var list = favorites.map(function(f, i){
+      if(f.perGram){
+        return { id: String(i), nombre: f.name, tipo: 'por_100g',
+          kcal_100g: round2(f.kcal100), proteinas_100g: round2(f.protein100),
+          carbohidratos_100g: round2(f.carbs100), grasas_100g: round2(f.fat100),
+          gramos_habituales: round(f.grams || f.servingValue || 100) };
+      }
+      return { id: String(i), nombre: f.name, tipo: 'unidad_fija',
+        kcal_por_unidad: round2(f.kcal), proteinas_por_unidad: round2(f.protein),
+        carbohidratos_por_unidad: round2(f.carbs), grasas_por_unidad: round2(f.fat),
+        unidades_habituales: f.qty || 1 };
+    });
+    var p = 'Eres un nutricionista. El usuario quiere completar su día de comidas. Le quedan por consumir: ' +
+      round(remaining.kcal) + ' kcal, ' + round(Math.max(0, remaining.protein)) + ' g de proteínas, ' +
+      round(Math.max(0, remaining.carbs)) + ' g de carbohidratos y ' + round(Math.max(0, remaining.fat)) + ' g de grasas. ' +
+      'Estos son SUS ALIMENTOS FAVORITOS (los que suele tener en casa), en JSON: ' + JSON.stringify(list) + '. ' +
+      'Usa ÚNICAMENTE alimentos de esa lista, referenciándolos por su "id"; no inventes alimentos nuevos. ';
+    if(few){
+      p += 'Como quedan muy pocas calorías, NO montes un plato: elige UN SOLO alimento de la lista y una cantidad que sirva para completar las calorías que quedan sin pasarse. ' +
+        'Devuelve "modo":"un_favorito" y un único elemento en "ingredientes". ';
+    } else {
+      p += 'Crea UN plato completo y apetecible combinando varios de esos alimentos (normalmente entre 2 y 5) con cantidades concretas, de forma que las calorías totales se acerquen lo más posible a las que quedan SIN pasarse, y se aproxime también a los macros que faltan (prioriza la proteína). ' +
+        'Devuelve "modo":"plato" y un nombre corto y descriptivo en español para el plato. ';
+    }
+    p += 'Para los alimentos "por_100g" indica "gramos"; para los "unidad_fija" indica "unidades" (número, puede ser 0.5). ';
+    if(avoidName) p += 'Propón algo distinto a "' + avoidName + '". ';
+    p += 'Responde SOLO con JSON con este formato: {"modo":"plato","nombre_plato":"...","ingredientes":[{"id":"0","gramos":120},{"id":"3","unidades":1}],"comentario":"una frase corta explicando por qué encaja"}.';
+    return p;
+  }
+
+  // Llama a Gemini y devuelve { dishName, single, comment, items:[...] } con los macros
+  // RECALCULADOS a partir de los datos del favorito (no se fía de los números del modelo).
+  function fetchWhatToEatFromGemini(remaining, avoidName){
+    var key = getGeminiKey();
+    var body = {
+      contents: [{ parts: [{ text: buildWhatToEatPrompt(remaining, avoidName) }] }],
+      generationConfig: { response_mime_type: 'application/json' }
+    };
+    return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=' + encodeURIComponent(key), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function(r){ return r.json(); }).then(function(data){
+      if(data && data.error){
+        throw new Error('Error de Gemini: ' + (data.error.message || data.error.status || JSON.stringify(data.error)));
+      }
+      var candidate = data && data.candidates && data.candidates[0];
+      if(candidate && candidate.finishReason && candidate.finishReason !== 'STOP'){
+        throw new Error('Gemini no completó la respuesta (motivo: ' + candidate.finishReason + ').');
+      }
+      var text = candidate && candidate.content && candidate.content.parts && candidate.content.parts[0] && candidate.content.parts[0].text;
+      if(!text) throw new Error('Gemini no devolvió texto utilizable.');
+      var parsed;
+      try{ parsed = JSON.parse(text); }
+      catch(e){ throw new Error('No se pudo interpretar la respuesta de Gemini.'); }
+      var few = remaining.kcal < WTE_FEW_KCAL;
+      var seen = {};
+      var items = [];
+      (parsed.ingredientes || []).forEach(function(ing){
+        var id = String(ing && ing.id);
+        var fav = favorites[Number(id)];
+        if(!fav || seen[id] || !/^\d+$/.test(id)) return; // id inventado o repetido
+        seen[id] = true;
+        if(fav.perGram){
+          var grams = Math.round(Number(ing.gramos));
+          if(!(grams > 0)) return;
+          grams = Math.min(grams, 2000);
+          items.push({ fav: fav, grams: grams,
+            kcal: fav.kcal100*grams/100, protein: fav.protein100*grams/100,
+            carbs: fav.carbs100*grams/100, fat: fav.fat100*grams/100 });
+        } else {
+          var qty = Math.round(Number(ing.unidades) * 100) / 100;
+          if(!(qty > 0)) return;
+          qty = Math.min(qty, 20);
+          items.push({ fav: fav, qty: qty,
+            kcal: fav.kcal*qty, protein: fav.protein*qty, carbs: fav.carbs*qty, fat: fav.fat*qty });
+        }
+      });
+      if(few) items = items.slice(0, 1);
+      if(items.length === 0) throw new Error('La IA no propuso ningún alimento válido de tus favoritos.');
+      return {
+        dishName: String(parsed.nombre_plato || '').trim(),
+        single: few || items.length === 1,
+        comment: String(parsed.comentario || '').trim(),
+        items: items
+      };
+    });
+  }
+
+  function wteItemQtyLabel(s){
+    return s.grams != null ? (s.grams + ' g') : ('x' + s.qty);
+  }
+
+  function runWhatToEatAi(remaining, avoidName){
+    var box = document.getElementById('wteAi');
+    if(!box) return;
+    if(!getGeminiKey()){
+      box.innerHTML = '<div class="msg">Añade tu API key de Gemini en Ajustes (⚙) para que la IA te proponga un plato con tus favoritos.</div>';
+      return;
+    }
+    var token = ++wteAiToken;
+    var few = remaining.kcal < WTE_FEW_KCAL;
+    box.innerHTML = '<div class="wte-ai-card"><div class="wte-ai-head">✨ Propuesta de la IA</div><div class="msg">' +
+      (few ? 'Buscando un favorito para completar tus calorías…' : 'Pensando un plato con tus favoritos…') + '</div></div>';
+    var done;
+    try{ done = fetchWhatToEatFromGemini(remaining, avoidName); }
+    catch(err){ done = Promise.reject(err); }
+    done.then(function(res){
+      if(token !== wteAiToken) return; // se ha pedido otra propuesta o se ha cerrado la hoja
+      var total = res.items.reduce(function(t, s){
+        t.kcal += s.kcal; t.protein += s.protein; t.carbs += s.carbs; t.fat += s.fat; return t;
+      }, {kcal:0, protein:0, carbs:0, fat:0});
+      var title = res.single ? res.items[0].fav.name : (res.dishName || 'Plato sugerido');
+      var h = '<div class="wte-ai-card"><div class="wte-ai-head">✨ ' + (res.single ? 'Para completar tus calorías' : 'Propuesta de la IA') + '</div>' +
+        '<div class="wte-ai-title">' + escapeHtml(title) + '</div>';
+      if(res.comment) h += '<div class="wte-ai-comment">' + escapeHtml(res.comment) + '</div>';
+      h += res.items.map(function(s){
+        return '<div class="wte-ai-ing"><span>' + foodEmoji(s.fav.name) + ' ' + escapeHtml(s.fav.name) + '</span>' +
+          '<span><b>' + escapeHtml(wteItemQtyLabel(s)) + '</b> · ' + round(s.kcal) + ' kcal</span></div>';
+      }).join('');
+      h += '<div class="wte-ai-total"><b>' + round(total.kcal) + ' kcal</b> de ' + round(remaining.kcal) + ' · P ' + round(total.protein) + ' · C ' + round(total.carbs) + ' · G ' + round(total.fat) + '</div>' +
+        '<button type="button" class="primary-btn" id="wteAiAdd">Añadir a Hoy</button>' +
+        '<button type="button" class="secondary-btn" id="wteAiRetry">Otra propuesta</button></div>';
+      box.innerHTML = h;
+      document.getElementById('wteAiRetry').addEventListener('click', function(){
+        runWhatToEatAi(remaining, title);
+      });
+      document.getElementById('wteAiAdd').addEventListener('click', function(){
+        whatToEatOverlay.classList.add('hidden');
+        document.getElementById('mealSelect').value = guessMeal();
+        var ingredients = res.items.map(function(s){
+          if(s.grams != null){
+            var f = s.fav;
+            return { name: f.name, grams: s.grams, kcal: s.kcal, protein: s.protein, carbs: s.carbs, fat: s.fat,
+              per100: { kcal: f.kcal100, protein: f.protein100, carbs: f.carbs100, fat: f.fat100 } };
+          }
+          // Favorito de cantidad fija: sin base por 100 g, la cantidad va en el nombre.
+          return { name: s.fav.name + (s.qty !== 1 ? ' (x' + s.qty + ')' : ''), grams: 0,
+            kcal: s.kcal, protein: s.protein, carbs: s.carbs, fat: s.fat, per100: null };
+        });
+        openPhotoLogReview(title, ingredients, null, { title: 'Plato sugerido', source: 'ai-sugerencia' });
+      });
+    }).catch(function(err){
+      if(token !== wteAiToken) return;
+      box.innerHTML = '<div class="wte-ai-card"><div class="wte-ai-head">✨ Propuesta de la IA</div>' +
+        '<div class="msg err">' + escapeHtml(err && err.message ? err.message : String(err)) + '</div>' +
+        '<button type="button" class="secondary-btn" id="wteAiRetry">Reintentar</button></div>';
+      document.getElementById('wteAiRetry').addEventListener('click', function(){ runWhatToEatAi(remaining, avoidName); });
+    });
+  }
+
   var whatToEatOverlay = document.getElementById('whatToEatOverlay');
   document.getElementById('closeWhatToEat').addEventListener('click', function(){
+    wteAiToken++;
     whatToEatOverlay.classList.add('hidden');
   });
   whatToEatOverlay.addEventListener('click', function(ev){
-    if(ev.target === whatToEatOverlay) whatToEatOverlay.classList.add('hidden');
+    if(ev.target === whatToEatOverlay){ wteAiToken++; whatToEatOverlay.classList.add('hidden'); }
   });
 
   /* ---------- Comidas creadas (pestaña "Creados"): listado + modal de creación/edición ---------- */
@@ -3704,6 +3881,8 @@
   // true cuando la comida que se está editando es una entrada del día identificada por
   // foto (source === 'ai-photo'): solo entonces se muestra el subtítulo bajo el nombre.
   var cmIsAiPhotoSource = false;
+  // Origen con el que se registra el plato en modo 'photoLog' ('ai-photo' o 'ai-sugerencia').
+  var cmLogSource = 'ai-photo';
   // El mismo modal sirve para dos cosas: 'recipe' = crear/editar una comida guardada en
   // "Creados"; 'logEntry' = editar los ingredientes y cantidades de una comida ya
   // registrada en el día (sin tocar la receta original ni permitir editar macros directamente).
@@ -3972,7 +4151,7 @@
         kcal: t.kcal, protein: t.protein, carbs: t.carbs, fat: t.fat,
         portionLabel: t.grams ? (round(t.grams) + ' g') : '',
         meal: mealVal,
-        source: 'ai-photo',
+        source: cmLogSource,
         photo: cmPhotoDataUrl,
         ingredients: cmIngredients.map(function(ing){
           return {name: ing.name, grams: ing.grams, kcal: ing.kcal, protein: ing.protein, carbs: ing.carbs, fat: ing.fat, per100: ing.per100};
