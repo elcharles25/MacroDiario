@@ -110,6 +110,21 @@
   .wte-remaining b{color:var(--ink);font-family:'Poppins',sans-serif;}
   .wte-section-title{font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.4px;margin:18px 0 4px;}
   .wte-ai-card{background:var(--bg);border-radius:var(--radius-md);padding:14px;margin-bottom:6px;}
+  .wte-loading{position:relative;overflow:hidden;text-align:center;padding:26px 16px 22px;background:linear-gradient(120deg,var(--bg),var(--primary-soft),var(--bg));background-size:250% 250%;animation:wteGlow 3.2s ease-in-out infinite;box-shadow:inset 0 0 0 1px var(--primary-soft);}
+  .wte-orb{width:54px;height:54px;margin:0 auto 12px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 30%,#fff,var(--primary-soft));box-shadow:0 0 0 0 rgba(15,191,143,.45);animation:wtePulse 1.8s ease-out infinite;}
+  .wte-spark{font-size:26px;display:inline-block;animation:wteSpin 3s ease-in-out infinite;}
+  .wte-loading-text{font-size:13px;font-weight:600;color:var(--primary-dark);min-height:18px;animation:wteFade 1.6s ease-in-out infinite;}
+  .wte-skel{margin-top:16px;display:flex;flex-direction:column;gap:8px;}
+  .wte-skel i{display:block;height:12px;border-radius:6px;background:linear-gradient(90deg,rgba(0,0,0,.05) 25%,rgba(255,255,255,.75) 50%,rgba(0,0,0,.05) 75%);background-size:200% 100%;animation:wteShimmer 1.3s linear infinite;}
+  .wte-skel i:nth-child(2){width:82%;} .wte-skel i:nth-child(3){width:64%;}
+  .wte-reveal{animation:wteIn .45s ease-out both;}
+  @keyframes wteGlow{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+  @keyframes wtePulse{0%{box-shadow:0 0 0 0 rgba(15,191,143,.45)}100%{box-shadow:0 0 0 22px rgba(15,191,143,0)}}
+  @keyframes wteSpin{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.25) rotate(18deg)}}
+  @keyframes wteFade{0%,100%{opacity:.55}50%{opacity:1}}
+  @keyframes wteShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  @keyframes wteIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.wte-loading,.wte-orb,.wte-spark,.wte-loading-text,.wte-skel i,.wte-reveal{animation:none;}}
   .wte-ai-head{font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
   .wte-ai-title{font-family:'Poppins',sans-serif;font-size:16px;font-weight:700;margin-bottom:4px;}
   .wte-ai-comment{font-size:12px;color:var(--ink-soft);margin-bottom:8px;}
@@ -3603,58 +3618,62 @@
     } else if(remaining.kcal <= 0){
       body.innerHTML = '<div class="wte-remaining">Ya has cubierto (o superado) tu objetivo de calorías de hoy, así que no hay margen para sugerir nada más.</div>';
     } else {
-      var suggestions = computeWhatToEatSuggestions(remaining);
-      var html = '<div class="wte-remaining">Te quedan <b>'+round(remaining.kcal)+' kcal</b> · '
+      body.innerHTML = '<div class="wte-remaining">Te quedan <b>'+round(remaining.kcal)+' kcal</b> · '
         +'P '+round(Math.max(0,remaining.protein))+'g · C '+round(Math.max(0,remaining.carbs))+'g · G '+round(Math.max(0,remaining.fat))+'g.</div>'
-        +'<div id="wteAi"></div>'
-        +'<div class="wte-section-title">Tus favoritos, ajustados a lo que te queda</div>';
-      if(suggestions.length === 0){
-        html += '<div class="msg">Ninguno de tus favoritos encaja bien en lo que te queda ahora mismo. Prueba a añadir uno ajustando la cantidad manualmente.</div>';
-      } else {
-        html += suggestions.map(function(s, idx){
-          var qtyLabel = s.grams != null ? (s.grams + ' g') : ('x' + s.qty);
-          return '<div class="wte-row" data-wteidx="'+idx+'">'+
-            '<div class="log-row-icon">'+foodEmoji(s.fav.name)+'</div>'+
-            '<div class="who">'+
-              '<div class="name">'+escapeHtml(s.fav.name)+'</div>'+
-              '<div class="qty">'+qtyLabel+'</div>'+
-            '</div>'+
-            '<div class="macros"><b>'+round(s.kcal)+' kcal</b><br>P '+round(s.protein)+' · C '+round(s.carbs)+' · G '+round(s.fat)+'</div>'+
-          '</div>';
-        }).join('');
-      }
-      body.innerHTML = html;
-      Array.prototype.forEach.call(body.querySelectorAll('[data-wteidx]'), function(row){
-        var s = suggestions[Number(row.getAttribute('data-wteidx'))];
-        row.addEventListener('click', function(){
-          whatToEatOverlay.classList.add('hidden');
-          // Esta hoja se abre directamente desde la pantalla principal, sin pasar por el
-          // selector de "Añadir alimento", así que hay que fijar a qué comida del día se
-          // añadirá (igual que se haría al pulsar "+ Añadir" en una comida concreta).
-          document.getElementById('mealSelect').value = guessMeal();
-          var f = s.fav;
-          if(f.perGram){
-            openProductDetail({
-              name: f.name,
-              per100: { kcal: f.kcal100, protein: f.protein100, carbs: f.carbs100, fat: f.fat100 },
-              source: 'favorito',
-              initialGrams: s.grams,
-              servingValue: f.servingValue || null,
-              servingUnit: f.servingUnit || null
-            });
-          } else {
-            openProductDetail({
-              name: f.name,
-              perUnit: { kcal: f.kcal, protein: f.protein, carbs: f.carbs, fat: f.fat },
-              source: 'favorito',
-              initialQty: s.qty
-            });
-          }
-        });
-      });
+        +'<div id="wteAi"></div><div id="wteFallback"></div>';
       runWhatToEatAi(remaining, '');
     }
     whatToEatOverlay.classList.remove('hidden');
+  }
+
+  // Lista de favoritos ajustados (sin IA): solo se muestra si no hay clave de Gemini o la
+  // IA falla; cuando la IA responde, la hoja muestra únicamente su propuesta.
+  function renderWteFallback(remaining){
+    var box = document.getElementById('wteFallback');
+    if(!box) return;
+    var suggestions = computeWhatToEatSuggestions(remaining);
+    var html = '<div class="wte-section-title">Tus favoritos, ajustados a lo que te queda</div>';
+    if(suggestions.length === 0){
+      html += '<div class="msg">Ninguno de tus favoritos encaja bien en lo que te queda ahora mismo. Prueba a añadir uno ajustando la cantidad manualmente.</div>';
+    } else {
+      html += suggestions.map(function(s, idx){
+        var qtyLabel = s.grams != null ? (s.grams + ' g') : ('x' + s.qty);
+        return '<div class="wte-row" data-wteidx="'+idx+'">'+
+          '<div class="log-row-icon">'+foodEmoji(s.fav.name)+'</div>'+
+          '<div class="who">'+
+            '<div class="name">'+escapeHtml(s.fav.name)+'</div>'+
+            '<div class="qty">'+qtyLabel+'</div>'+
+          '</div>'+
+          '<div class="macros"><b>'+round(s.kcal)+' kcal</b><br>P '+round(s.protein)+' · C '+round(s.carbs)+' · G '+round(s.fat)+'</div>'+
+        '</div>';
+      }).join('');
+    }
+    box.innerHTML = html;
+    Array.prototype.forEach.call(box.querySelectorAll('[data-wteidx]'), function(row){
+      var s = suggestions[Number(row.getAttribute('data-wteidx'))];
+      row.addEventListener('click', function(){
+        whatToEatOverlay.classList.add('hidden');
+        document.getElementById('mealSelect').value = guessMeal();
+        var f = s.fav;
+        if(f.perGram){
+          openProductDetail({
+            name: f.name,
+            per100: { kcal: f.kcal100, protein: f.protein100, carbs: f.carbs100, fat: f.fat100 },
+            source: 'favorito',
+            initialGrams: s.grams,
+            servingValue: f.servingValue || null,
+            servingUnit: f.servingUnit || null
+          });
+        } else {
+          openProductDetail({
+            name: f.name,
+            perUnit: { kcal: f.kcal, protein: f.protein, carbs: f.carbs, fat: f.fat },
+            source: 'favorito',
+            initialQty: s.qty
+          });
+        }
+      });
+    });
   }
 
   /* ---- Propuesta con IA: un plato (o un único favorito si quedan pocas kcal) ---- */
@@ -3762,22 +3781,37 @@
     if(!box) return;
     if(!getGeminiKey()){
       box.innerHTML = '<div class="msg">Añade tu API key de Gemini en Ajustes (⚙) para que la IA te proponga un plato con tus favoritos.</div>';
+      renderWteFallback(remaining);
       return;
     }
     var token = ++wteAiToken;
     var few = remaining.kcal < WTE_FEW_KCAL;
-    box.innerHTML = '<div class="wte-ai-card"><div class="wte-ai-head">✨ Propuesta de la IA</div><div class="msg">' +
-      (few ? 'Buscando un favorito para completar tus calorías…' : 'Pensando un plato con tus favoritos…') + '</div></div>';
+    var fb = document.getElementById('wteFallback'); if(fb) fb.innerHTML = '';
+    var phrases = few
+      ? ['Revisando tus favoritos…', 'Buscando el que mejor completa tus calorías…', 'Ajustando la cantidad…']
+      : ['Revisando tus favoritos…', 'Combinando ingredientes…', 'Ajustando cantidades a tus macros…', 'Afinando el plato…'];
+    box.innerHTML = '<div class="wte-ai-card wte-loading">' +
+      '<div class="wte-orb"><span class="wte-spark">✨</span></div>' +
+      '<div class="wte-loading-text" id="wteLoadingText">' + phrases[0] + '</div>' +
+      '<div class="wte-skel"><i></i><i></i><i></i></div></div>';
+    var pi = 0;
+    var phraseTimer = setInterval(function(){
+      var t = document.getElementById('wteLoadingText');
+      if(!t || token !== wteAiToken){ clearInterval(phraseTimer); return; }
+      pi = (pi + 1) % phrases.length;
+      t.textContent = phrases[pi];
+    }, 1600);
     var done;
     try{ done = fetchWhatToEatFromGemini(remaining, avoidName); }
     catch(err){ done = Promise.reject(err); }
     done.then(function(res){
+      clearInterval(phraseTimer);
       if(token !== wteAiToken) return; // se ha pedido otra propuesta o se ha cerrado la hoja
       var total = res.items.reduce(function(t, s){
         t.kcal += s.kcal; t.protein += s.protein; t.carbs += s.carbs; t.fat += s.fat; return t;
       }, {kcal:0, protein:0, carbs:0, fat:0});
       var title = res.single ? res.items[0].fav.name : (res.dishName || 'Plato sugerido');
-      var h = '<div class="wte-ai-card"><div class="wte-ai-head">✨ ' + (res.single ? 'Para completar tus calorías' : 'Propuesta de la IA') + '</div>' +
+      var h = '<div class="wte-ai-card wte-reveal"><div class="wte-ai-head">✨ ' + (res.single ? 'Para completar tus calorías' : 'Propuesta de la IA') + '</div>' +
         '<div class="wte-ai-title">' + escapeHtml(title) + '</div>';
       if(res.comment) h += '<div class="wte-ai-comment">' + escapeHtml(res.comment) + '</div>';
       h += res.items.map(function(s){
@@ -3807,7 +3841,9 @@
         openPhotoLogReview(title, ingredients, null, { title: 'Plato sugerido', source: 'ai-sugerencia' });
       });
     }).catch(function(err){
+      clearInterval(phraseTimer);
       if(token !== wteAiToken) return;
+      renderWteFallback(remaining);
       box.innerHTML = '<div class="wte-ai-card"><div class="wte-ai-head">✨ Propuesta de la IA</div>' +
         '<div class="msg err">' + escapeHtml(err && err.message ? err.message : String(err)) + '</div>' +
         '<button type="button" class="secondary-btn" id="wteAiRetry">Reintentar</button></div>';
