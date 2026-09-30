@@ -2139,27 +2139,39 @@
       // lata), se ofrece un pequeño selector para introducir la cantidad en esa unidad
       // ("raciones") en vez de siempre en gramos/ml — más cómodo cuando la ración del
       // envase tiene un valor "raro" (p.ej. 37 g) que nadie recuerda de memoria.
-      (per100
-        ? '<div class="m-field"><label id="pdGramsLabel">Cantidad a registrar</label>'+
-          '<div class="pd-qty-row">'+
-            '<input type="number" id="pdGrams" value="'+(info.initialGrams != null ? round(info.initialGrams) : 100)+'" inputmode="decimal">'+
-            (info.servingValue
-              ? '<div class="pd-unit-toggle" id="pdUnitToggle">'+
-                  '<button type="button" class="pd-unit-btn active" data-unit="g">'+escapeHtml(info.servingUnit === 'ml' ? 'ml' : 'g')+'</button>'+
-                  '<button type="button" class="pd-unit-btn" data-unit="serving">ración ('+round2(info.servingValue)+' '+escapeHtml(info.servingUnit || 'g')+')</button>'+
-                '</div>'
-              : '')+
-          '</div>'+
-          (info.servingHint ? '<button type="button" class="pd-serving-hint" id="pdServingHint">Ración típica: '+escapeHtml(info.servingHint)+'</button>' : '')+
-          '</div>'
-        : '<div class="m-field"><label>Cantidad (raciones)</label><input type="number" id="pdQty" value="'+(info.initialQty != null ? info.initialQty : 1)+'" step="0.5" min="0" inputmode="decimal"></div>')+
+      // Si el producto/alimento tiene una ración conocida (info.servingValue, p.ej. 330 ml
+      // de una lata, o 120 g de un plátano), se parte directamente de esa unidad ("1
+      // ración") en vez de gramos — es lo habitual al elegir la cantidad, y evita tener
+      // que saber de memoria cuánto pesa la ración de cada producto.
+      (function(){
+        var hasServing = info.servingValue != null;
+        var initialGramsVal = info.initialGrams != null ? info.initialGrams : (hasServing ? info.servingValue : 100);
+        var initialMode = hasServing ? 'serving' : 'g';
+        var initialDisplay = initialMode === 'serving' ? round2(initialGramsVal / info.servingValue) : round(initialGramsVal);
+        return per100
+          ? '<div class="m-field"><label id="pdGramsLabel">'+(initialMode === 'serving' ? 'Cantidad (raciones)' : 'Cantidad a registrar')+'</label>'+
+            '<div class="pd-qty-row">'+
+              '<input type="number" id="pdGrams" value="'+initialDisplay+'" inputmode="decimal">'+
+              (hasServing
+                ? '<div class="pd-unit-toggle" id="pdUnitToggle" data-initial-mode="'+initialMode+'">'+
+                    '<button type="button" class="pd-unit-btn'+(initialMode === 'g' ? ' active' : '')+'" data-unit="g">'+escapeHtml(info.servingUnit === 'ml' ? 'ml' : 'g')+'</button>'+
+                    '<button type="button" class="pd-unit-btn'+(initialMode === 'serving' ? ' active' : '')+'" data-unit="serving">ración ('+round2(info.servingValue)+' '+escapeHtml(info.servingUnit || 'g')+')</button>'+
+                  '</div>'
+                : '')+
+            '</div>'+
+            (info.servingHint ? '<button type="button" class="pd-serving-hint" id="pdServingHint">Ración típica: '+escapeHtml(info.servingHint)+'</button>' : '')+
+            '</div>'
+          : '<div class="m-field"><label>Cantidad (raciones)</label><input type="number" id="pdQty" value="'+(info.initialQty != null ? info.initialQty : 1)+'" step="0.5" min="0" inputmode="decimal"></div>';
+      })()+
       '<div class="pd-preview" id="pdPreview"></div>'+
       '<button class="primary-btn" id="pdAddBtn">'+(info.addLabel || 'Añadir a la comida')+'</button>';
 
     // 'g': el campo pdGrams contiene gramos/ml directamente. 'serving': contiene un nº de
     // raciones, que se multiplica por el tamaño de ración conocido (info.servingValue)
-    // para obtener los gramos reales usados en los cálculos y al guardar.
-    var pdUnitMode = 'g';
+    // para obtener los gramos reales usados en los cálculos y al guardar. Empieza en
+    // 'serving' cuando el producto tiene una ración conocida (ver bloque HTML anterior).
+    var pdUnitToggleEl = document.getElementById('pdUnitToggle');
+    var pdUnitMode = pdUnitToggleEl ? pdUnitToggleEl.getAttribute('data-initial-mode') : 'g';
     function currentGrams(){
       var raw = Number(document.getElementById('pdGrams').value) || 0;
       return pdUnitMode === 'serving' ? raw * info.servingValue : raw;
@@ -2210,7 +2222,9 @@
         addFavorite({
           name: displayName, perGram: true,
           kcal100: per100.kcal, protein100: per100.protein, carbs100: per100.carbs, fat100: per100.fat,
-          grams: currentGrams() || 100
+          grams: currentGrams() || 100,
+          servingValue: info.servingValue || null,
+          servingUnit: info.servingUnit || null
         });
         var btn = document.getElementById('pdFavBtn');
         btn.textContent = '★';
@@ -2535,12 +2549,16 @@
         ev.stopPropagation();
         var p = currentSearchResults[Number(btn.getAttribute('data-favidx'))];
         var n = p.nutriments || {};
+        var serving = offServingInfo(p);
         addFavorite({
           name: p.product_name, perGram: true,
           kcal100: Number(n['energy-kcal_100g'])||0,
           protein100: Number(n['proteins_100g'])||0,
           carbs100: Number(n['carbohydrates_100g'])||0,
-          fat100: Number(n['fat_100g'])||0
+          fat100: Number(n['fat_100g'])||0,
+          grams: serving ? serving.value : 100,
+          servingValue: serving ? serving.value : null,
+          servingUnit: serving ? serving.unit : null
         });
         btn.textContent = '★';
       });
@@ -2655,12 +2673,16 @@
       document.getElementById('favBarcode').addEventListener('click', function(ev){
         ev.stopPropagation();
         var n = p.nutriments || {};
+        var serving = offServingInfo(p);
         addFavorite({
           name: p.product_name || ('Producto ' + code), perGram: true,
           kcal100: Number(n['energy-kcal_100g'])||0,
           protein100: Number(n['proteins_100g'])||0,
           carbs100: Number(n['carbohydrates_100g'])||0,
-          fat100: Number(n['fat_100g'])||0
+          fat100: Number(n['fat_100g'])||0,
+          grams: serving ? serving.value : 100,
+          servingValue: serving ? serving.value : null,
+          servingUnit: serving ? serving.unit : null
         });
         document.getElementById('favBarcode').textContent = '★';
       });
@@ -3014,7 +3036,9 @@
             name: f.name,
             per100: { kcal: f.kcal100, protein: f.protein100, carbs: f.carbs100, fat: f.fat100 },
             source: 'favorito',
-            initialGrams: f.grams
+            initialGrams: f.grams,
+            servingValue: f.servingValue || null,
+            servingUnit: f.servingUnit || null
           });
         } else {
           // Favorito de porción fija (sin base por 100g): la cantidad se expresa como
