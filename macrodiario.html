@@ -2159,7 +2159,36 @@
     {name:'Alitas de pollo', kcal:290, protein:20, carbs:8, fat:20, portion:150},
     {name:'Empanadillas', kcal:320, protein:8, carbs:30, fat:18, portion:100},
     {name:'Callos a la madrileña', kcal:130, protein:15, carbs:3, fat:6, portion:200},
-    {name:'Torreznos', kcal:550, protein:30, carbs:0, fat:48, portion:50}
+    {name:'Torreznos', kcal:550, protein:30, carbs:0, fat:48, portion:50},
+
+    // --- Platos típicos españoles ---
+    {name:'Paella valenciana', kcal:160, protein:9, carbs:19, fat:5, portion:350},
+    {name:'Paella de marisco', kcal:150, protein:9, carbs:18, fat:4, portion:350},
+    {name:'Cocido madrileño', kcal:140, protein:9, carbs:8, fat:8, portion:400},
+    {name:'Fabada asturiana', kcal:165, protein:9, carbs:14, fat:8, portion:350},
+    {name:'Gazpacho andaluz', kcal:40, protein:1, carbs:4, fat:2, portion:250, unit:'ml'},
+    {name:'Salmorejo', kcal:90, protein:1.5, carbs:6, fat:6.5, portion:250, unit:'ml'},
+    {name:'Pisto manchego', kcal:90, protein:1.5, carbs:8, fat:6, portion:200},
+    {name:'Lentejas con chorizo', kcal:140, protein:8, carbs:17, fat:5, portion:350},
+    {name:'Migas', kcal:300, protein:8, carbs:30, fat:17, portion:250},
+    {name:'Pote gallego', kcal:120, protein:7, carbs:10, fat:6, portion:400},
+    {name:'Arroz caldoso de marisco', kcal:120, protein:6, carbs:18, fat:3, portion:350},
+    {name:'Fideuá', kcal:155, protein:8, carbs:20, fat:5, portion:350},
+    {name:'Menestra de verduras', kcal:70, protein:3, carbs:8, fat:3, portion:300},
+    {name:'Escalivada', kcal:60, protein:1.5, carbs:8, fat:3, portion:200},
+    {name:'Pimientos del piquillo rellenos', kcal:140, protein:8, carbs:8, fat:9, portion:200},
+    {name:'Canelones de carne', kcal:180, protein:9, carbs:16, fat:9, portion:300},
+    {name:'Cochinillo asado', kcal:280, protein:22, carbs:0, fat:21, portion:250},
+    {name:'Cordero asado', kcal:260, protein:25, carbs:0, fat:18, portion:250},
+    {name:'Bacalao al pil-pil', kcal:170, protein:18, carbs:1, fat:11, portion:200},
+    {name:'Marmitako', kcal:110, protein:12, carbs:8, fat:3, portion:350},
+    {name:'Rabo de toro', kcal:230, protein:20, carbs:3, fat:15, portion:300},
+    {name:'Albóndigas en salsa', kcal:200, protein:12, carbs:8, fat:13, portion:300},
+    {name:'Empanada gallega', kcal:260, protein:9, carbs:28, fat:12, portion:150},
+    {name:'Zarzuela de marisco', kcal:110, protein:14, carbs:4, fat:4, portion:350},
+    {name:'Arroz a banda', kcal:150, protein:6, carbs:22, fat:4, portion:350},
+    {name:'Pollo al ajillo', kcal:210, protein:22, carbs:2, fat:13, portion:250},
+    {name:'Solomillo al whisky', kcal:220, protein:25, carbs:3, fat:12, portion:200}
   ];
 
   function normalizeStr(s){
@@ -2194,9 +2223,20 @@
   function searchGenericFoods(term){
     var t = normalizeStr(term);
     if(!t) return [];
-    return GENERIC_FOODS.filter(function(g){
+    // Con más de 250 alimentos genéricos, buscar por ejemplo "cocido" puede coincidir con
+    // muchísimos ingredientes sueltos ("Huevo cocido", "Garbanzos cocidos"...) antes de
+    // llegar a un plato como "Cocido madrileño". Para que el resultado más relevante no se
+    // quede fuera del límite de resultados, se ordena primero por si el término coincide al
+    // principio del nombre (coincidencia más fuerte) y solo después por el orden interno.
+    var matches = GENERIC_FOODS.filter(function(g){
       return normalizeStr(g.name).indexOf(t) !== -1;
-    }).slice(0, 8).map(genericToOffShape);
+    });
+    matches.sort(function(a, b){
+      var aStarts = normalizeStr(a.name).indexOf(t) === 0 ? 0 : 1;
+      var bStarts = normalizeStr(b.name).indexOf(t) === 0 ? 0 : 1;
+      return aStarts - bStarts;
+    });
+    return matches.slice(0, 8).map(genericToOffShape);
   }
 
   // Ración/unidad típica de un producto: para genéricos, el peso aproximado de una unidad
