@@ -101,6 +101,20 @@
   .macro-col .mc-bar-fill{height:100%;background:var(--primary);border-radius:var(--radius-full);}
   .rings-row{display:flex;align-items:center;justify-content:center;gap:36px;flex-wrap:wrap;margin-bottom:2px;}
 
+  /* "¿Qué como con lo que me queda?": botón dentro de la caja de balance, abre una hoja con
+     sugerencias sacadas de los favoritos (ver whatToEatOverlay). */
+  .what-to-eat-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:16px;padding:12px;background:var(--bg);color:var(--ink);border:none;border-radius:var(--radius-md);font-weight:600;font-size:13px;font-family:'Inter',sans-serif;box-shadow:inset 0 0 0 1px var(--border-soft);}
+  .what-to-eat-btn:active{opacity:0.7;}
+  .wte-remaining{background:var(--bg);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--ink-soft);}
+  .wte-remaining b{color:var(--ink);font-family:'Poppins',sans-serif;}
+  .wte-row{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid var(--border-soft);cursor:pointer;}
+  .wte-row:last-child{border-bottom:none;}
+  .wte-row .who{flex:1;min-width:0;}
+  .wte-row .name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .wte-row .qty{font-size:11px;color:var(--ink-soft);}
+  .wte-row .macros{font-size:11px;color:var(--ink-soft);text-align:right;flex:none;}
+  .wte-row .macros b{color:var(--ink);font-size:13px;font-family:'Poppins',sans-serif;font-weight:700;}
+
   /* Add button */
   .add-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:18px;padding:14px;background:var(--ink);color:#fff;border:none;border-radius:var(--radius-md);font-weight:700;font-size:14px;letter-spacing:0.01em;box-shadow:var(--shadow-card);}
   .add-btn:active{opacity:0.85;}
@@ -111,19 +125,21 @@
   .log-list{margin-top:18px;}
   .log-row-wrap{position:relative;overflow:hidden;border-radius:var(--radius-sm);margin-bottom:1px;}
   .log-row-delete{position:absolute;top:0;right:0;bottom:0;width:76px;background:var(--fat);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:none;}
-  .log-row{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:10px 4px;background:var(--card);cursor:pointer;touch-action:pan-y;}
+  .log-row{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:10px 0;background:var(--card);cursor:pointer;touch-action:pan-y;}
   .log-row.dragging{transition:none;}
   .log-row:not(.dragging){transition:transform 0.22s ease;}
   .log-row .who{flex:1;min-width:0;}
-  .log-row .name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .log-row .portion{font-size:11px;color:var(--ink-soft);}
-  .log-row .kcal{font-size:14px;font-weight:700;margin-left:10px;flex:none;}
-  .log-row.is-excluded .name,.log-row.is-excluded .kcal{opacity:0.4;}
+  /* Nombre sin negrita y hasta 2 líneas; kcal y cantidad van juntas a la derecha (cantidad debajo de las kcal). */
+  .log-row .name{font-size:14px;font-weight:400;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;}
+  .log-row .amount{flex:none;margin-left:10px;text-align:right;}
+  .log-row .kcal{font-size:14px;font-weight:700;}
+  .log-row .portion{font-size:11px;color:var(--ink-soft);margin-top:1px;white-space:nowrap;}
+  .log-row.is-excluded .name,.log-row.is-excluded .amount{opacity:0.4;}
   /* Icono/foto por registro: para distinguir de un vistazo qué es cada cosa en la lista,
      sin tener que leer el nombre. Si el alimento viene de un análisis por foto (o de una
      comida creada que se hizo a partir de una foto), se usa esa misma foto; si no, un
      emoji según el tipo de alimento (fruta, lácteo, carne, pescado, bebida...). */
-  .log-row-icon{width:34px;height:34px;border-radius:10px;flex:none;margin-right:10px;display:flex;align-items:center;justify-content:center;background:var(--bg);font-size:17px;overflow:hidden;}
+  .log-row-icon{width:30px;height:30px;border-radius:8px;flex:none;margin-right:6px;display:flex;align-items:center;justify-content:center;background:#fff;font-size:22px;line-height:1;overflow:hidden;}
   .log-row-icon img{width:100%;height:100%;object-fit:cover;display:block;}
   .log-row.is-excluded .log-row-icon{opacity:0.4;}
   .select-btn{background:none;border:none;padding:6px 0 6px 10px;flex:none;color:var(--ink-soft);display:flex;align-items:center;}
@@ -348,6 +364,19 @@
 
 
   </main>
+</div>
+
+<!-- "¿QUÉ COMO CON LO QUE ME QUEDA?" -->
+<div class="overlay hidden" id="whatToEatOverlay">
+  <div class="sheet sheet-wrap sheet-fixed-header">
+    <div class="sheet-fixed-top">
+      <button class="close-x" id="closeWhatToEat">×</button>
+      <h2>¿Qué como?</h2>
+    </div>
+    <div class="sheet-scroll-body">
+      <div id="wteBody"></div>
+    </div>
+  </div>
 </div>
 
 <!-- SETTINGS MODAL -->
@@ -1009,6 +1038,10 @@
   }
 
   /* ---------- Render: Nutrition facts panel ---------- */
+  // Consumo/objetivo del día que se está viendo actualmente, guardados aquí cada vez que se
+  // renderiza esta caja, para que la hoja de "¿Qué como con lo que me queda?" sepa cuánto
+  // queda sin tener que recalcularlo por su cuenta.
+  var lastFactsConsumed = null, lastFactsTarget = null;
   function renderFacts(container, consumed, target){
     var remainKcal = round(target.kcal) - round(consumed.kcal);
     var kcalPct = pct(consumed.kcal, target.kcal);
@@ -1069,7 +1102,15 @@
       '</div>';
     });
     html += '</div>';
+    html += '<button type="button" class="what-to-eat-btn" id="whatToEatBtn">🍽️ ¿Qué como con lo que me queda?</button>';
     container.innerHTML = html;
+
+    // El usuario puede estar mirando un día distinto de "hoy" en el carrusel; se guarda el
+    // consumo/objetivo de ESE día para que la hoja de sugerencias abierta después calcule
+    // "lo que queda" sobre el día correcto.
+    lastFactsConsumed = consumed;
+    lastFactsTarget = target;
+    document.getElementById('whatToEatBtn').addEventListener('click', openWhatToEatSheet);
   }
 
   /* ---------- Week balance for the week that contains the day being viewed ----------
@@ -1154,9 +1195,11 @@
               entryIconHtml(e)+
               '<div class="who">'+
                 '<div class="name">'+escapeHtml(e.name)+'</div>'+
+              '</div>'+
+              '<div class="amount">'+
+                '<div class="kcal">'+round(e.kcal)+' kcal</div>'+
                 (portionDisplay ? '<div class="portion">'+escapeHtml(portionDisplay)+'</div>' : '')+
               '</div>'+
-              '<div class="kcal">'+round(e.kcal)+' kcal</div>'+
               '<button class="select-btn'+(counted ? ' is-counted' : '')+'" data-select="'+e.id+'" aria-label="Contar en el total diario" title="Contar en el total diario">'+selectIconSvg(counted)+'</button>'+
             '</div>'+
           '</div>';
@@ -3478,6 +3521,131 @@
       });
     });
   }
+
+  /* ---------- "¿Qué como con lo que me queda?" ----------
+     Usa los favoritos (los alimentos que el usuario suele tener en casa) como base: para
+     cada uno calcula una cantidad que encaje en las calorías que quedan del día, y ordena
+     los resultados priorizando los que más ayudan a llegar a la proteína que aún falta
+     (el macro que normalmente cuesta más completar), en vez de solo llenar calorías. */
+  function computeWhatToEatSuggestions(remaining){
+    if(remaining.kcal <= 0) return [];
+    var candidates = [];
+    favorites.forEach(function(f){
+      if(f.perGram){
+        if(!(f.kcal100 > 0)){
+          // Alimento prácticamente sin calorías (agua con gas, infusión...): no tiene
+          // sentido "ajustarlo" a lo que queda, se sugiere tal cual con su cantidad habitual.
+          var grams0 = f.grams || f.servingValue || 100;
+          candidates.push({
+            fav: f, grams: grams0,
+            kcal: f.kcal100*grams0/100, protein: f.protein100*grams0/100,
+            carbs: f.carbs100*grams0/100, fat: f.fat100*grams0/100
+          });
+          return;
+        }
+        var baseGrams = f.grams || f.servingValue || 100;
+        var baseKcal = f.kcal100 * baseGrams / 100;
+        var grams = baseKcal <= remaining.kcal ? baseGrams : (remaining.kcal / f.kcal100 * 100);
+        grams = Math.round(grams);
+        if(grams < 5) return; // ración resultante demasiado pequeña para ser una sugerencia útil
+        candidates.push({
+          fav: f, grams: grams,
+          kcal: f.kcal100*grams/100, protein: f.protein100*grams/100,
+          carbs: f.carbs100*grams/100, fat: f.fat100*grams/100
+        });
+      } else {
+        // Favorito de cantidad fija (una comida completa, no un ingrediente por 100 g): no
+        // se puede escalar, así que solo se sugiere si entra en lo que queda con un pequeño
+        // margen (puede que el usuario no le importe pasarse un poco).
+        if(f.kcal <= remaining.kcal + 50){
+          candidates.push({ fav: f, qty: f.qty || 1, kcal: f.kcal, protein: f.protein, carbs: f.carbs, fat: f.fat });
+        }
+      }
+    });
+    candidates.sort(function(a, b){
+      if(b.protein !== a.protein) return b.protein - a.protein;
+      return a.kcal - b.kcal;
+    });
+    return candidates.slice(0, 10);
+  }
+
+  function openWhatToEatSheet(){
+    var target = lastFactsTarget || emptyTarget();
+    var consumed = lastFactsConsumed || emptyTarget();
+    var remaining = {
+      kcal: target.kcal - consumed.kcal,
+      protein: target.protein - consumed.protein,
+      carbs: target.carbs - consumed.carbs,
+      fat: target.fat - consumed.fat
+    };
+    var body = document.getElementById('wteBody');
+
+    if(favorites.length === 0){
+      body.innerHTML = '<div class="msg">Aún no tienes alimentos favoritos guardados. Marca con el corazón los que sueles tener en casa para que puedan aparecer aquí como sugerencia.</div>';
+    } else if(target.kcal <= 0){
+      body.innerHTML = '<div class="msg">Todavía no has definido un objetivo de calorías para hoy.</div>';
+    } else if(remaining.kcal <= 0){
+      body.innerHTML = '<div class="wte-remaining">Ya has cubierto (o superado) tu objetivo de calorías de hoy, así que no hay margen para sugerir nada más.</div>';
+    } else {
+      var suggestions = computeWhatToEatSuggestions(remaining);
+      var html = '<div class="wte-remaining">Te quedan <b>'+round(remaining.kcal)+' kcal</b> · '
+        +'P '+round(Math.max(0,remaining.protein))+'g · C '+round(Math.max(0,remaining.carbs))+'g · G '+round(Math.max(0,remaining.fat))+'g. '
+        +'Sugerencias de tus favoritos, ajustadas a lo que te queda:</div>';
+      if(suggestions.length === 0){
+        html += '<div class="msg">Ninguno de tus favoritos encaja bien en lo que te queda ahora mismo. Prueba a añadir uno ajustando la cantidad manualmente.</div>';
+      } else {
+        html += suggestions.map(function(s, idx){
+          var qtyLabel = s.grams != null ? (s.grams + ' g') : ('x' + s.qty);
+          return '<div class="wte-row" data-wteidx="'+idx+'">'+
+            '<div class="log-row-icon">'+foodEmoji(s.fav.name)+'</div>'+
+            '<div class="who">'+
+              '<div class="name">'+escapeHtml(s.fav.name)+'</div>'+
+              '<div class="qty">'+qtyLabel+'</div>'+
+            '</div>'+
+            '<div class="macros"><b>'+round(s.kcal)+' kcal</b><br>P '+round(s.protein)+' · C '+round(s.carbs)+' · G '+round(s.fat)+'</div>'+
+          '</div>';
+        }).join('');
+      }
+      body.innerHTML = html;
+      Array.prototype.forEach.call(body.querySelectorAll('[data-wteidx]'), function(row){
+        var s = suggestions[Number(row.getAttribute('data-wteidx'))];
+        row.addEventListener('click', function(){
+          whatToEatOverlay.classList.add('hidden');
+          // Esta hoja se abre directamente desde la pantalla principal, sin pasar por el
+          // selector de "Añadir alimento", así que hay que fijar a qué comida del día se
+          // añadirá (igual que se haría al pulsar "+ Añadir" en una comida concreta).
+          document.getElementById('mealSelect').value = guessMeal();
+          var f = s.fav;
+          if(f.perGram){
+            openProductDetail({
+              name: f.name,
+              per100: { kcal: f.kcal100, protein: f.protein100, carbs: f.carbs100, fat: f.fat100 },
+              source: 'favorito',
+              initialGrams: s.grams,
+              servingValue: f.servingValue || null,
+              servingUnit: f.servingUnit || null
+            });
+          } else {
+            openProductDetail({
+              name: f.name,
+              perUnit: { kcal: f.kcal, protein: f.protein, carbs: f.carbs, fat: f.fat },
+              source: 'favorito',
+              initialQty: s.qty
+            });
+          }
+        });
+      });
+    }
+    whatToEatOverlay.classList.remove('hidden');
+  }
+
+  var whatToEatOverlay = document.getElementById('whatToEatOverlay');
+  document.getElementById('closeWhatToEat').addEventListener('click', function(){
+    whatToEatOverlay.classList.add('hidden');
+  });
+  whatToEatOverlay.addEventListener('click', function(ev){
+    if(ev.target === whatToEatOverlay) whatToEatOverlay.classList.add('hidden');
+  });
 
   /* ---------- Comidas creadas (pestaña "Creados"): listado + modal de creación/edición ---------- */
   function renderCreatedMealsList(){
