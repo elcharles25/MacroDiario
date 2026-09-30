@@ -188,7 +188,7 @@
   .pd-name{font-size:17px;font-weight:800;font-family:'Poppins',sans-serif;line-height:1.25;margin-bottom:2px;}
   .pd-brand{font-size:12px;color:var(--ink-soft);margin-bottom:4px;}
   .pd-fav-row{display:flex;justify-content:flex-end;margin-top:-34px;margin-bottom:20px;position:relative;z-index:1;}
-  .pd-fav-btn{background:#fff;border:none;border-radius:var(--radius-full);width:36px;height:36px;font-size:17px;box-shadow:var(--shadow-card);color:var(--carbs);}
+  .pd-fav-btn{background:#fff;border:none;border-radius:var(--radius-full);width:36px;height:36px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-card);color:var(--fat);}
   .pd-macros-grid{display:flex;gap:8px;margin:14px 0 16px 0;}
   .pd-macro-col{flex:1;text-align:center;background:var(--bg);border-radius:var(--radius-sm);padding:9px 4px;}
   .pd-macro-col .pdm-val{font-weight:700;font-size:14px;font-family:'Poppins',sans-serif;color:var(--ink);}
@@ -199,9 +199,12 @@
   .pd-serving-hint:active{opacity:0.7;}
   .pd-qty-row{display:flex;gap:8px;align-items:stretch;}
   .pd-qty-row input{flex:1;min-width:0;}
-  .pd-unit-toggle{display:flex;flex:none;background:var(--bg);border-radius:var(--radius-sm);padding:3px;gap:2px;}
-  .pd-unit-btn{border:none;background:transparent;border-radius:calc(var(--radius-sm) - 2px);padding:0 10px;font-size:12px;font-family:'Inter',sans-serif;color:var(--ink-soft);cursor:pointer;white-space:nowrap;}
-  .pd-unit-btn.active{background:#fff;color:var(--ink);font-weight:700;box-shadow:var(--shadow-card);}
+  .pd-unit-select{flex:none;max-width:52%;border:none;border-radius:var(--radius-sm);padding:0 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--ink);background:var(--bg);box-shadow:inset 0 0 0 1px var(--border-soft);}
+  .pd-new-serving{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;background:var(--bg);border-radius:var(--radius-sm);padding:10px;}
+  .pd-new-serving input{flex:1 1 100px;min-width:0;border:none;border-radius:var(--radius-sm);padding:8px 10px;font-size:13px;background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1px var(--border-soft);}
+  .pd-new-serving button{border:none;border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;}
+  .pd-new-serving button#pdNewServingSave{flex:none;background:var(--primary);color:#fff;}
+  .pd-new-serving button#pdNewServingCancel{flex:none;background:transparent;color:var(--ink-soft);}
   .recent-row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--border-soft);cursor:pointer;}
   .recent-row .fn{flex:1;font-size:13px;font-weight:600;min-width:0;}
   .recent-row .fmacros{font-size:11px;color:var(--ink-soft);}
@@ -234,6 +237,7 @@
   .result-row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--border-soft);font-size:13px;cursor:pointer;}
   .result-row .rn{flex:1;padding-right:8px;}
   .result-row button{background:var(--bg);border:none;border-radius:var(--radius-sm);padding:6px 10px;font-size:11px;font-weight:600;}
+  .result-row button.fav{display:flex;align-items:center;justify-content:center;color:var(--fat);}
   .m-field select{width:100%;border:none;border-radius:var(--radius-sm);padding:10px;font-size:16px;background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1px var(--border-soft);}
   .meal-badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-soft);border:1px solid var(--border-soft);border-radius:var(--radius-sm);padding:1px 6px;margin-bottom:6px;}
   .meal-section{background:var(--card);border-radius:var(--radius-lg);padding:16px 16px 6px 16px;margin-bottom:14px;box-shadow:var(--shadow-card);}
@@ -546,6 +550,7 @@
   var LS_PROXY = 'md_off_proxy_v1';
   var LS_FAVORITES = 'md_favorites_v1';
   var LS_CREATED_MEALS = 'md_created_meals_v1';
+  var LS_CUSTOM_SERVINGS = 'md_custom_servings_v1';
 
   /* ---------- Date helpers (semana natural: lunes-domingo) ---------- */
   function isoDate(d){
@@ -646,6 +651,36 @@
     if(f.perGram && grams != null && grams > 0 && f.grams !== grams){ f.grams = grams; changed = true; }
     else if(!f.perGram && qty != null && qty > 0 && f.qty !== qty){ f.qty = qty; changed = true; }
     if(changed) saveFavorites(favorites);
+  }
+
+  /* ---------- Raciones personalizadas ----------
+     Además de la ración que pueda traer Open Food Facts (o la típica de un genérico), el
+     usuario puede definir sus propias raciones para un alimento concreto (p.ej. "Vaso" =
+     200 ml, "Puñado" = 30 g). Se guardan por nombre de alimento (normalizado, sin acentos ni
+     mayúsculas) para que reaparezcan cada vez que se abra ese mismo alimento, esté o no en
+     favoritos. */
+  function loadCustomServings(){
+    try{
+      var raw = localStorage.getItem(LS_CUSTOM_SERVINGS);
+      if(!raw) return {};
+      return JSON.parse(raw);
+    }catch(e){ return {}; }
+  }
+  function saveCustomServings(map){ localStorage.setItem(LS_CUSTOM_SERVINGS, JSON.stringify(map)); }
+  var customServingsMap = loadCustomServings();
+
+  function getCustomServingsFor(name){
+    var key = normalizeStr(name);
+    return (key && customServingsMap[key]) || [];
+  }
+  function addCustomServing(name, label, grams){
+    var key = normalizeStr(name);
+    if(!key) return null;
+    var list = customServingsMap[key] || (customServingsMap[key] = []);
+    var serving = { id: 'r' + Date.now() + Math.random().toString(36).slice(2,7), label: label, grams: grams };
+    list.push(serving);
+    saveCustomServings(customServingsMap);
+    return serving;
   }
 
   /* ---------- Comidas creadas (recetas propias con ingredientes y cantidades) ---------- */
@@ -2126,7 +2161,7 @@
         ? '<img src="'+escapeHtml(info.imageUrl)+'" alt="" onerror="this.parentNode.innerHTML=\'<span class=&quot;pd-noimg&quot;>🍽️</span>\'">'
         : '<span class="pd-noimg">🍽️</span>')+
       '</div>'+
-      (per100 ? '<div class="pd-fav-row"><button class="pd-fav-btn" id="pdFavBtn" title="Guardar en favoritos">☆</button></div>' : '')+
+      (per100 ? '<div class="pd-fav-row"><button class="pd-fav-btn" id="pdFavBtn" title="Guardar en favoritos">'+heartIconSvg(!!findFavoriteByName(displayName))+'</button></div>' : '')+
       '<div class="pd-name">'+escapeHtml(displayName)+'</div>'+
       (info.brand ? '<div class="pd-brand">'+escapeHtml(info.brand)+'</div>' : '')+
       '<p class="section-label">'+(per100 ? 'Valores por 100 g' : 'Valores de la ración')+'</p>'+
@@ -2135,29 +2170,40 @@
           return '<div class="pd-macro-col"><div class="pdm-val">'+round(macrosBase[m[0]])+'</div><div class="pdm-label">'+m[1]+'</div></div>';
         }).join('')+
       '</div>'+
-      // Si el producto tiene una ración conocida (info.servingValue, p.ej. 330 ml de una
-      // lata), se ofrece un pequeño selector para introducir la cantidad en esa unidad
-      // ("raciones") en vez de siempre en gramos/ml — más cómodo cuando la ración del
-      // envase tiene un valor "raro" (p.ej. 37 g) que nadie recuerda de memoria.
-      // Si el producto/alimento tiene una ración conocida (info.servingValue, p.ej. 330 ml
-      // de una lata, o 120 g de un plátano), se parte directamente de esa unidad ("1
-      // ración") en vez de gramos — es lo habitual al elegir la cantidad, y evita tener
-      // que saber de memoria cuánto pesa la ración de cada producto.
+      // Lista de "unidades" en las que se puede expresar la cantidad: siempre gramos/ml,
+      // más la ración que declare Open Food Facts (o la típica de un genérico) si la hay,
+      // más cualquier ración que el usuario haya creado a mano para este alimento en
+      // concreto (p.ej. "Vaso" = 200 ml). Se ofrecen como desplegable en vez de solo dos
+      // botones, para que quepan tantas raciones como se hayan definido.
       (function(){
+        var customServings = getCustomServingsFor(displayName);
+        var unitOptions = [{ id: 'g', label: (info.servingUnit === 'ml' ? 'Mililitros' : 'Gramos'), gramsPerUnit: 1 }];
+        if(info.servingValue != null){
+          unitOptions.push({ id: 'off', label: 'Ración ('+round2(info.servingValue)+' '+(info.servingUnit || 'g')+')', gramsPerUnit: info.servingValue });
+        }
+        customServings.forEach(function(c){
+          unitOptions.push({ id: 'custom:'+c.id, label: c.label+' ('+round2(c.grams)+' g)', gramsPerUnit: c.grams });
+        });
+        pdUnitOptions = unitOptions;
         var hasServing = info.servingValue != null;
+        pdSelectedUnitId = hasServing ? 'off' : 'g';
         var initialGramsVal = info.initialGrams != null ? info.initialGrams : (hasServing ? info.servingValue : 100);
-        var initialMode = hasServing ? 'serving' : 'g';
-        var initialDisplay = initialMode === 'serving' ? round2(initialGramsVal / info.servingValue) : round(initialGramsVal);
+        var selectedUnit = unitOptions[hasServing ? 1 : 0];
+        var initialDisplay = round2(initialGramsVal / selectedUnit.gramsPerUnit);
+        var optionsHtml = unitOptions.map(function(u){
+          return '<option value="'+u.id+'"'+(u.id === pdSelectedUnitId ? ' selected' : '')+'>'+escapeHtml(u.label)+'</option>';
+        }).join('') + '<option value="__new__">+ Crear ración nueva…</option>';
         return per100
-          ? '<div class="m-field"><label id="pdGramsLabel">'+(initialMode === 'serving' ? 'Cantidad (raciones)' : 'Cantidad a registrar')+'</label>'+
+          ? '<div class="m-field"><label>Cantidad</label>'+
             '<div class="pd-qty-row">'+
               '<input type="number" id="pdGrams" value="'+initialDisplay+'" inputmode="decimal">'+
-              (hasServing
-                ? '<div class="pd-unit-toggle" id="pdUnitToggle" data-initial-mode="'+initialMode+'">'+
-                    '<button type="button" class="pd-unit-btn'+(initialMode === 'g' ? ' active' : '')+'" data-unit="g">'+escapeHtml(info.servingUnit === 'ml' ? 'ml' : 'g')+'</button>'+
-                    '<button type="button" class="pd-unit-btn'+(initialMode === 'serving' ? ' active' : '')+'" data-unit="serving">ración ('+round2(info.servingValue)+' '+escapeHtml(info.servingUnit || 'g')+')</button>'+
-                  '</div>'
-                : '')+
+              '<select class="pd-unit-select" id="pdUnitSelect">'+optionsHtml+'</select>'+
+            '</div>'+
+            '<div class="pd-new-serving hidden" id="pdNewServingForm">'+
+              '<input type="text" id="pdNewServingLabel" placeholder="Nombre (p.ej. Vaso, Puñado)">'+
+              '<input type="number" id="pdNewServingGrams" placeholder="'+(info.servingUnit === 'ml' ? 'ml' : 'g')+'" inputmode="decimal">'+
+              '<button type="button" id="pdNewServingSave">Guardar ración</button>'+
+              '<button type="button" id="pdNewServingCancel">Cancelar</button>'+
             '</div>'+
             (info.servingHint ? '<button type="button" class="pd-serving-hint" id="pdServingHint">Ración típica: '+escapeHtml(info.servingHint)+'</button>' : '')+
             '</div>'
@@ -2166,15 +2212,15 @@
       '<div class="pd-preview" id="pdPreview"></div>'+
       '<button class="primary-btn" id="pdAddBtn">'+(info.addLabel || 'Añadir a la comida')+'</button>';
 
-    // 'g': el campo pdGrams contiene gramos/ml directamente. 'serving': contiene un nº de
-    // raciones, que se multiplica por el tamaño de ración conocido (info.servingValue)
-    // para obtener los gramos reales usados en los cálculos y al guardar. Empieza en
-    // 'serving' cuando el producto tiene una ración conocida (ver bloque HTML anterior).
-    var pdUnitToggleEl = document.getElementById('pdUnitToggle');
-    var pdUnitMode = pdUnitToggleEl ? pdUnitToggleEl.getAttribute('data-initial-mode') : 'g';
+    // pdUnitOptions/pdSelectedUnitId se rellenan en el IIFE de arriba (necesitan existir ya
+    // al construir el HTML, para marcar la opción seleccionada por defecto en el desplegable).
+    var pdUnitOptions, pdSelectedUnitId;
+    function unitById(id){
+      return pdUnitOptions.filter(function(u){ return u.id === id; })[0] || pdUnitOptions[0];
+    }
     function currentGrams(){
       var raw = Number(document.getElementById('pdGrams').value) || 0;
-      return pdUnitMode === 'serving' ? raw * info.servingValue : raw;
+      return raw * unitById(pdSelectedUnitId).gramsPerUnit;
     }
     function updatePreview(){
       var factor = per100
@@ -2189,46 +2235,77 @@
     updatePreview();
     document.getElementById(per100 ? 'pdGrams' : 'pdQty').addEventListener('input', updatePreview);
 
-    var unitToggle = document.getElementById('pdUnitToggle');
-    if(unitToggle){
-      Array.prototype.forEach.call(unitToggle.querySelectorAll('.pd-unit-btn'), function(btn){
-        btn.addEventListener('click', function(){
-          var newUnit = btn.getAttribute('data-unit');
-          if(newUnit === pdUnitMode) return;
-          var grams = currentGrams();
-          pdUnitMode = newUnit;
-          var gramsInput = document.getElementById('pdGrams');
-          gramsInput.value = pdUnitMode === 'serving' ? round2(grams / info.servingValue) : round(grams);
-          Array.prototype.forEach.call(unitToggle.querySelectorAll('.pd-unit-btn'), function(b){
-            b.classList.toggle('active', b === btn);
-          });
-          document.getElementById('pdGramsLabel').textContent = pdUnitMode === 'serving' ? 'Cantidad (raciones)' : 'Cantidad a registrar';
-          updatePreview();
-        });
+    var unitSelect = document.getElementById('pdUnitSelect');
+    var newServingForm = document.getElementById('pdNewServingForm');
+    if(unitSelect){
+      unitSelect.addEventListener('change', function(){
+        var val = unitSelect.value;
+        if(val === '__new__'){
+          // Se deja el desplegable en la unidad actual mientras se rellena el formulario
+          // (la nueva opción "+ Crear ración nueva…" es una acción, no una unidad en sí).
+          unitSelect.value = pdSelectedUnitId;
+          newServingForm.classList.remove('hidden');
+          document.getElementById('pdNewServingLabel').focus();
+          return;
+        }
+        var grams = currentGrams();
+        pdSelectedUnitId = val;
+        document.getElementById('pdGrams').value = round2(grams / unitById(pdSelectedUnitId).gramsPerUnit);
+        updatePreview();
+      });
+
+      document.getElementById('pdNewServingCancel').addEventListener('click', function(){
+        newServingForm.classList.add('hidden');
+        unitSelect.value = pdSelectedUnitId;
+      });
+      document.getElementById('pdNewServingSave').addEventListener('click', function(){
+        var label = document.getElementById('pdNewServingLabel').value.trim();
+        var grams = Number(document.getElementById('pdNewServingGrams').value) || 0;
+        if(!label || grams <= 0) return;
+        var created = addCustomServing(displayName, label, grams);
+        var unit = { id: 'custom:'+created.id, label: label+' ('+round2(grams)+' g)', gramsPerUnit: grams };
+        pdUnitOptions.push(unit);
+        var opt = document.createElement('option');
+        opt.value = unit.id;
+        opt.textContent = unit.label;
+        unitSelect.insertBefore(opt, unitSelect.lastElementChild); // antes de "+ Crear ración nueva…"
+        pdSelectedUnitId = unit.id;
+        unitSelect.value = unit.id;
+        document.getElementById('pdGrams').value = 1;
+        newServingForm.classList.add('hidden');
+        document.getElementById('pdNewServingLabel').value = '';
+        document.getElementById('pdNewServingGrams').value = '';
+        updatePreview();
       });
     }
 
     var servingHintBtn = document.getElementById('pdServingHint');
     if(servingHintBtn){
       servingHintBtn.addEventListener('click', function(){
-        var gramsInput = document.getElementById('pdGrams');
-        gramsInput.value = pdUnitMode === 'serving' ? round2(info.initialGrams / info.servingValue) : round(info.initialGrams);
+        // Restaura la cantidad sugerida sin cambiar la unidad que se esté usando ahora
+        // mismo (si se está viendo en gramos, se queda en gramos; en raciones, en raciones).
+        document.getElementById('pdGrams').value = round2(info.initialGrams / unitById(pdSelectedUnitId).gramsPerUnit);
         updatePreview();
       });
     }
 
     if(per100){
       document.getElementById('pdFavBtn').addEventListener('click', function(){
-        addFavorite({
-          name: displayName, perGram: true,
-          kcal100: per100.kcal, protein100: per100.protein, carbs100: per100.carbs, fat100: per100.fat,
-          grams: currentGrams() || 100,
-          servingValue: info.servingValue || null,
-          servingUnit: info.servingUnit || null
-        });
         var btn = document.getElementById('pdFavBtn');
-        btn.textContent = '★';
-        btn.disabled = true;
+        var existing = findFavoriteByName(displayName);
+        if(existing){
+          removeFavorite(existing.id);
+          btn.innerHTML = heartIconSvg(false);
+        } else {
+          addFavorite({
+            name: displayName, perGram: true,
+            kcal100: per100.kcal, protein100: per100.protein, carbs100: per100.carbs, fat100: per100.fat,
+            grams: currentGrams() || 100,
+            servingValue: info.servingValue || null,
+            servingUnit: info.servingUnit || null
+          });
+          btn.innerHTML = heartIconSvg(true);
+        }
       });
     }
 
@@ -2521,11 +2598,11 @@
     var html = list.map(function(p, idx){
       var tag = p._generic ? 'Genérico' : (p._bedca ? 'BEDCA' : (p.brands || ''));
       return '<div class="result-row" data-idx="'+idx+'"><span class="rn">'+escapeHtml(p.product_name)+(tag ? ' · <span style="color:var(--ink-soft)">'+escapeHtml(tag)+'</span>' : '')+'</span>'+
-        '<span class="factions"><button class="fav" data-favidx="'+idx+'" title="Guardar en favoritos">☆</button></span></div>';
+        '<span class="factions"><button class="fav" data-favidx="'+idx+'" title="Guardar en favoritos">'+heartIconSvg(!!findFavoriteByName(p.product_name))+'</button></span></div>';
     }).join('');
     if(stillLoading) html += '<div class="msg">Buscando en Open Food Facts y BEDCA…</div>';
     box.innerHTML = html;
-    // Pulsar la fila (en cualquier punto salvo el ☆) abre siempre la misma ficha de
+    // Pulsar la fila (en cualquier punto salvo el corazón) abre siempre la misma ficha de
     // detalle; el listado en sí nunca tiene un botón de "añadir" propio.
     Array.prototype.forEach.call(box.querySelectorAll('.result-row[data-idx]'), function(row){
       row.addEventListener('click', function(){
@@ -2548,6 +2625,12 @@
       btn.addEventListener('click', function(ev){
         ev.stopPropagation();
         var p = currentSearchResults[Number(btn.getAttribute('data-favidx'))];
+        var existing = findFavoriteByName(p.product_name);
+        if(existing){
+          removeFavorite(existing.id);
+          btn.innerHTML = heartIconSvg(false);
+          return;
+        }
         var n = p.nutriments || {};
         var serving = offServingInfo(p);
         addFavorite({
@@ -2560,7 +2643,7 @@
           servingValue: serving ? serving.value : null,
           servingUnit: serving ? serving.unit : null
         });
-        btn.textContent = '★';
+        btn.innerHTML = heartIconSvg(true);
       });
     });
   }
@@ -2652,7 +2735,7 @@
       }
       var p = data.product;
       box.innerHTML = '<div class="result-row" id="barcodeResultRow"><span class="rn">'+escapeHtml(p.product_name || code)+(p.brands ? ' · <span style="color:var(--ink-soft)">'+escapeHtml(p.brands)+'</span>' : '')+'</span>'+
-        '<span class="factions"><button class="fav" id="favBarcode" title="Guardar en favoritos">☆</button></span></div>';
+        '<span class="factions"><button class="fav" id="favBarcode" title="Guardar en favoritos">'+heartIconSvg(!!findFavoriteByName(p.product_name))+'</button></span></div>';
       // Igual que en el resto de listados: pulsar la fila abre la ficha de detalle; no hay
       // un botón de "añadir" aparte.
       document.getElementById('barcodeResultRow').addEventListener('click', function(){
@@ -2672,10 +2755,18 @@
       });
       document.getElementById('favBarcode').addEventListener('click', function(ev){
         ev.stopPropagation();
+        var favBtn = document.getElementById('favBarcode');
+        var name = p.product_name || ('Producto ' + code);
+        var existing = findFavoriteByName(name);
+        if(existing){
+          removeFavorite(existing.id);
+          favBtn.innerHTML = heartIconSvg(false);
+          return;
+        }
         var n = p.nutriments || {};
         var serving = offServingInfo(p);
         addFavorite({
-          name: p.product_name || ('Producto ' + code), perGram: true,
+          name: name, perGram: true,
           kcal100: Number(n['energy-kcal_100g'])||0,
           protein100: Number(n['proteins_100g'])||0,
           carbs100: Number(n['carbohydrates_100g'])||0,
@@ -2684,7 +2775,7 @@
           servingValue: serving ? serving.value : null,
           servingUnit: serving ? serving.unit : null
         });
-        document.getElementById('favBarcode').textContent = '★';
+        favBtn.innerHTML = heartIconSvg(true);
       });
     }).catch(function(err){
       if(autoDetected) document.getElementById('barcodeCamGroup').classList.remove('hidden');
@@ -3007,7 +3098,7 @@
   function renderFavoritesList(){
     var box = document.getElementById('favoritesList');
     if(favorites.length === 0){
-      box.innerHTML = '<div class="msg">Aún no tienes favoritos. Guarda alguno con el botón ☆ al buscar o al añadir manualmente.</div>';
+      box.innerHTML = '<div class="msg">Aún no tienes favoritos. Guarda alguno con el botón de corazón al buscar o al añadir manualmente.</div>';
       return;
     }
     box.innerHTML = favorites.map(function(f){
