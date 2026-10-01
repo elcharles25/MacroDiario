@@ -4187,6 +4187,9 @@
     }
     var forced = wteForcedText();
     var token = ++wteAiToken;
+    // Mientras se genera el plato, el botón "Generar plato" se oculta (vuelve al terminar).
+    function setGenBtn(visible){ var b = document.getElementById('wteForceGo'); if(b) b.style.display = visible ? '' : 'none'; }
+    setGenBtn(false);
     var few = remaining.kcal < WTE_FEW_KCAL && !forced;
     var fb = document.getElementById('wteFallback'); if(fb) fb.innerHTML = '';
     var phrases = forced
@@ -4217,7 +4220,8 @@
     catch(err){ done = Promise.reject(err); }
     done.then(function(res){
       clearInterval(phraseTimer);
-      if(token !== wteAiToken) return; // se ha pedido otra propuesta o se ha cerrado la hoja
+      if(token !== wteAiToken) return;
+      setGenBtn(true); // se ha pedido otra propuesta o se ha cerrado la hoja
       var total = res.items.reduce(function(t, s){
         t.kcal += s.kcal; t.protein += s.protein; t.carbs += s.carbs; t.fat += s.fat; return t;
       }, {kcal:0, protein:0, carbs:0, fat:0});
@@ -4258,6 +4262,7 @@
     }).catch(function(err){
       clearInterval(phraseTimer);
       if(token !== wteAiToken) return;
+      setGenBtn(true);
       renderWteFallback(remaining);
       box.innerHTML = '<div class="wte-ai-card"><div class="wte-ai-head">✨ Propuesta de la IA</div>' +
         '<div class="msg err">' + escapeHtml(err && err.message ? err.message : String(err)) + '</div>' +
