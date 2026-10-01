@@ -246,6 +246,10 @@
   .pd-image-wrap .pd-noimg{font-size:34px;opacity:0.35;}
   .pd-name{font-size:17px;font-weight:800;font-family:'Poppins',sans-serif;line-height:1.25;margin-bottom:2px;}
   .pd-brand{font-size:12px;color:var(--ink-soft);margin-bottom:4px;}
+  .pd-delete-fav{display:block;width:100%;margin-top:10px;padding:12px;background:none;border:none;color:var(--fat);font-weight:600;font-size:13px;}
+  .pd-name-row{display:flex;align-items:center;gap:8px;margin-bottom:2px;}
+  .pd-name-row .pd-name{margin-bottom:0;}
+  .pd-rename-btn{background:var(--bg);border:none;border-radius:var(--radius-sm);width:28px;height:28px;flex:none;font-size:14px;color:var(--ink-soft);}
   .pd-fav-row{display:flex;justify-content:flex-end;margin-top:-34px;margin-bottom:20px;position:relative;z-index:1;}
   .pd-fav-btn{background:#fff;border:none;border-radius:var(--radius-full);width:36px;height:36px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-card);color:var(--fat);}
   .pd-macros-grid{display:flex;gap:8px;margin:14px 0 16px 0;}
@@ -721,6 +725,14 @@
     if(dup && dup.id !== id) return 'Ya tienes un favorito con ese nombre.';
     var f = favorites.find(function(x){ return x.id === id; });
     if(!f) return 'No se encontró el favorito.';
+    // Las raciones creadas a mano se guardan por nombre: se mueven al nombre nuevo para no
+    // perderlas (si ya hubiera raciones con ese nombre, se juntan).
+    var oldKey = normalizeStr(f.name), newKey = normalizeStr(newName);
+    if(oldKey !== newKey && customServingsMap[oldKey]){
+      customServingsMap[newKey] = (customServingsMap[newKey] || []).concat(customServingsMap[oldKey]);
+      delete customServingsMap[oldKey];
+      saveCustomServings(customServingsMap);
+    }
     f.name = newName;
     saveFavorites(favorites);
     return '';
@@ -2732,7 +2744,9 @@
         : '<span class="pd-noimg">🍽️</span>')+
       '</div>'+
       (per100 ? '<div class="pd-fav-row"><button class="pd-fav-btn" id="pdFavBtn" title="Guardar en favoritos">'+heartIconSvg(!!findFavoriteByName(displayName))+'</button></div>' : '')+
-      '<div class="pd-name">'+escapeHtml(displayName)+'</div>'+
+      (info.favoriteId
+        ? '<div class="pd-name-row"><div class="pd-name" id="pdName">'+escapeHtml(displayName)+'</div><button type="button" class="pd-rename-btn" id="pdRenameFavBtn" aria-label="Editar nombre" title="Editar nombre">✎</button></div>'
+        : '<div class="pd-name" id="pdName">'+escapeHtml(displayName)+'</div>')+
       (info.brand ? '<div class="pd-brand">'+escapeHtml(info.brand)+'</div>' : '')+
       '<p class="section-label">'+(per100 ? 'Valores por 100 g' : 'Valores de la ración')+'</p>'+
       '<div class="pd-macros-grid">'+
@@ -2800,7 +2814,8 @@
           : '<div class="m-field"><label>Cantidad (raciones)</label><input type="number" id="pdQty" value="'+(info.initialQty != null ? info.initialQty : 1)+'" step="0.5" min="0" inputmode="decimal"></div>';
       })()+
       '<div class="pd-preview" id="pdPreview"></div>'+
-      '<button class="primary-btn" id="pdAddBtn">'+(info.addLabel || 'Añadir a la comida')+'</button>';
+      '<button class="primary-btn" id="pdAddBtn">'+(info.addLabel || 'Añadir a la comida')+'</button>'+
+      (info.favoriteId ? '<button type="button" class="pd-delete-fav" id="pdDeleteFavBtn">Eliminar de favoritos</button>' : '');
 
     // pdUnitOptions/pdSelectedUnitId se rellenan en el IIFE de arriba (necesitan existir ya
     // al construir el HTML, para marcar la opción seleccionada por defecto en el desplegable).
@@ -2827,6 +2842,34 @@
     }
     updatePreview();
     document.getElementById(per100 ? 'pdGrams' : 'pdQty').addEventListener('input', updatePreview);
+
+    // Eliminar el favorito (solo cuando la ficha se abre desde un favorito).
+    var deleteFavBtn = document.getElementById('pdDeleteFavBtn');
+    if(deleteFavBtn){
+      deleteFavBtn.addEventListener('click', function(){
+        customConfirm('¿Eliminar "' + displayName + '" de tus favoritos?', function(){
+          removeFavorite(info.favoriteId);
+          productOverlay.classList.add('hidden');
+          renderFavoritesList();
+        });
+      });
+    }
+
+    // Editar el nombre del favorito (solo cuando la ficha se abre desde un favorito).
+    var renameBtn = document.getElementById('pdRenameFavBtn');
+    if(renameBtn){
+      renameBtn.addEventListener('click', function(){
+        customPrompt('Editar nombre del favorito', displayName, function(value){
+          var err = renameFavorite(info.favoriteId, value);
+          if(err) return err;
+          displayName = value;
+          info.name = value;
+          document.getElementById('pdName').textContent = value;
+          renderFavoritesList();
+          return '';
+        });
+      });
+    }
 
     var unitSelect = document.getElementById('pdUnitSelect');
     var newServingForm = document.getElementById('pdNewServingForm');
@@ -3791,7 +3834,6 @@
       }
       return '<div class="fav-row" data-favid="'+f.id+'">'+
         '<div><div class="fn">'+escapeHtml(f.name)+'</div><div class="fmacros">'+sub+'</div></div>'+
-        '<div class="factions"><button class="rename" aria-label="Editar nombre" title="Editar nombre">✎</button><button class="del">✕</button></div>'+
       '</div>';
     }).join('');
     Array.prototype.forEach.call(box.querySelectorAll('.fav-row'), function(row){
@@ -3804,6 +3846,7 @@
         if(f.perGram){
           openProductDetail({
             name: f.name,
+            favoriteId: f.id,
             per100: { kcal: f.kcal100, protein: f.protein100, carbs: f.carbs100, fat: f.fat100 },
             source: 'favorito',
             initialGrams: f.grams,
@@ -3815,24 +3858,12 @@
           // número de raciones en vez de gramos, pero pasa por la misma ficha de detalle.
           openProductDetail({
             name: f.name,
+            favoriteId: f.id,
             perUnit: { kcal: f.kcal, protein: f.protein, carbs: f.carbs, fat: f.fat },
             source: 'favorito',
             initialQty: f.qty
           });
         }
-      });
-      row.querySelector('.rename').addEventListener('click', function(ev){
-        ev.stopPropagation();
-        customPrompt('Editar nombre del favorito', f.name, function(value){
-          var err = renameFavorite(id, value);
-          if(!err) renderFavoritesList();
-          return err;
-        });
-      });
-      row.querySelector('.del').addEventListener('click', function(ev){
-        ev.stopPropagation();
-        removeFavorite(id);
-        renderFavoritesList();
       });
     });
   }
@@ -3942,6 +3973,7 @@
         if(f.perGram){
           openProductDetail({
             name: f.name,
+            favoriteId: f.id,
             per100: { kcal: f.kcal100, protein: f.protein100, carbs: f.carbs100, fat: f.fat100 },
             source: 'favorito',
             initialGrams: s.grams,
@@ -3951,6 +3983,7 @@
         } else {
           openProductDetail({
             name: f.name,
+            favoriteId: f.id,
             perUnit: { kcal: f.kcal, protein: f.protein, carbs: f.carbs, fat: f.fat },
             source: 'favorito',
             initialQty: s.qty
