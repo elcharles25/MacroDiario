@@ -108,12 +108,13 @@
   .what-to-eat-btn:active{opacity:0.7;}
   .wte-remaining{background:var(--bg);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--ink-soft);}
   .wte-remaining b{color:var(--ink);font-family:'Poppins',sans-serif;}
+  .wte-idle{font-size:12px;color:var(--ink-soft);line-height:1.5;padding:4px 2px;}
   .wte-adjust-note{margin-top:6px;font-size:11px;color:var(--ink-soft);}
   .wte-force{margin-bottom:12px;}
   .wte-force label{display:block;font-size:12px;font-weight:700;margin-bottom:6px;}
   .wte-force label span{font-weight:400;color:var(--ink-soft);}
   .wte-force textarea{width:100%;box-sizing:border-box;resize:none;padding:10px 12px;border:none;border-radius:var(--radius-md);background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;font-size:14px;box-shadow:inset 0 0 0 1px var(--border-soft);}
-  .wte-force .secondary-btn{margin-top:8px;}
+  .wte-force .primary-btn{margin-top:8px;}
   .wte-section-title{font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.4px;margin:18px 0 4px;}
   .wte-ai-card{background:var(--bg);border-radius:var(--radius-md);padding:14px;margin-bottom:6px;}
   .wte-loading{position:relative;overflow:hidden;text-align:center;padding:26px 16px 22px;background:linear-gradient(120deg,var(--bg),var(--primary-soft),var(--bg));background-size:250% 250%;animation:wteGlow 3.2s ease-in-out infinite;box-shadow:inset 0 0 0 1px var(--primary-soft);}
@@ -3971,14 +3972,21 @@
         +'<div class="wte-force">'
           +'<label for="wteForce">¿Quieres incluir algún alimento? <span>(opcional)</span></label>'
           +'<textarea id="wteForce" rows="2" maxlength="300" placeholder="Ej: 200 g de pechuga de pavo, 1 plátano"></textarea>'
-          +'<button type="button" class="secondary-btn" id="wteForceGo">✨ Generar con esto</button>'
+          +'<button type="button" class="primary-btn" id="wteForceGo">✨ Generar plato</button>'
         +'</div>'
         +'<div id="wteAi"></div><div id="wteFallback"></div>';
       document.getElementById('wteForceGo').addEventListener('click', function(){
         document.getElementById('wteForce').blur();
         runWhatToEatAi(remaining, '');
       });
-      runWhatToEatAi(remaining, '');
+      // Al abrir la hoja NO se genera nada ni se muestra la animación: solo cuando el usuario
+      // pulsa "Generar plato". Sin clave de Gemini se avisa y se ofrece la lista de favoritos.
+      if(!getGeminiKey()){
+        document.getElementById('wteAi').innerHTML = '<div class="msg">Añade tu API key de Gemini en Ajustes (⚙) para que la IA te proponga un plato con tus favoritos.</div>';
+        renderWteFallback(remaining);
+      } else {
+        document.getElementById('wteAi').innerHTML = '<div class="wte-idle">Pulsa «Generar plato» y la IA te propondrá un plato con tus favoritos que complete tu día. Si quieres que incluya algo en concreto, indícalo arriba con su cantidad.</div>';
+      }
     }
     whatToEatOverlay.classList.remove('hidden');
   }
@@ -4182,10 +4190,17 @@
     var few = remaining.kcal < WTE_FEW_KCAL && !forced;
     var fb = document.getElementById('wteFallback'); if(fb) fb.innerHTML = '';
     var phrases = forced
-      ? ['Interpretando tus alimentos…', 'Calculando lo que aportan…', 'Completando el plato con tus favoritos…', 'Ajustando cantidades a tus macros…']
+      ? ['Interpretando los alimentos que has indicado…', 'Estimando lo que aportan a tu día…', 'Descontando sus macros de lo que te queda…',
+         'Consultando tus alimentos favoritos…', 'Priorizando la proteína que te falta…', 'Combinando ingredientes compatibles…',
+         'Calculando cantidades exactas…', 'Equilibrando carbohidratos y grasas…', 'Ajustando las calorías a tu objetivo…',
+         'Comprobando que todo encaje…', 'Dando los últimos retoques al plato…']
       : (few
-        ? ['Revisando tus favoritos…', 'Buscando el que mejor completa tus calorías…', 'Ajustando la cantidad…']
-        : ['Revisando tus favoritos…', 'Combinando ingredientes…', 'Ajustando cantidades a tus macros…', 'Afinando el plato…']);
+        ? ['Analizando las calorías que te quedan…', 'Consultando tus alimentos favoritos…', 'Buscando el que mejor encaja…',
+           'Calculando la cantidad justa…', 'Comprobando que no te pases…']
+        : ['Analizando tu balance del día…', 'Revisando tus macros restantes…', 'Consultando tus alimentos favoritos…',
+           'Priorizando la proteína que te falta…', 'Combinando ingredientes compatibles…', 'Calculando cantidades exactas…',
+           'Equilibrando carbohidratos y grasas…', 'Ajustando las calorías a tu objetivo…', 'Comprobando que todo encaje…',
+           'Dando los últimos retoques al plato…']);
     box.innerHTML = '<div class="wte-ai-card wte-loading">' +
       '<div class="wte-orb"><span class="wte-spark">✨</span></div>' +
       '<div class="wte-loading-text" id="wteLoadingText">' + phrases[0] + '</div>' +
@@ -4194,9 +4209,9 @@
     var phraseTimer = setInterval(function(){
       var t = document.getElementById('wteLoadingText');
       if(!t || token !== wteAiToken){ clearInterval(phraseTimer); return; }
-      pi = (pi + 1) % phrases.length;
+      if(pi < phrases.length - 1) pi++; // se queda en la última frase, sin repetir el ciclo
       t.textContent = phrases[pi];
-    }, 1600);
+    }, 2000);
     var done;
     try{ done = fetchWhatToEatFromGemini(remaining, avoidName, forced); }
     catch(err){ done = Promise.reject(err); }
