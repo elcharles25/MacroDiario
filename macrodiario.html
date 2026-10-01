@@ -713,6 +713,18 @@
     favorites = favorites.filter(function(f){ return f.id !== id; });
     saveFavorites(favorites);
   }
+  // Devuelve un texto de error, o '' si se ha renombrado correctamente.
+  function renameFavorite(id, newName){
+    newName = (newName || '').trim();
+    if(!newName) return 'El nombre no puede estar vacío.';
+    var dup = findFavoriteByName(newName);
+    if(dup && dup.id !== id) return 'Ya tienes un favorito con ese nombre.';
+    var f = favorites.find(function(x){ return x.id === id; });
+    if(!f) return 'No se encontró el favorito.';
+    f.name = newName;
+    saveFavorites(favorites);
+    return '';
+  }
   function findFavoriteByName(name){
     var n = (name || '').trim().toLowerCase();
     if(!n) return null;
@@ -1499,6 +1511,36 @@
     ov.addEventListener('click', function(e){ if(e.target === ov) close(); });
     ov.querySelector('.cc-cancel').addEventListener('click', close);
     ov.querySelector('.cc-ok').addEventListener('click', function(){ close(); onConfirm(); });
+  }
+
+  // Igual que customConfirm: prompt() no es fiable en una app de iOS en pantalla de inicio,
+  // así que se pide texto con una hoja propia. onSave(valor) devuelve un texto de error (la
+  // hoja se queda abierta mostrándolo) o una cadena vacía si se ha guardado bien.
+  function customPrompt(title, initialValue, onSave){
+    var ov = document.createElement('div');
+    ov.className = 'overlay';
+    ov.innerHTML = '<div class="sheet" style="max-height:none;">'+
+      '<p style="font-size:14px;font-weight:700;margin:14px 0 8px 0;">'+escapeHtml(title)+'</p>'+
+      '<input type="text" class="cp-input" maxlength="80" style="width:100%;" value="'+escapeHtml(initialValue || '')+'">'+
+      '<div class="msg err cp-err" style="display:none;margin-top:8px;"></div>'+
+      '<div style="display:flex;gap:10px;margin-top:16px;">'+
+        '<button class="secondary-btn cp-cancel" style="flex:1;">Cancelar</button>'+
+        '<button class="primary-btn cp-ok" style="flex:1;">Guardar</button>'+
+      '</div>'+
+    '</div>';
+    document.body.appendChild(ov);
+    var input = ov.querySelector('.cp-input'), errEl = ov.querySelector('.cp-err');
+    function close(){ if(ov.parentNode) document.body.removeChild(ov); }
+    function submit(){
+      var err = onSave(input.value.trim());
+      if(err){ errEl.textContent = err; errEl.style.display = 'block'; return; }
+      close();
+    }
+    ov.addEventListener('click', function(e){ if(e.target === ov) close(); });
+    ov.querySelector('.cp-cancel').addEventListener('click', close);
+    ov.querySelector('.cp-ok').addEventListener('click', submit);
+    input.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); submit(); } });
+    setTimeout(function(){ try{ input.focus(); input.select(); }catch(e){} }, 50);
   }
 
   document.getElementById('btnClearData').addEventListener('click', function(){
@@ -2448,7 +2490,119 @@
     {name:'Vieiras a la plancha', kcal:110, protein:20, carbs:3, fat:1, portion:100},
     {name:'Zamburiñas a la plancha', kcal:85, protein:14, carbs:3, fat:1.5, portion:100},
     {name:'Chopitos fritos', kcal:220, protein:14, carbs:14, fat:12, portion:120},
-    {name:'Surimi (palitos de cangrejo)', kcal:95, protein:7, carbs:13, fat:1, portion:60}
+    {name:'Surimi (palitos de cangrejo)', kcal:95, protein:7, carbs:13, fat:1, portion:60},
+    // --- Básicos: pescado crudo ---
+    {name:'Merluza cruda', kcal:71, protein:16.5, carbs:0, fat:0.9, portion:200},
+    {name:'Gallo', kcal:82, protein:16.5, carbs:0, fat:1.5, portion:200},
+    {name:'Lenguado crudo', kcal:83, protein:17.5, carbs:0, fat:1.4, portion:150},
+    {name:'Pescadilla cruda', kcal:76, protein:16.5, carbs:0, fat:1, portion:150},
+    {name:'Mero crudo', kcal:87, protein:18, carbs:0, fat:1.5, portion:150},
+    {name:'Rodaballo crudo', kcal:95, protein:16, carbs:0, fat:3, portion:200},
+    {name:'Besugo crudo', kcal:100, protein:19, carbs:0, fat:2.5, portion:200},
+    {name:'Salmón fresco crudo', kcal:180, protein:20, carbs:0, fat:11, portion:150},
+    {name:'Atún fresco crudo', kcal:144, protein:23, carbs:0, fat:5, portion:150},
+    {name:'Pez espada crudo', kcal:121, protein:19.5, carbs:0, fat:4.5, portion:150},
+    {name:'Gambas crudas', kcal:85, protein:18, carbs:0.5, fat:1, portion:150},
+    {name:'Langostinos crudos', kcal:90, protein:19, carbs:0.5, fat:1.3, portion:150},
+    {name:'Pulpo crudo', kcal:82, protein:15, carbs:2.2, fat:1, portion:200},
+    {name:'Mejillones crudos', kcal:74, protein:11, carbs:3, fat:2, portion:150},
+    // --- Básicos: carne cruda ---
+    {name:'Pollo muslo sin piel crudo', kcal:125, protein:19.5, carbs:0, fat:5, portion:120},
+    {name:'Pollo alas crudas', kcal:203, protein:17.5, carbs:0, fat:14, portion:100},
+    {name:'Pavo pechuga cruda', kcal:105, protein:23.5, carbs:0, fat:1.2, portion:150},
+    {name:'Ternera filete crudo', kcal:120, protein:21, carbs:0, fat:4, portion:150},
+    {name:'Cerdo lomo crudo', kcal:130, protein:21, carbs:0, fat:5, portion:150},
+    {name:'Cordero pierna cruda', kcal:150, protein:19, carbs:0, fat:8, portion:150},
+    // --- Básicos: huevos y lácteos ---
+    {name:'Huevo entero crudo', kcal:143, protein:12.5, carbs:0.7, fat:9.5, portion:55},
+    {name:'Clara de huevo', kcal:48, protein:10.9, carbs:0.7, fat:0.2, portion:33},
+    {name:'Yema de huevo', kcal:322, protein:16, carbs:3.6, fat:27, portion:18},
+    {name:'Huevo revuelto', kcal:170, protein:11, carbs:1, fat:13, portion:120},
+    {name:'Huevo de codorniz cocido', kcal:158, protein:13, carbs:0.4, fat:11, portion:10},
+    {name:'Leche sin lactosa semidesnatada', kcal:47, protein:3.2, carbs:4.7, fat:1.6, portion:200, unit:'ml'},
+    {name:'Leche de soja', kcal:39, protein:3.6, carbs:2.5, fat:1.8, portion:200, unit:'ml'},
+    {name:'Yogur desnatado natural', kcal:40, protein:4.3, carbs:5.5, fat:0.2, portion:125},
+    {name:'Yogur de sabores', kcal:90, protein:3.5, carbs:14.5, fat:2, portion:125},
+    {name:'Natillas', kcal:110, protein:3.5, carbs:17, fat:3, portion:125},
+    {name:'Flan de huevo', kcal:130, protein:4.5, carbs:21, fat:3.5, portion:100},
+    {name:'Cuajada', kcal:90, protein:5, carbs:5, fat:5.5, portion:125},
+    {name:'Queso gouda / edam', kcal:350, protein:25, carbs:1, fat:27, portion:30},
+    {name:'Queso emmental', kcal:380, protein:28, carbs:0.4, fat:30, portion:30},
+    {name:'Helado de vainilla', kcal:207, protein:3.5, carbs:24, fat:11, portion:60},
+    {name:'Margarina', kcal:720, protein:0.2, carbs:0.4, fat:80, portion:10},
+    // --- Básicos: cereales, pan y legumbres en crudo ---
+    {name:'Arroz blanco crudo', kcal:350, protein:7, carbs:78, fat:0.6, portion:80},
+    {name:'Pasta cruda', kcal:360, protein:12.5, carbs:72, fat:1.5, portion:80},
+    {name:'Pasta integral cruda', kcal:340, protein:13, carbs:65, fat:2.5, portion:80},
+    {name:'Lentejas secas', kcal:340, protein:24, carbs:52, fat:1.5, portion:70},
+    {name:'Garbanzos secos', kcal:360, protein:20, carbs:54, fat:5.5, portion:70},
+    {name:'Judías blancas secas', kcal:330, protein:21, carbs:55, fat:1.6, portion:70},
+    {name:'Quinoa cruda', kcal:368, protein:14, carbs:64, fat:6, portion:70},
+    {name:'Cuscús crudo', kcal:360, protein:12.5, carbs:73, fat:0.6, portion:70},
+    {name:'Pan de molde blanco', kcal:265, protein:8, carbs:49, fat:3.5, portion:25},
+    {name:'Pan de molde integral', kcal:250, protein:9, carbs:42, fat:4, portion:28},
+    {name:'Baguette', kcal:270, protein:9, carbs:55, fat:1.2, portion:60},
+    {name:'Biscotes', kcal:410, protein:11, carbs:74, fat:7, portion:10},
+    // --- Básicos: verdura y fruta seca ---
+    {name:'Patata cruda', kcal:77, protein:2, carbs:17.5, fat:0.1, portion:150},
+    {name:'Patata asada', kcal:93, protein:2.5, carbs:21, fat:0.1, portion:150},
+    {name:'Puré de patata casero', kcal:110, protein:2, carbs:16, fat:4.5, portion:200},
+    {name:'Yuca cocida', kcal:160, protein:1.4, carbs:38, fat:0.3, portion:100},
+    {name:'Brócoli crudo', kcal:34, protein:2.8, carbs:7, fat:0.4, portion:100},
+    {name:'Espinacas crudas', kcal:23, protein:2.9, carbs:3.6, fat:0.4, portion:100},
+    {name:'Judías verdes crudas', kcal:31, protein:1.8, carbs:7, fat:0.2, portion:100},
+    {name:'Coliflor cruda', kcal:25, protein:1.9, carbs:5, fat:0.3, portion:100},
+    {name:'Zanahoria cocida', kcal:35, protein:0.8, carbs:8, fat:0.2, portion:100},
+    {name:'Ensalada mixta', kcal:25, protein:1, carbs:4, fat:0.3, portion:200},
+    {name:'Pepinillos en vinagre', kcal:14, protein:0.7, carbs:2.5, fat:0.2, portion:30},
+    {name:'Frutos secos variados', kcal:610, protein:20, carbs:16, fat:52, portion:30},
+    {name:'Coco rallado', kcal:660, protein:6, carbs:6.5, fat:65, portion:15},
+    {name:'Orejones de albaricoque', kcal:240, protein:3.4, carbs:55, fat:0.5, portion:30},
+    {name:'Ciruelas pasas', kcal:240, protein:2.2, carbs:64, fat:0.4, portion:30},
+    // --- Básicos: bollería, dulces y snacks ---
+    {name:'Croissant', kcal:406, protein:8, carbs:46, fat:21, portion:60},
+    {name:'Magdalena', kcal:410, protein:6, carbs:55, fat:18, portion:40},
+    {name:'Galletas tipo María', kcal:440, protein:7, carbs:75, fat:12, portion:24},
+    {name:'Galletas de chocolate', kcal:480, protein:6, carbs:68, fat:21, portion:30},
+    {name:'Bizcocho casero', kcal:370, protein:6, carbs:50, fat:17, portion:60},
+    {name:'Donut', kcal:420, protein:5, carbs:50, fat:23, portion:50},
+    {name:'Churros', kcal:400, protein:4, carbs:40, fat:24, portion:80},
+    {name:'Turrón de almendra', kcal:480, protein:10, carbs:60, fat:22, portion:25},
+    {name:'Palomitas de maíz', kcal:380, protein:11, carbs:62, fat:4.5, portion:30},
+    {name:'Patatas fritas de bolsa', kcal:540, protein:6.5, carbs:51, fat:34, portion:30},
+    {name:'Cacao soluble (Cola Cao)', kcal:375, protein:6, carbs:78, fat:3.5, portion:15},
+    // --- Básicos: bebidas sin alcohol ---
+    {name:'Agua', kcal:0, protein:0, carbs:0, fat:0, portion:250, unit:'ml'},
+    {name:'Zumo de naranja', kcal:45, protein:0.7, carbs:10, fat:0.2, portion:200, unit:'ml'},
+    {name:'Zumo de manzana', kcal:46, protein:0.1, carbs:11, fat:0.1, portion:200, unit:'ml'},
+    {name:'Refresco de cola', kcal:42, protein:0, carbs:10.6, fat:0, portion:330, unit:'ml'},
+    {name:'Refresco de cola zero', kcal:0.3, protein:0, carbs:0, fat:0, portion:330, unit:'ml'},
+    {name:'Té o infusión sin azúcar', kcal:1, protein:0, carbs:0.2, fat:0, portion:200, unit:'ml'},
+    {name:'Bebida isotónica', kcal:25, protein:0, carbs:6, fat:0, portion:500, unit:'ml'},
+    {name:'Bebida energética', kcal:45, protein:0, carbs:11, fat:0, portion:250, unit:'ml'},
+    {name:'Tónica', kcal:34, protein:0, carbs:8.5, fat:0, portion:200, unit:'ml'},
+    {name:'Batido de chocolate', kcal:75, protein:3.3, carbs:11, fat:2, portion:200, unit:'ml'},
+    // --- Básicos: grasas, salsas y suplementos ---
+    {name:'Aceite de girasol', kcal:900, protein:0, carbs:0, fat:100, portion:10},
+    {name:'Aceite de coco', kcal:900, protein:0, carbs:0, fat:100, portion:10},
+    {name:'Salsa de soja', kcal:60, protein:8, carbs:5.6, fat:0.1, portion:15},
+    {name:'Pesto', kcal:460, protein:5, carbs:4, fat:47, portion:20},
+    {name:'Bechamel', kcal:120, protein:3.5, carbs:9, fat:7.5, portion:100},
+    {name:'Salsa boloñesa', kcal:110, protein:7, carbs:6, fat:6, portion:150},
+    {name:'Alioli', kcal:640, protein:1, carbs:1, fat:70, portion:20},
+    {name:'Proteína whey en polvo', kcal:380, protein:78, carbs:6, fat:6, portion:30},
+    {name:'Barrita de proteínas', kcal:360, protein:30, carbs:35, fat:11, portion:45},
+    // --- Básicos: platos comunes ---
+    {name:'Pizza margarita', kcal:250, protein:11, carbs:33, fat:8, portion:150},
+    {name:'Hamburguesa completa (con pan)', kcal:260, protein:13, carbs:24, fat:12, portion:200},
+    {name:'Bocadillo de jamón serrano', kcal:260, protein:13, carbs:36, fat:7, portion:180},
+    {name:'Bocadillo de tortilla de patata', kcal:230, protein:8, carbs:27, fat:10, portion:200},
+    {name:'Sándwich mixto (jamón y queso)', kcal:270, protein:13, carbs:28, fat:12, portion:130},
+    {name:'Lasaña de carne', kcal:160, protein:9, carbs:15, fat:7, portion:300},
+    {name:'Macarrones con tomate', kcal:135, protein:4.5, carbs:24, fat:2.5, portion:300},
+    {name:'Espaguetis a la boloñesa', kcal:150, protein:7, carbs:20, fat:4.5, portion:350},
+    {name:'Sopa de pollo con fideos', kcal:30, protein:2, carbs:4, fat:0.8, portion:300},
+    {name:'Crema de verduras', kcal:45, protein:1.2, carbs:6, fat:1.8, portion:300}
   ];
 
   function normalizeStr(s){
@@ -2492,9 +2646,13 @@
       return normalizeStr(g.name).indexOf(t) !== -1;
     });
     matches.sort(function(a, b){
-      var aStarts = normalizeStr(a.name).indexOf(t) === 0 ? 0 : 1;
-      var bStarts = normalizeStr(b.name).indexOf(t) === 0 ? 0 : 1;
-      return aStarts - bStarts;
+      var an = normalizeStr(a.name), bn = normalizeStr(b.name);
+      // 0 = nombre exacto, 1 = empieza por el término, 2 = lo contiene. A igualdad, el nombre
+      // más corto primero (el alimento básico, "Pollo…", antes que un plato muy específico).
+      var ar = an === t ? 0 : (an.indexOf(t) === 0 ? 1 : 2);
+      var br = bn === t ? 0 : (bn.indexOf(t) === 0 ? 1 : 2);
+      if(ar !== br) return ar - br;
+      return an.length - bn.length;
     });
     return matches.slice(0, 12).map(genericToOffShape);
   }
@@ -3617,7 +3775,12 @@
       box.innerHTML = '<div class="msg">Aún no tienes favoritos. Guarda alguno con el botón de corazón al buscar o al añadir manualmente.</div>';
       return;
     }
-    box.innerHTML = favorites.map(function(f){
+    // Orden alfabético (sin distinguir mayúsculas ni tildes). Solo afecta a cómo se
+    // muestra: cada fila sigue localizando su favorito por id.
+    var sorted = favorites.slice().sort(function(a, b){
+      return (a.name || '').localeCompare(b.name || '', 'es', { sensitivity: 'base' });
+    });
+    box.innerHTML = sorted.map(function(f){
       var sub;
       if(f.perGram){
         var grams = f.grams || 100;
@@ -3628,7 +3791,7 @@
       }
       return '<div class="fav-row" data-favid="'+f.id+'">'+
         '<div><div class="fn">'+escapeHtml(f.name)+'</div><div class="fmacros">'+sub+'</div></div>'+
-        '<div class="factions"><button class="del">✕</button></div>'+
+        '<div class="factions"><button class="rename" aria-label="Editar nombre" title="Editar nombre">✎</button><button class="del">✕</button></div>'+
       '</div>';
     }).join('');
     Array.prototype.forEach.call(box.querySelectorAll('.fav-row'), function(row){
@@ -3657,6 +3820,14 @@
             initialQty: f.qty
           });
         }
+      });
+      row.querySelector('.rename').addEventListener('click', function(ev){
+        ev.stopPropagation();
+        customPrompt('Editar nombre del favorito', f.name, function(value){
+          var err = renameFavorite(id, value);
+          if(!err) renderFavoritesList();
+          return err;
+        });
       });
       row.querySelector('.del').addEventListener('click', function(ev){
         ev.stopPropagation();
