@@ -211,6 +211,13 @@
   /* Settings */
   .field-block{margin-bottom:16px;}
   .field-block label{display:block;font-size:12px;font-weight:700;color:var(--ink);margin-bottom:6px;}
+  .field-block textarea{width:100%;box-sizing:border-box;border:none;border-radius:var(--radius-sm);padding:11px;font-size:13px;font-family:ui-monospace,Menlo,monospace;background:var(--bg);color:var(--ink);resize:vertical;}
+  .auth-gate{position:fixed;inset:0;z-index:120;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px;}
+  .auth-card{width:100%;max-width:360px;text-align:center;}
+  .auth-logo{font-family:'Poppins',sans-serif;font-weight:800;font-size:28px;margin-bottom:10px;}
+  .auth-card p{color:var(--ink-soft);font-size:14px;line-height:1.5;margin:0 0 18px 0;}
+  .auth-card .primary-btn:disabled{opacity:.5;}
+  .auth-link{background:none;border:none;color:var(--ink-soft);font-size:12px;text-decoration:underline;margin-top:16px;}
   .field-block input{width:100%;border:none;border-radius:var(--radius-sm);padding:11px;font-size:16px;background:var(--bg);color:var(--ink);}
   .hint{font-size:12px;color:var(--ink-soft);margin-top:6px;line-height:1.5;}
   .hint a{color:var(--primary-dark);}
@@ -541,6 +548,7 @@
     <div class="settings-tabs">
       <button data-st="objetivos" class="active">Objetivos</button>
       <button data-st="apis">APIs y proxy</button>
+      <button data-st="cuenta">Cuenta</button>
     </div>
 
     <div class="st-panel active" id="stpanel-objetivos">
@@ -549,6 +557,24 @@
       </div>
       <div id="targetsForm"></div>
       <button class="secondary-btn" id="btnSaveTargets" style="width:100%;margin-top:8px;">Guardar objetivos</button>
+    </div>
+
+    <div class="st-panel" id="stpanel-cuenta">
+      <div id="cloudNoConfig">
+        <p class="hint" style="margin-top:0;">Para guardar tus datos en la nube y exigir inicio de sesión con Google: 1) crea un proyecto en <a href="https://console.firebase.google.com" target="_blank" rel="noopener">console.firebase.google.com</a>; 2) en Authentication activa el método Google; 3) crea una base de datos Firestore; 4) añade una app web y copia su <b>firebaseConfig</b>; 5) pégalo aquí.</p>
+        <div class="field-block"><label>Configuración de Firebase</label>
+          <textarea id="fbConfigInput" rows="7" placeholder='{ "apiKey": "…", "authDomain": "…", "projectId": "…", "appId": "…" }'></textarea>
+        </div>
+        <div class="msg err" id="fbConfigErr" style="display:none;margin-bottom:10px;"></div>
+        <button class="primary-btn" id="btnSaveFbConfig">Guardar y activar</button>
+      </div>
+      <div id="cloudConfigured" class="hidden">
+        <div class="field-block"><label>Estado</label><p class="hint" id="cloudStatusLine" style="margin:0;"></p></div>
+        <button class="primary-btn" id="btnCloudSync">Sincronizar ahora</button>
+        <button class="secondary-btn" id="btnCloudSignOut">Cerrar sesión</button>
+        <button class="secondary-btn" id="btnCloudRemoveCfg">Quitar configuración de Firebase</button>
+        <p class="hint">Se sincronizan objetivos, comidas, favoritos, comidas creadas, raciones propias y chats. La API key de Gemini y el proxy se quedan solo en este dispositivo.</p>
+      </div>
     </div>
 
     <div class="st-panel" id="stpanel-apis">
@@ -738,6 +764,17 @@
   </div>
 </div>
 
+<!-- ACCESO (solo si hay Firebase configurado) -->
+<div class="auth-gate hidden" id="authGate">
+  <div class="auth-card">
+    <div class="auth-logo">MacroFit</div>
+    <p id="authGateText">Inicia sesión para acceder a tus datos.</p>
+    <button class="primary-btn" id="btnGateGoogle" type="button" disabled>Continuar con Google</button>
+    <div class="msg err" id="authGateErr" style="display:none;margin-top:12px;"></div>
+    <button type="button" class="auth-link hidden" id="btnGateRemoveCfg">Quitar configuración de Firebase</button>
+  </div>
+</div>
+
 <script>
 (function(){
   "use strict";
@@ -751,6 +788,7 @@
   var MEAL_LABELS = {desayuno:'Desayuno', almuerzo:'Almuerzo', comida:'Comida', merienda:'Merienda', cena:'Cena'};
   var MEAL_EMOJI = {desayuno:'🍳', almuerzo:'🥪', comida:'🍽️', merienda:'🍎', cena:'🌙'};
 
+  var cloud = null; // estado de la sincronización (se crea más abajo); declarado aquí para que los guardados lo vean
   var LS_TARGETS = 'md_targets_v1';
   var LS_LOGS = 'md_logs_v1';
   var LS_GEMINI = 'md_gemini_key_v1';
@@ -801,7 +839,7 @@
       return JSON.parse(raw);
     }catch(e){ return {}; }
   }
-  function saveTargets(t){ localStorage.setItem(LS_TARGETS, JSON.stringify(t)); }
+  function saveTargets(t){ localStorage.setItem(LS_TARGETS, JSON.stringify(t)); cloudMarkDirty(); }
 
   function loadLogs(){
     try{
@@ -810,7 +848,7 @@
       return JSON.parse(raw);
     }catch(e){ return {}; }
   }
-  function saveLogs(l){ localStorage.setItem(LS_LOGS, JSON.stringify(l)); }
+  function saveLogs(l){ localStorage.setItem(LS_LOGS, JSON.stringify(l)); cloudMarkDirty(); }
 
   function getGeminiKey(){ return localStorage.getItem(LS_GEMINI) || ''; }
   function setGeminiKey(k){ localStorage.setItem(LS_GEMINI, k); }
@@ -830,7 +868,7 @@
       return JSON.parse(raw);
     }catch(e){ return []; }
   }
-  function saveFavorites(f){ localStorage.setItem(LS_FAVORITES, JSON.stringify(f)); }
+  function saveFavorites(f){ localStorage.setItem(LS_FAVORITES, JSON.stringify(f)); cloudMarkDirty(); }
 
   var favorites = loadFavorites();
 
@@ -893,7 +931,7 @@
       return JSON.parse(raw);
     }catch(e){ return {}; }
   }
-  function saveCustomServings(map){ localStorage.setItem(LS_CUSTOM_SERVINGS, JSON.stringify(map)); }
+  function saveCustomServings(map){ localStorage.setItem(LS_CUSTOM_SERVINGS, JSON.stringify(map)); cloudMarkDirty(); }
   var customServingsMap = loadCustomServings();
 
   function getCustomServingsFor(name){
@@ -936,7 +974,7 @@
       return JSON.parse(raw);
     }catch(e){ return []; }
   }
-  function saveCreatedMeals(list){ localStorage.setItem(LS_CREATED_MEALS, JSON.stringify(list)); }
+  function saveCreatedMeals(list){ localStorage.setItem(LS_CREATED_MEALS, JSON.stringify(list)); cloudMarkDirty(); }
   var createdMeals = loadCreatedMeals();
 
   function createdMealTotals(meal){
@@ -1721,7 +1759,7 @@
       Array.prototype.forEach.call(document.querySelectorAll('.settings-tabs button'), function(b){ b.classList.remove('active'); });
       btn.classList.add('active');
       var st = btn.getAttribute('data-st');
-      ['objetivos','apis'].forEach(function(p){
+      ['objetivos','apis','cuenta'].forEach(function(p){
         document.getElementById('stpanel-'+p).classList.toggle('active', p === st);
       });
     });
@@ -1783,13 +1821,16 @@
   }
 
   document.getElementById('btnClearData').addEventListener('click', function(){
-    customConfirm('Esto borrará tus objetivos y todo el historial guardado en este navegador. ¿Continuar?', function(){
+    var inCloud = cloud && cloud.status === 'signedin';
+    customConfirm('Esto borrará tus objetivos y todo el historial guardado en este navegador' + (inCloud ? ' y también en la nube' : '') + '. ¿Continuar?', function(){
+      if(inCloud) cloud.allowMassDelete = true;
       localStorage.removeItem(LS_TARGETS);
       localStorage.removeItem(LS_LOGS);
       localStorage.removeItem(LS_GEMINI);
       localStorage.removeItem(LS_PROXY);
       localStorage.removeItem(LS_FAVORITES);
       targets = {}; logs = {}; favorites = [];
+      cloudMarkDirty();
       renderDay(); renderTargetsForm();
       settingsOverlay.classList.add('hidden');
     });
@@ -4987,7 +5028,7 @@
   }
   var chats = loadChats();
   function saveChats(){
-    try{ localStorage.setItem(LS_CHATS, JSON.stringify(chats)); return true; }
+    try{ localStorage.setItem(LS_CHATS, JSON.stringify(chats)); cloudMarkDirty(); return true; }
     catch(e){ return false; }
   }
   function chatById(id){ return chats.filter(function(c){ return c.id === id; })[0] || null; }
@@ -5597,6 +5638,400 @@
     window.visualViewport.addEventListener('scroll', fitChat);
     fitChat();
   }
+
+  /* ---------- Cuenta y sincronización (Firebase Auth con Google + Firestore) ----------
+     La app sigue funcionando "local primero": todo se lee y se escribe en localStorage como
+     siempre. Esta capa, si hay una configuración de Firebase, exige iniciar sesión con Google y
+     mantiene una copia en Firestore (users/{uid}/items/{id}). Cada documento guarda su contenido
+     como texto JSON + marca de tiempo:
+       settings        -> objetivos, favoritos y raciones propias
+       log_AAAA-MM-DD  -> comidas de un día
+       meal_{id}       -> comida creada
+       chat_{id}       -> conversación del chat
+     La API key de Gemini y el proxy NO se sincronizan (se quedan en cada dispositivo). */
+  // Configuración del proyecto Firebase "macrofit-318a0". La apiKey de Firebase no es secreta (va en el código
+  // de cualquier web); lo que protege los datos son el inicio de sesión y las reglas de Firestore.
+  var FIREBASE_CONFIG = {
+    apiKey: "AIzaSyB7NDNat2AfiDX7z-THYTOoMSN82eqElDM",
+    authDomain: "macrofit-318a0.firebaseapp.com",
+    projectId: "macrofit-318a0",
+    storageBucket: "macrofit-318a0.firebasestorage.app",
+    messagingSenderId: "238756592383",
+    appId: "1:238756592383:web:b6aeb0141532095990aaca"
+  };
+  var LS_FB_CONFIG = 'md_firebase_config_v1';
+  var LS_SYNC_META = 'md_sync_meta_v1';
+  var LS_CLOUD_USER = 'md_cloud_user_v1';
+  var LS_EDIT_AT = 'md_sync_edit_v1';
+  var FB_SDK_VERSION = '10.14.1';
+  var CLOUD_DOC_MAX = 900000;     // caracteres: Firestore limita cada documento a 1 MiB
+  var CLOUD_MASS_LIMIT = 20;      // más borrados que esto de golpe se consideran un accidente
+  cloud = { status: 'off', user: null, auth: null, db: null, adapter: null, lastSync: 0, msg: '',
+            busy: false, again: false, timer: null, applying: false, allowMassDelete: false, busyPromise: null };
+
+  function cloudParseConfig(text){
+    var m = /\{[\s\S]*\}/.exec(String(text || ''));
+    if(!m) return null;
+    var src = m[0], obj = null;
+    try{ obj = JSON.parse(src); }catch(e){
+      try{
+        var fixed = src.replace(/([{,]\s*)([A-Za-z_$][\w$]*)\s*:/g, '$1"$2":').replace(/'/g, '"').replace(/,\s*([}\]])/g, '$1');
+        obj = JSON.parse(fixed);
+      }catch(e2){ return null; }
+    }
+    if(!obj || typeof obj !== 'object' || !obj.apiKey || !obj.projectId || !obj.authDomain) return null;
+    return obj;
+  }
+  function getFirebaseConfig(){
+    if(FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey) return FIREBASE_CONFIG;
+    try{ var raw = localStorage.getItem(LS_FB_CONFIG); return raw ? cloudParseConfig(raw) : null; }catch(e){ return null; }
+  }
+
+  function cloudHash(s){
+    var h = 5381;
+    for(var i = 0; i < s.length; i++){ h = ((h << 5) + h + s.charCodeAt(i)) | 0; }
+    return s.length + ':' + (h >>> 0);
+  }
+  function cloudLoadMeta(){
+    try{ var m = JSON.parse(localStorage.getItem(LS_SYNC_META) || '{}'); return (m && typeof m === 'object') ? m : {}; }catch(e){ return {}; }
+  }
+  function cloudSaveMeta(m){ try{ localStorage.setItem(LS_SYNC_META, JSON.stringify(m)); }catch(e){} }
+  function cloudEditAt(){ return Number(localStorage.getItem(LS_EDIT_AT)) || 0; }
+
+  // Se llama desde cada función de guardado de la app.
+  function cloudMarkDirty(){
+    if(!cloud || cloud.applying) return;
+    try{ localStorage.setItem(LS_EDIT_AT, String(Date.now())); }catch(e){}
+    if(cloud.status !== 'signedin') return;
+    clearTimeout(cloud.timer);
+    cloud.timer = setTimeout(function(){ cloudSync(); }, 2000);
+  }
+
+  function cloudLocalDocs(){
+    var docs = {};
+    docs.settings = JSON.stringify({ targets: targets, favorites: favorites, customServings: customServingsMap });
+    Object.keys(logs).forEach(function(d){
+      if(Array.isArray(logs[d]) && logs[d].length) docs['log_' + d] = JSON.stringify(logs[d]);
+    });
+    createdMeals.forEach(function(m){ if(m && m.id) docs['meal_' + m.id] = JSON.stringify(m); });
+    chats.forEach(function(c){ if(c && c.id) docs['chat_' + c.id] = JSON.stringify(c); });
+    return docs;
+  }
+
+  function cloudUpsert(list, item){
+    var i = -1;
+    list.forEach(function(x, k){ if(x && x.id === item.id) i = k; });
+    if(i >= 0) list[i] = item; else list.push(item);
+  }
+  function cloudApplyRemote(id, p){
+    var v = JSON.parse(p);
+    if(id === 'settings'){
+      targets = (v && v.targets && typeof v.targets === 'object') ? v.targets : {};
+      favorites = Array.isArray(v && v.favorites) ? v.favorites : [];
+      customServingsMap = (v && v.customServings && typeof v.customServings === 'object') ? v.customServings : {};
+    } else if(id.indexOf('log_') === 0){
+      logs[id.slice(4)] = Array.isArray(v) ? v : [];
+    } else if(id.indexOf('meal_') === 0){
+      cloudUpsert(createdMeals, v);
+    } else if(id.indexOf('chat_') === 0){
+      cloudUpsert(chats, v);
+    }
+  }
+  function cloudRemoveLocal(id){
+    if(id.indexOf('log_') === 0) delete logs[id.slice(4)];
+    else if(id.indexOf('meal_') === 0) createdMeals = createdMeals.filter(function(m){ return m.id !== id.slice(5); });
+    else if(id.indexOf('chat_') === 0) chats = chats.filter(function(c){ return c.id !== id.slice(5); });
+  }
+  function cloudMergeLog(localArr, remoteArr, remoteT, editAt){
+    var localWins = editAt > remoteT;
+    var byId = {}, order = [];
+    remoteArr.concat(localArr).forEach(function(e, i){
+      var isLocal = i >= remoteArr.length;
+      var key = e && e.id ? e.id : ('_' + i);
+      if(!(key in byId)){ byId[key] = e; order.push(key); }
+      else if(isLocal && localWins) byId[key] = e;
+    });
+    return order.map(function(k){ return byId[k]; });
+  }
+  function cloudPersistAll(){
+    saveTargets(targets); saveLogs(logs); saveFavorites(favorites); saveCustomServings(customServingsMap);
+    saveCreatedMeals(createdMeals); saveChats();
+  }
+  function cloudRerender(){
+    renderDay(); renderTargetsForm(); refreshChatViews();
+  }
+
+  // Compara local, nube y el último estado sincronizado (3 vías) y aplica los cambios.
+  function cloudReconcile(remote){
+    var local = cloudLocalDocs(), meta = cloudLoadMeta(), editAt = cloudEditAt();
+    var ids = {};
+    [local, remote, meta].forEach(function(o){ Object.keys(o).forEach(function(k){ ids[k] = 1; }); });
+    var push = [], delRemote = [], pull = [], delLocal = [], mergeLogs = [], newMeta = {};
+    function conflict(id){
+      if(id.indexOf('log_') === 0) mergeLogs.push(id);
+      else if(remote[id].t >= editAt) pull.push(id);
+      else push.push(id);
+    }
+    Object.keys(ids).forEach(function(id){
+      if(id.indexOf('/') !== -1) return;
+      var L = local[id], R = remote[id], M = meta[id];
+      var lh = L !== undefined ? cloudHash(L) : null;
+      if(!M){
+        if(L !== undefined && !R) push.push(id);
+        else if(L === undefined && R) pull.push(id);
+        else if(L !== undefined && R){
+          if(cloudHash(R.p) === lh) newMeta[id] = { h: lh, t: R.t }; else conflict(id);
+        }
+        return;
+      }
+      var localChanged = lh !== M.h;
+      var remoteChanged = R ? R.t !== M.t : true;
+      if(!localChanged && !remoteChanged){ newMeta[id] = M; return; }
+      if(localChanged && !remoteChanged){ (L === undefined ? delRemote : push).push(id); return; }
+      if(!localChanged && remoteChanged){ (R ? pull : delLocal).push(id); return; }
+      if(L === undefined && !R) return;
+      if(L === undefined){ pull.push(id); return; }
+      if(!R){ push.push(id); return; }
+      if(cloudHash(R.p) === lh){ newMeta[id] = { h: lh, t: R.t }; return; }
+      conflict(id);
+    });
+
+    // Salvaguarda: un borrado masivo de golpe casi seguro es un accidente → se restaura.
+    var guard = '';
+    if(delRemote.length > CLOUD_MASS_LIMIT && !cloud.allowMassDelete){
+      guard = 'Se evitó borrar ' + delRemote.length + ' elementos de la nube; se han restaurado en este dispositivo.';
+      delRemote.forEach(function(id){ pull.push(id); });
+      delRemote = [];
+    }
+    if(delLocal.length > CLOUD_MASS_LIMIT){
+      guard = 'Se evitó borrar ' + delLocal.length + ' elementos de este dispositivo; se han vuelto a subir a la nube.';
+      delLocal.forEach(function(id){ push.push(id); });
+      delLocal = [];
+    }
+
+    var applied = pull.length + delLocal.length + mergeLogs.length > 0;
+    if(applied){
+      cloud.applying = true;
+      try{
+        pull.forEach(function(id){ if(remote[id]) cloudApplyRemote(id, remote[id].p); });
+        delLocal.forEach(cloudRemoveLocal);
+        mergeLogs.forEach(function(id){
+          var arr = cloudMergeLog(JSON.parse(local[id]), JSON.parse(remote[id].p), remote[id].t, editAt);
+          logs[id.slice(4)] = arr;
+          push.push(id);
+        });
+        cloudPersistAll();
+      } finally { cloud.applying = false; }
+      cloudRerender();
+    }
+
+    var fresh = cloudLocalDocs();
+    pull.forEach(function(id){ if(remote[id] && fresh[id] !== undefined) newMeta[id] = { h: cloudHash(fresh[id]), t: remote[id].t }; });
+    var skipped = 0, ops = [];
+    push.forEach(function(id){
+      var p = fresh[id];
+      if(p === undefined) return;
+      if(p.length > CLOUD_DOC_MAX){ skipped++; return; }
+      var t = Date.now() + Math.random();
+      newMeta[id] = { h: cloudHash(p), t: t };
+      ops.push(function(){ return cloud.adapter.put(id, p, t); });
+    });
+    delRemote.forEach(function(id){ ops.push(function(){ return cloud.adapter.del(id); }); });
+    return cloudRunOps(ops).then(function(){
+      cloudSaveMeta(newMeta);
+      return { pushed: push.length - skipped, pulled: pull.length + delLocal.length, deleted: delRemote.length, skipped: skipped, guard: guard };
+    });
+  }
+  function cloudRunOps(ops){
+    var chain = Promise.resolve();
+    for(var i = 0; i < ops.length; i += 15){
+      (function(chunk){
+        chain = chain.then(function(){ return Promise.all(chunk.map(function(f){ return f(); })); });
+      })(ops.slice(i, i + 15));
+    }
+    return chain;
+  }
+
+  function cloudSync(){
+    if(cloud.status !== 'signedin' || !cloud.adapter) return Promise.resolve();
+    if(cloud.busy){ cloud.again = true; return cloud.busyPromise; }
+    cloud.busy = true; cloud.msg = 'Sincronizando…'; cloudRenderStatus();
+    cloud.busyPromise = cloud.adapter.listAll().then(cloudReconcile).then(function(res){
+      cloud.lastSync = Date.now();
+      cloud.msg = res.guard || (res.skipped ? res.skipped + ' elemento(s) demasiado grandes no se subieron.' : '');
+      cloud.error = false;
+    }).catch(function(err){
+      cloud.error = true;
+      cloud.msg = 'Error de sincronización: ' + (err && err.message ? err.message : err);
+    }).then(function(){
+      cloud.busy = false; cloud.allowMassDelete = false; cloudRenderStatus();
+      if(cloud.again){ cloud.again = false; return cloudSync(); }
+    });
+    return cloud.busyPromise;
+  }
+
+  function cloudMakeAdapter(db, uid){
+    var col = db.collection('users').doc(uid).collection('items');
+    return {
+      listAll: function(){
+        return col.get().then(function(snap){
+          var out = {};
+          snap.forEach(function(d){ var v = d.data() || {}; if(typeof v.p === 'string') out[d.id] = { p: v.p, t: Number(v.t) || 0 }; });
+          return out;
+        });
+      },
+      put: function(id, p, t){ return col.doc(id).set({ p: p, t: t }); },
+      del: function(id){ return col.doc(id).delete(); }
+    };
+  }
+
+  function cloudLoadSdk(){
+    if(window.firebase && window.firebase.initializeApp) return Promise.resolve();
+    var base = 'https://www.gstatic.com/firebasejs/' + FB_SDK_VERSION + '/';
+    return ['firebase-app-compat.js', 'firebase-auth-compat.js', 'firebase-firestore-compat.js'].reduce(function(p, f){
+      return p.then(function(){
+        return new Promise(function(resolve, reject){
+          var s = document.createElement('script');
+          s.src = base + f; s.onload = resolve;
+          s.onerror = function(){ reject(new Error('No se pudo cargar Firebase (¿sin conexión?).')); };
+          document.head.appendChild(s);
+        });
+      });
+    }, Promise.resolve());
+  }
+
+  /* ---- Pantalla de acceso (bloquea la app hasta iniciar sesión) ---- */
+  var authGate = document.getElementById('authGate');
+  function cloudShowGate(text, isError){
+    authGate.classList.remove('hidden');
+    var t = document.getElementById('authGateText'), e = document.getElementById('authGateErr');
+    t.textContent = isError ? 'No se pudo conectar.' : text;
+    e.style.display = isError ? 'block' : 'none';
+    if(isError) e.textContent = text;
+    document.getElementById('btnGateRemoveCfg').classList.toggle('hidden', !!(FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey));
+    document.getElementById('btnGateGoogle').disabled = !(cloud.auth);
+  }
+  function cloudHideGate(){ authGate.classList.add('hidden'); }
+  function cloudGateError(err){
+    var msg = (err && err.message) ? err.message : String(err);
+    if(err && err.code === 'auth/unauthorized-domain') msg = 'Este dominio no está autorizado en Firebase (Authentication → Configuración → Dominios autorizados).';
+    cloudShowGate(msg, true);
+  }
+
+  function cloudSignIn(){
+    if(!cloud.auth) return;
+    var provider = new firebase.auth.GoogleAuthProvider();
+    cloud.auth.signInWithPopup(provider).catch(function(err){
+      var c = err && err.code;
+      if(c === 'auth/popup-blocked' || c === 'auth/operation-not-supported-in-this-environment' || c === 'auth/web-storage-unsupported'){
+        return cloud.auth.signInWithRedirect(provider);
+      }
+      if(c === 'auth/popup-closed-by-user' || c === 'auth/cancelled-popup-request') return;
+      cloudGateError(err);
+    });
+  }
+
+  function cloudStart(){
+    var cfg = getFirebaseConfig();
+    if(!cfg){ cloud.status = 'off'; cloudHideGate(); cloudRenderStatus(); return; }
+    var remembered = localStorage.getItem(LS_CLOUD_USER);
+    cloud.status = 'loading'; cloudRenderStatus();
+    if(!remembered) cloudShowGate('Conectando…');
+    cloudLoadSdk().then(function(){
+      if(!(firebase.apps && firebase.apps.length)) firebase.initializeApp(cfg);
+      cloud.auth = firebase.auth(); cloud.db = firebase.firestore();
+      document.getElementById('btnGateGoogle').disabled = false;
+      cloud.auth.getRedirectResult().catch(cloudGateError);
+      cloud.auth.onAuthStateChanged(function(user){
+        if(user){
+          cloud.user = user; cloud.status = 'signedin';
+          try{ localStorage.setItem(LS_CLOUD_USER, JSON.stringify({ uid: user.uid, email: user.email || '' })); }catch(e){}
+          cloud.adapter = cloudMakeAdapter(cloud.db, user.uid);
+          cloudHideGate(); cloudRenderStatus();
+          cloudSync();
+        } else {
+          cloud.user = null; cloud.adapter = null; cloud.status = 'signedout';
+          try{ localStorage.removeItem(LS_CLOUD_USER); }catch(e){}
+          cloudShowGate('Inicia sesión para acceder a tus datos.'); cloudRenderStatus();
+        }
+      });
+    }).catch(function(err){
+      cloud.status = 'error'; cloud.msg = err && err.message ? err.message : String(err);
+      if(!remembered) cloudShowGate(cloud.msg, true);
+      cloudRenderStatus();
+    });
+  }
+
+  function cloudWipeLocal(){
+    cloud.applying = true;
+    try{
+      targets = {}; favorites = []; customServingsMap = {}; createdMeals = []; chats = [];
+      Object.keys(logs).forEach(function(k){ delete logs[k]; });
+      cloudPersistAll();
+      localStorage.removeItem(LS_SYNC_META); localStorage.removeItem(LS_EDIT_AT);
+    } finally { cloud.applying = false; }
+    cloudRerender();
+  }
+
+  /* ---- Ajustes → Cuenta ---- */
+  function cloudRenderStatus(){
+    var cfgBox = document.getElementById('cloudNoConfig'), okBox = document.getElementById('cloudConfigured');
+    if(!cfgBox || !okBox) return;
+    var has = !!getFirebaseConfig();
+    cfgBox.classList.toggle('hidden', has);
+    okBox.classList.toggle('hidden', !has);
+    document.getElementById('btnCloudRemoveCfg').classList.toggle('hidden', !!(FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey));
+    var line;
+    if(cloud.status === 'signedin'){
+      line = 'Sesión iniciada: ' + (cloud.user && cloud.user.email ? cloud.user.email : '') + '.';
+      if(cloud.lastSync) line += ' Última sincronización: ' + new Date(cloud.lastSync).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) + '.';
+    } else if(cloud.status === 'loading') line = 'Conectando…';
+    else if(cloud.status === 'signedout') line = 'Sin sesión iniciada.';
+    else if(cloud.status === 'error') line = 'Sin conexión con Firebase.';
+    else line = 'Sincronización desactivada.';
+    if(cloud.msg) line += ' ' + cloud.msg;
+    document.getElementById('cloudStatusLine').textContent = line;
+    document.getElementById('btnCloudSync').disabled = cloud.status !== 'signedin' || cloud.busy;
+    document.getElementById('btnCloudSignOut').disabled = cloud.status !== 'signedin';
+  }
+
+  document.getElementById('btnGateGoogle').addEventListener('click', cloudSignIn);
+  document.getElementById('btnSaveFbConfig').addEventListener('click', function(){
+    var cfg = cloudParseConfig(document.getElementById('fbConfigInput').value);
+    var err = document.getElementById('fbConfigErr');
+    if(!cfg){ err.textContent = 'No se reconoce la configuración. Pega el bloque firebaseConfig completo (con apiKey, authDomain y projectId).'; err.style.display = 'block'; return; }
+    err.style.display = 'none';
+    localStorage.setItem(LS_FB_CONFIG, JSON.stringify(cfg));
+    document.getElementById('fbConfigInput').value = '';
+    cloudStart();
+  });
+  function cloudRemoveConfig(){
+    localStorage.removeItem(LS_FB_CONFIG); localStorage.removeItem(LS_CLOUD_USER);
+    cloud.status = 'off'; cloud.user = null; cloud.adapter = null; cloud.msg = '';
+    cloudHideGate(); cloudRenderStatus();
+  }
+  document.getElementById('btnCloudRemoveCfg').addEventListener('click', function(){
+    customConfirm('Se desactivará la sincronización en este dispositivo. Tus datos locales y los de la nube no se borran.', cloudRemoveConfig);
+  });
+  document.getElementById('btnGateRemoveCfg').addEventListener('click', cloudRemoveConfig);
+  document.getElementById('btnCloudSync').addEventListener('click', function(){ cloudSync(); });
+  document.getElementById('btnCloudSignOut').addEventListener('click', function(){
+    customConfirm('Se cerrará la sesión y se borrarán los datos de ESTE dispositivo (siguen guardados en la nube). ¿Continuar?', function(){
+      cloudSync().then(function(){
+        if(cloud.error){ cloud.msg = 'No se cerró la sesión: la última sincronización falló, así que se conservan los datos locales.'; cloudRenderStatus(); return; }
+        cloudWipeLocal();
+        return cloud.auth.signOut();
+      });
+    });
+  });
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden || cloud.status !== 'signedin') return;
+    if(Date.now() - cloud.lastSync > 30000) cloudSync();
+  });
+  window.addEventListener('online', function(){
+    if(cloud.status === 'error') cloudStart(); else if(cloud.status === 'signedin') cloudSync();
+  });
+  cloudStart();
 
 })();
 </script>
