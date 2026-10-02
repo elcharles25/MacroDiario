@@ -317,6 +317,7 @@
   .result-row .rn{flex:1;padding-right:8px;}
   .result-row button{background:var(--bg);border:none;border-radius:var(--radius-sm);padding:6px 10px;font-size:11px;font-weight:600;}
   .result-row button.fav{display:flex;align-items:center;justify-content:center;color:var(--fat);}
+  .m-field input[type="search"]{-webkit-appearance:none;appearance:none;}
   .m-field select{width:100%;border:none;border-radius:var(--radius-sm);padding:10px;font-size:16px;background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1px var(--border-soft);}
   .meal-badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-soft);border:1px solid var(--border-soft);border-radius:var(--radius-sm);padding:1px 6px;margin-bottom:6px;}
   .meal-section{background:var(--card);border-radius:var(--radius-lg);padding:16px 16px 6px 16px;margin-bottom:14px;box-shadow:var(--shadow-card);}
@@ -584,7 +585,9 @@
     </div>
     <div class="sheet-scroll-body">
 
-    <div class="m-field">
+    <!-- La comida ya viene dada por el botón "+" desde el que se abre; el selector se mantiene oculto
+         porque el resto del código lee su valor. -->
+    <div class="m-field hidden">
       <label>Comida</label>
       <select id="mealSelect">
         <option value="desayuno">Desayuno</option>
@@ -595,32 +598,34 @@
       </select>
     </div>
 
-    <div class="add-subtabs">
-      <button data-sub="db" class="active">Base de datos</button>
-      <button data-sub="favoritos">Favoritos</button>
-      <button data-sub="creados">Creados</button>
-    </div>
+    <!-- BUSCAR: barra de búsqueda arriba + Base de datos / Favoritos / Creados -->
+    <div class="m-panel active" id="panel-buscar">
+      <div class="m-field"><input type="search" id="searchTerm" placeholder="Buscar alimento, favorito o comida creada" autocomplete="off" enterkeyhint="search"></div>
 
-    <div class="sub-panel active" id="subpanel-db">
-      <p class="section-label">Añadidos recientemente</p>
-      <div id="recentFoodsList"></div>
-      <p class="section-label">Comidas recientes</p>
-      <div id="recentMealsList"></div>
-    </div>
+      <div class="add-subtabs">
+        <button data-sub="db" class="active">Base de datos</button>
+        <button data-sub="favoritos">Favoritos</button>
+        <button data-sub="creados">Creados</button>
+      </div>
 
-    <div class="sub-panel" id="subpanel-favoritos">
-      <div id="favoritesList"></div>
-    </div>
+      <div class="sub-panel active" id="subpanel-db">
+        <div id="searchResults"></div>
+        <div id="recentBlock">
+          <p class="section-label">Añadidos recientemente</p>
+          <div id="recentFoodsList"></div>
+          <p class="section-label">Comidas recientes</p>
+          <div id="recentMealsList"></div>
+        </div>
+      </div>
 
-    <div class="sub-panel" id="subpanel-creados">
-      <button class="primary-btn" id="btnNewCreatedMeal">+ Crear comida nueva</button>
-      <div id="createdMealsList"></div>
-    </div>
+      <div class="sub-panel" id="subpanel-favoritos">
+        <div id="favoritesList"></div>
+      </div>
 
-    <!-- BUSCAR -->
-    <div class="m-panel" id="panel-buscar">
-      <div class="m-field"><label>Buscar en Open Food Facts</label><input type="text" id="searchTerm" placeholder="Ej. yogur natural Hacendado"></div>
-      <div id="searchResults"></div>
+      <div class="sub-panel" id="subpanel-creados">
+        <button class="primary-btn" id="btnNewCreatedMeal">+ Crear comida nueva</button>
+        <div id="createdMealsList"></div>
+      </div>
     </div>
 
     <!-- BARCODE -->
@@ -1987,6 +1992,8 @@
     pickerMode = 'ingredient';
     addOverlay.classList.add('overlay-elevated'); // por encima del editor de la comida
     addOverlay.classList.remove('hidden');
+    document.getElementById('searchTerm').value = '';
+    addMode = 'buscar'; addSub = 'db';
     showAddPanel('db');
   }
 
@@ -2041,30 +2048,67 @@
     }, 'image/jpeg', 0.92);
   }
 
-  var ADD_PANEL_IDS = ['db','favoritos','creados','buscar','barcode','foto'];
-  var ADD_PANEL_EL_IDS = {db:'subpanel-db', favoritos:'subpanel-favoritos', creados:'subpanel-creados'};
+  // Modo principal (barra inferior): 'buscar' | 'barcode' | 'foto'. Dentro de 'buscar' hay tres
+  // pestañas (Base de datos / Favoritos / Creados) que comparten la misma barra de búsqueda.
+  var addMode = 'buscar';
+  var addSub = 'db';
+  var lastSearchedTerm = '';
+  var ADD_SUBS = ['db','favoritos','creados'];
+  var ADD_SUB_EL_IDS = {db:'subpanel-db', favoritos:'subpanel-favoritos', creados:'subpanel-creados'};
+
+  function addSearchTerm(){ return document.getElementById('searchTerm').value.trim(); }
+  // true si 'name' contiene todas las palabras del término (sin tildes ni mayúsculas).
+  function matchesAddSearch(name, term){
+    if(!term) return true;
+    var n = normalizeStr(name);
+    return normalizeStr(term).split(/\s+/).every(function(w){ return !w || n.indexOf(w) !== -1; });
+  }
+
+  // Redibuja el contenido de la pestaña activa según el texto de la barra de búsqueda.
+  function refreshAddView(){
+    var term = addSearchTerm();
+    if(addSub === 'db'){
+      document.getElementById('recentBlock').style.display = term ? 'none' : '';
+      if(!term){
+        searchToken++; lastSearchedTerm = '';
+        document.getElementById('searchResults').innerHTML = '';
+        renderRecentLists();
+      } else if(term !== lastSearchedTerm){
+        clearTimeout(searchDebounceTimer);
+        performSearchOff(term);
+      }
+    } else if(addSub === 'favoritos'){
+      renderFavoritesList();
+    } else if(addSub === 'creados'){
+      renderCreatedMealsList();
+    }
+  }
 
   function showAddPanel(id){
-    ADD_PANEL_IDS.forEach(function(p){
-      var el = document.getElementById(ADD_PANEL_EL_IDS[p] || ('panel-' + p));
-      el.classList.toggle('active', p === id);
+    if(ADD_SUBS.indexOf(id) !== -1){ addMode = 'buscar'; addSub = id; }
+    else addMode = id; // 'buscar' conserva la pestaña en la que estaba
+    ['buscar','barcode','foto'].forEach(function(m){
+      document.getElementById('panel-' + m).classList.toggle('active', m === addMode);
+    });
+    ADD_SUBS.forEach(function(sp){
+      document.getElementById(ADD_SUB_EL_IDS[sp]).classList.toggle('active', sp === addSub);
     });
     Array.prototype.forEach.call(document.querySelectorAll('.add-subtabs button'), function(b){
-      b.classList.toggle('active', b.getAttribute('data-sub') === id);
+      b.classList.toggle('active', b.getAttribute('data-sub') === addSub);
     });
     Array.prototype.forEach.call(document.querySelectorAll('.search-methods-bar button'), function(b){
-      b.classList.toggle('active', b.getAttribute('data-m') === id);
+      b.classList.toggle('active', b.getAttribute('data-m') === addMode);
     });
-    if(id === 'barcode'){ startBarcodeScanner(); } else { stopScanner(); }
-    if(id !== 'foto') stopPhotoCamera();
-    if(id === 'db') renderRecentLists();
-    if(id === 'favoritos') renderFavoritesList();
-    if(id === 'creados') renderCreatedMealsList();
+    if(addMode === 'barcode'){ startBarcodeScanner(); } else { stopScanner(); }
+    if(addMode !== 'foto') stopPhotoCamera();
+    if(addMode === 'buscar') refreshAddView();
   }
 
   function openAddModal(mealKey){
     document.getElementById('mealSelect').value = mealKey || guessMeal();
     addOverlay.classList.remove('hidden');
+    document.getElementById('searchTerm').value = '';
+    addMode = 'buscar'; addSub = 'db';
     showAddPanel('db');
   }
 
@@ -2076,6 +2120,7 @@
     stopPhotoCamera();
     document.getElementById('searchTerm').value = '';
     document.getElementById('searchResults').innerHTML = '';
+    lastSearchedTerm = '';
   }
   document.getElementById('closeAdd').addEventListener('click', closeAddOverlay);
   // Pulsar fuera de la ventana (sobre el fondo oscuro) también la cierra, igual que el botón
@@ -2135,6 +2180,7 @@
     stopPhotoCamera();
     document.getElementById('searchTerm').value = '';
     document.getElementById('searchResults').innerHTML = '';
+    lastSearchedTerm = '';
     document.getElementById('barcodeResult').innerHTML = '';
     document.getElementById('photoResults').innerHTML = '';
     document.getElementById('photoStatus').innerHTML = '';
@@ -3575,6 +3621,7 @@
 
   function performSearchOff(term){
     var myToken = ++searchToken;
+    lastSearchedTerm = term || '';
     if(!term){
       document.getElementById('searchResults').innerHTML = '';
       return;
@@ -3628,11 +3675,12 @@
   document.getElementById('searchTerm').addEventListener('input', function(){
     var term = this.value.trim();
     clearTimeout(searchDebounceTimer);
-    if(!term){
-      searchToken++; // invalida cualquier búsqueda en curso
-      document.getElementById('searchResults').innerHTML = '';
+    if(addSub !== 'db' || !term){
+      // Favoritos / Creados (o barra vacía): filtro inmediato, sin llamar a la red.
+      refreshAddView();
       return;
     }
+    document.getElementById('recentBlock').style.display = 'none';
     searchDebounceTimer = setTimeout(function(){ performSearchOff(term); }, 400);
   });
 
@@ -4025,11 +4073,16 @@
       box.innerHTML = '<div class="msg">Aún no tienes favoritos. Guarda alguno con el botón de corazón al buscar o al añadir manualmente.</div>';
       return;
     }
+    var favTerm = addSearchTerm();
     // Orden alfabético (sin distinguir mayúsculas ni tildes). Solo afecta a cómo se
     // muestra: cada fila sigue localizando su favorito por id.
-    var sorted = favorites.slice().sort(function(a, b){
+    var sorted = favorites.filter(function(f){ return matchesAddSearch(f.name, favTerm); }).sort(function(a, b){
       return (a.name || '').localeCompare(b.name || '', 'es', { sensitivity: 'base' });
     });
+    if(sorted.length === 0){
+      box.innerHTML = '<div class="msg">Ningún favorito coincide con "'+escapeHtml(favTerm)+'".</div>';
+      return;
+    }
     box.innerHTML = sorted.map(function(f){
       var sub;
       if(f.perGram){
@@ -4486,7 +4539,13 @@
       box.innerHTML = '<div class="msg">Aún no has creado ninguna comida. Usa "+ Crear comida nueva" para combinar varios alimentos en una comida con tus propias proporciones.</div>';
       return;
     }
-    box.innerHTML = createdMeals.map(function(m){
+    var cmTerm = addSearchTerm();
+    var shownMeals = createdMeals.filter(function(m){ return matchesAddSearch(m.name, cmTerm); });
+    if(shownMeals.length === 0){
+      box.innerHTML = '<div class="msg">Ninguna comida creada coincide con "'+escapeHtml(cmTerm)+'".</div>';
+      return;
+    }
+    box.innerHTML = shownMeals.map(function(m){
       var t = createdMealTotals(m);
       var sub = round(t.kcal)+' kcal · P '+round(t.protein)+'g · C '+round(t.carbs)+'g · G '+round(t.fat)+'g';
       return '<div class="fav-row created-meal-row" data-cmid="'+m.id+'">'+
