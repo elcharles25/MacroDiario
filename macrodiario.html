@@ -372,6 +372,8 @@
   /* Chat con IA */
   header .brand-actions{display:flex;gap:8px;}
   .chat-screen{position:fixed;left:0;right:0;top:0;bottom:0;background:var(--bg);z-index:40;display:flex;justify-content:center;}
+  body.chat-open .app{visibility:hidden;}
+  body.chat-open{overflow:hidden;}
   .chat-inner{width:100%;max-width:640px;height:100%;display:flex;flex-direction:column;}
   .chat-view{display:flex;flex-direction:column;flex:1;min-height:0;}
   .chat-top{flex:none;display:flex;align-items:center;gap:8px;padding:16px 16px 10px 16px;border-bottom:1px solid var(--border-soft);}
@@ -5118,9 +5120,11 @@
 
   function openChatScreen(){
     chatScreen.classList.remove('hidden');
+    document.body.classList.add('chat-open');
+    if(window.fitChat) window.fitChat();
     openChatList();
   }
-  function closeChatScreen(){ chatScreen.classList.add('hidden'); }
+  function closeChatScreen(){ chatScreen.classList.add('hidden'); document.body.classList.remove('chat-open'); }
 
   function openChatConversation(id){
     currentChatId = id || null;
@@ -5363,8 +5367,17 @@
   // En iOS el teclado reduce el área visible pero no el "viewport" de la página: se ajusta
   // la altura de la pantalla de chat a la parte visible para que el cuadro de texto no quede tapado.
   if(window.visualViewport){
-    var fitChat = function(){ chatScreen.style.height = window.visualViewport.height + 'px'; };
+    // También se sigue el desplazamiento (offsetTop): al abrir el teclado iOS mueve la parte visible
+    // dentro de la página, y sin compensarlo el chat quedaba pequeño con las comidas visibles detrás.
+    var fitChat = function(){
+      var vv = window.visualViewport;
+      chatScreen.style.top = (vv.offsetTop || 0) + 'px';
+      chatScreen.style.bottom = 'auto';
+      chatScreen.style.height = vv.height + 'px';
+    };
+    window.fitChat = fitChat;
     window.visualViewport.addEventListener('resize', fitChat);
+    window.visualViewport.addEventListener('scroll', fitChat);
     fitChat();
   }
 
