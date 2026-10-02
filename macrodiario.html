@@ -490,6 +490,9 @@
       <div class="chat-list" id="chatList"></div>
       <div class="chat-backup">
         <div class="chat-note" id="chatListNote"></div>
+        <div class="chat-backup-btns" style="margin-bottom:8px;">
+          <button type="button" id="chatGeminiImportBtn">✨ Pegar conversación de Gemini</button>
+        </div>
         <div class="chat-backup-btns">
           <button type="button" id="chatExportBtn">Exportar copia</button>
           <button type="button" id="chatImportBtn">Importar copia</button>
@@ -4893,6 +4896,7 @@
   /* ---------- Chat con Gemini (conversaciones guardadas en el dispositivo) ---------- */
   var LS_CHATS = 'md_chats_v1';
   var CHAT_MODEL = 'gemini-3.5-flash';
+  var CHAT_CONTEXT_IMPORT_MAX = 30000; // caracteres máximos de una conversación importada de Gemini
   var CHAT_HISTORY_MAX = 24;      // mensajes anteriores que se reenvían en cada petición
   var CHAT_CONTEXT_DAYS = 14;     // días con totales diarios en el contexto
   var CHAT_DETAIL_DAYS = 7;       // días con el detalle de lo comido
@@ -5032,7 +5036,7 @@
     var history = chat.messages.slice(-CHAT_HISTORY_MAX);
     while(history.length && history[0].role !== 'user') history.shift(); // Gemini exige empezar por el usuario
     var body = {
-      systemInstruction: { parts: [{ text: CHAT_SYSTEM + buildChatContext() }] },
+      systemInstruction: { parts: [{ text: CHAT_SYSTEM + buildChatContext() + (chat.context ? '\n\nCONTEXTO DE UNA CONVERSACIÓN ANTERIOR del usuario con otro asistente (Gemini), importada por él. Úsalo como memoria de lo ya hablado y continúa desde ahí; si algo contradice los datos reales de arriba, prevalecen los datos de la app:\n"""\n' + chat.context + '\n"""' : '') }] },
       contents: history.map(function(m){ return { role: m.role, parts: [{ text: m.text }] }; }),
       generationConfig: { temperature: 0.7 }
     };
@@ -5234,6 +5238,53 @@
     });
   }
 
+  /* ---- Importar una conversación de Gemini pegando su resumen ---- */
+  var GEMINI_SUMMARY_PROMPT = 'Resume toda esta conversación: mis datos, objetivos, decisiones tomadas, cifras y recomendaciones clave. Escríbelo para poder continuar en otra herramienta.';
+  function openGeminiImport(){
+    var ov = document.createElement('div');
+    ov.className = 'overlay dialog-top';
+    ov.innerHTML = '<div class="sheet" style="max-height:90vh;overflow:auto;">' +
+      '<p style="font-size:14px;font-weight:700;margin:14px 0 6px 0;">Importar conversación de Gemini</p>' +
+      '<p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px 0;line-height:1.45;">1. En tu conversación de Gemini, envía esta petición y copia su respuesta. 2. Pégala aquí. Se creará un chat nuevo que recordará todo lo hablado.</p>' +
+      '<button type="button" class="secondary-btn gi-copyprompt" style="margin-bottom:10px;">Copiar la petición para Gemini</button>' +
+      '<textarea class="gi-text" rows="9" maxlength="' + CHAT_CONTEXT_IMPORT_MAX + '" placeholder="Pega aquí la respuesta de Gemini" style="width:100%;box-sizing:border-box;font:inherit;font-size:14px;resize:vertical;"></textarea>' +
+      '<div class="msg err gi-err" style="display:none;margin-top:8px;"></div>' +
+      '<div style="display:flex;gap:10px;margin-top:14px;">' +
+        '<button type="button" class="secondary-btn gi-cancel" style="flex:1;">Cancelar</button>' +
+        '<button type="button" class="primary-btn gi-ok" style="flex:1;">Importar</button>' +
+      '</div></div>';
+    document.body.appendChild(ov);
+    var ta = ov.querySelector('.gi-text'), errEl = ov.querySelector('.gi-err');
+    function close(){ if(ov.parentNode) document.body.removeChild(ov); }
+    ov.addEventListener('click', function(e){ if(e.target === ov) close(); });
+    ov.querySelector('.gi-cancel').addEventListener('click', close);
+    ov.querySelector('.gi-copyprompt').addEventListener('click', function(){
+      var btn = this;
+      function done(okc){ btn.textContent = okc ? '¡Copiada!' : 'No se pudo copiar'; setTimeout(function(){ btn.textContent = 'Copiar la petición para Gemini'; }, 2000); }
+      try{
+        if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(GEMINI_SUMMARY_PROMPT).then(function(){ done(true); }, function(){ done(false); });
+        else done(false);
+      }catch(e){ done(false); }
+    });
+    ov.querySelector('.gi-ok').addEventListener('click', function(){
+      var text = ta.value.trim();
+      if(text.length < 20){ errEl.textContent = 'Pega primero el texto de la conversación (muy corto).'; errEl.style.display = 'block'; return; }
+      if(text.length > CHAT_CONTEXT_IMPORT_MAX) text = text.slice(0, CHAT_CONTEXT_IMPORT_MAX);
+      var now = Date.now();
+      var chat = { id: 'c' + now + Math.random().toString(36).slice(2, 6), title: 'Conversación de Gemini', titleAuto: false,
+        createdAt: now, updatedAt: now, context: text,
+        messages: [
+          { role: 'user', text: 'He importado el resumen de una conversación anterior con Gemini. Léelo y continuemos desde ahí.', ts: now },
+          { role: 'model', text: 'Hecho: he leído el resumen de tu conversación con Gemini y lo tengo presente. ¿Por dónde seguimos?', ts: now + 1 }
+        ] };
+      chats.push(chat);
+      saveChats();
+      close();
+      openChatConversation(chat.id);
+    });
+    setTimeout(function(){ try{ ta.focus(); }catch(e){} }, 50);
+  }
+
   /* ---- Copia de seguridad: exportar / importar ---- */
   function chatNote(text){
     var el = document.getElementById('chatListNote');
@@ -5267,6 +5318,7 @@
       if(msgs.length === 0) return;
       var clean = { id: c.id, title: chatTruncate(String(c.title || 'Chat importado'), 60), titleAuto: !!c.titleAuto,
         createdAt: Number(c.createdAt) || Date.now(), updatedAt: Number(c.updatedAt) || Date.now(), messages: msgs };
+      if(typeof c.context === 'string' && c.context) clean.context = c.context.slice(0, CHAT_CONTEXT_IMPORT_MAX);
       var existing = chatById(c.id);
       if(!existing){ chats.push(clean); added++; }
       else if(clean.updatedAt > (existing.updatedAt || 0)){ chats[chats.indexOf(existing)] = clean; updated++; }
@@ -5296,6 +5348,7 @@
     var coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
     if(e.key === 'Enter' && !e.shiftKey && !coarse){ e.preventDefault(); sendChatMessage(chatInput.value); }
   });
+  document.getElementById('chatGeminiImportBtn').addEventListener('click', openGeminiImport);
   document.getElementById('chatExportBtn').addEventListener('click', exportChats);
   document.getElementById('chatImportBtn').addEventListener('click', function(){ document.getElementById('chatImportFile').click(); });
   document.getElementById('chatImportFile').addEventListener('change', function(){
