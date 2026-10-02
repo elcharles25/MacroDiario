@@ -336,6 +336,15 @@
   .meal-section-head .mname{font-size:14px;font-weight:700;font-family:'Poppins',sans-serif;}
   .meal-macros{font-size:11px;color:var(--ink-soft);margin:3px 0 10px 0;}
   .meal-add-btn{background:var(--primary-soft);border:none;border-radius:var(--radius-full);color:var(--primary-dark);font-size:11px;font-weight:700;padding:5px 11px;flex:none;}
+  .copy-prev{display:flex;align-items:center;gap:12px;padding:6px 4px 12px 4px;}
+  .copy-prev .cp-ic{flex:none;width:36px;height:36px;display:flex;align-items:center;justify-content:center;color:var(--ink);}
+  .copy-prev .cp-txt{flex:1;min-width:0;}
+  .copy-prev .cp-t{font-size:15px;font-weight:600;color:var(--ink);}
+  .copy-prev .cp-s{font-size:13px;color:var(--ink-soft);margin-top:1px;}
+  .copy-prev button{flex:none;width:42px;height:42px;border:none;background:none;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0;}
+  .copy-prev .cp-yes{color:var(--primary);}
+  .copy-prev .cp-no{color:var(--ink-soft);}
+  .copy-prev button:active{background:var(--bg);}
   .meal-empty{font-size:12px;color:var(--ink-soft);padding:2px 4px 12px 4px;}
   .fav-row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--border-soft);cursor:pointer;}
   .fav-row .fn{flex:1;font-size:13px;font-weight:600;}
@@ -1465,6 +1474,39 @@
   }
 
   /* ---------- Render: current day (from the day strip) ---------- */
+  /* ---------- Desayuno vacío: ofrecer copiar el del día anterior ---------- */
+  var LS_COPY_DISMISS = 'md_copy_dismiss_v1'; // días en los que se descartó la sugerencia (solo en este dispositivo)
+  function copyDismissed(iso){
+    try{ return (JSON.parse(localStorage.getItem(LS_COPY_DISMISS) || '[]') || []).indexOf(iso) !== -1; }catch(e){ return false; }
+  }
+  function dismissCopySuggestion(iso){
+    try{
+      var arr = JSON.parse(localStorage.getItem(LS_COPY_DISMISS) || '[]') || [];
+      if(arr.indexOf(iso) === -1) arr.push(iso);
+      localStorage.setItem(LS_COPY_DISMISS, JSON.stringify(arr.slice(-60)));
+    }catch(e){}
+  }
+  // Alimentos del desayuno del día anterior que se contaron (los desmarcados no se comieron).
+  function previousBreakfast(iso){
+    var d = parseIso(iso); d.setDate(d.getDate() - 1);
+    return (logs[isoDate(d)] || []).filter(function(e){ return (e.meal || 'comida') === 'desayuno' && e.counted !== false; })
+      .sort(function(a,b){ return (a.id > b.id) ? 1 : -1; });
+  }
+  function copyPreviousBreakfast(iso){
+    var src = previousBreakfast(iso);
+    if(!src.length) return;
+    if(!logs[iso]) logs[iso] = [];
+    var base = Date.now();
+    var time = new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+    src.forEach(function(e, i){
+      var c = JSON.parse(JSON.stringify(e));
+      c.id = 'e' + (base + i) + Math.random().toString(36).slice(2,7); // ids crecientes: conservan el orden
+      c.time = time; c.meal = 'desayuno'; c.counted = true;
+      logs[iso].push(c);
+    });
+    saveLogs(logs);
+  }
+
   function renderDay(){
     var viewDate = currentViewDate;
     var iso = isoDate(viewDate);
@@ -1503,7 +1545,15 @@
           '<button class="meal-add-btn" data-addmeal="'+mk+'">+ Añadir</button>'+
         '</div>'+
         '<div class="meal-macros">'+round(mealTotals.kcal)+' kcal · P '+round(mealTotals.protein)+'g · C '+round(mealTotals.carbs)+'g · G '+round(mealTotals.fat)+'g</div>';
-      if(group.length === 0){
+      var prevB = (mk === 'desayuno' && group.length === 0 && !copyDismissed(iso)) ? previousBreakfast(iso) : [];
+      if(group.length === 0 && prevB.length){
+        html += '<div class="copy-prev" data-copyprev>'+
+          '<span class="cp-ic"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="9.5" width="11" height="11" rx="3.2"></rect><path d="M9.5 6.7a3.2 3.2 0 0 1 3.2-3.2h4.6a3.2 3.2 0 0 1 3.2 3.2v4.6a3.2 3.2 0 0 1-3.2 3.2"></path></svg></span>'+
+          '<div class="cp-txt"><div class="cp-t">'+(isToday ? '¿Copiar de ayer?' : '¿Copiar del día anterior?')+'</div><div class="cp-s">'+prevB.length+(prevB.length === 1 ? ' elemento' : ' elementos')+'</div></div>'+
+          '<button type="button" class="cp-yes" data-copyyes aria-label="Copiar el desayuno"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"></path></svg></button>'+
+          '<button type="button" class="cp-no" data-copyno aria-label="No copiar"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>'+
+        '</div>';
+      } else if(group.length === 0){
         html += '<div class="meal-empty">Sin registros</div>';
       } else {
         html += group.map(function(e){
@@ -1568,6 +1618,9 @@
         openEditEntry(iso, rowEl.getAttribute('data-editid'));
       });
     });
+    var cpYes = listEl.querySelector('[data-copyyes]'), cpNo = listEl.querySelector('[data-copyno]');
+    if(cpYes) cpYes.addEventListener('click', function(){ copyPreviousBreakfast(iso); renderDay(); });
+    if(cpNo) cpNo.addEventListener('click', function(){ dismissCopySuggestion(iso); renderDay(); });
     Array.prototype.forEach.call(listEl.querySelectorAll('[data-addmeal]'), function(btn){
       btn.addEventListener('click', function(){
         openAddModal(btn.getAttribute('data-addmeal'));
