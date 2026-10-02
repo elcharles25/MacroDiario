@@ -424,6 +424,18 @@
   .chat-composer textarea{flex:1;resize:none;max-height:120px;padding:11px 14px;border:none;border-radius:20px;background:var(--card);color:var(--ink);font-family:'Inter',sans-serif;box-shadow:inset 0 0 0 1px var(--border-soft);line-height:1.4;}
   .chat-composer button{flex:none;width:42px;height:42px;border:none;border-radius:50%;background:var(--primary);color:#fff;font-size:16px;}
   .chat-composer button:disabled{opacity:.4;}
+  .chat-composer #chatAttach{background:var(--card);color:var(--ink-soft);box-shadow:var(--shadow-card);display:flex;align-items:center;justify-content:center;}
+  .chat-pending{flex:none;display:none;flex-wrap:wrap;gap:8px;padding:8px 16px 0 16px;background:var(--bg);border-top:1px solid var(--border-soft);}
+  .chat-pending.has{display:flex;}
+  .chat-pending .cp-note{flex-basis:100%;font-size:12px;color:var(--danger);}
+  .chat-att{position:relative;display:flex;align-items:center;gap:6px;max-width:100%;background:var(--card);border-radius:12px;box-shadow:var(--shadow-card);padding:4px 26px 4px 4px;font-size:12px;font-weight:600;color:var(--ink);}
+  .chat-att img{width:44px;height:44px;border-radius:9px;object-fit:cover;display:block;}
+  .chat-att .ca-ic{width:44px;height:44px;border-radius:9px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;}
+  .chat-att .ca-name{max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:4px;}
+  .chat-att .ca-x{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border:none;border-radius:50%;background:var(--ink);color:#fff;font-size:13px;line-height:1;padding:0;}
+  .chat-atts-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;justify-content:flex-end;}
+  .chat-msg.me .chat-att{background:rgba(255,255,255,.14);box-shadow:none;color:#fff;padding-right:8px;}
+  .chat-msg.me .chat-att .ca-ic{background:rgba(255,255,255,.18);}
 </style>
 </head>
 <body>
@@ -510,7 +522,10 @@
         <button type="button" class="chat-icon-btn" id="chatMenuBtn" aria-label="Opciones del chat">⋯</button>
       </div>
       <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-pending" id="chatPending"></div>
       <div class="chat-composer">
+        <button type="button" id="chatAttach" aria-label="Adjuntar imagen o archivo" title="Adjuntar imagen o archivo"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l9-9a3.7 3.7 0 0 1 5.2 5.2l-9 9a1.8 1.8 0 0 1-2.6-2.6l8.3-8.3"></path></svg></button>
+        <input type="file" id="chatFile" multiple accept="image/*,application/pdf,text/plain,text/csv,text/markdown,application/json,.txt,.csv,.tsv,.md,.json,.pdf" class="hidden">
         <textarea id="chatInput" rows="1" maxlength="2000" placeholder="Pregunta sobre tu alimentación o entrenamiento"></textarea>
         <button type="button" id="chatSend" aria-label="Enviar">➤</button>
       </div>
@@ -5090,15 +5105,124 @@
     return text;
   }
 
+  /* ---- Adjuntos del chat: imágenes, PDF y archivos de texto ---- */
+  var CHAT_ATT_MAX = 4;                   // adjuntos por mensaje
+  var CHAT_PDF_MAX = 8 * 1024 * 1024;     // bytes
+  var CHAT_TEXT_MAX_CHARS = 20000;        // texto que se conserva de un archivo de texto
+  var CHAT_LIVE_BUDGET = 12 * 1024 * 1024;// caracteres base64 máximos de adjuntos reenviados
+  var chatPending = [];                   // adjuntos preparados para el próximo mensaje
+  var chatLive = {};                      // ts del mensaje -> adjuntos con datos (solo en memoria)
+
+  function chatAttKind(file){
+    var n = (file.name || '').toLowerCase(), t = (file.type || '').toLowerCase();
+    if(t.indexOf('image/') === 0) return 'image';
+    if(t === 'application/pdf' || /\.pdf$/.test(n)) return 'pdf';
+    if(t.indexOf('text/') === 0 || t === 'application/json' || /\.(txt|csv|tsv|md|json|log)$/.test(n)) return 'text';
+    return null;
+  }
+  function chatReadText(file){
+    return new Promise(function(resolve, reject){
+      var r = new FileReader();
+      r.onload = function(){ resolve(String(r.result || '')); };
+      r.onerror = reject;
+      r.readAsText(file);
+    });
+  }
+  // Prepara un archivo: imágenes reducidas (y miniatura para mostrarlas), PDF en base64, texto leído.
+  function prepareChatAttachment(file){
+    var kind = chatAttKind(file);
+    var name = file.name || (kind === 'image' ? 'imagen.jpg' : 'archivo');
+    if(!kind) return Promise.reject(new Error('"' + name + '": tipo no admitido (usa imágenes, PDF o archivos de texto/CSV).'));
+    if(kind === 'image'){
+      return resizeImageToDataUrl(file, 1280, 0.8).then(function(big){
+        return resizeImageToDataUrl(file, 160, 0.6).then(function(thumb){
+          return { kind: 'image', name: name, mime: 'image/jpeg', data: big.split(',')[1], thumb: thumb };
+        });
+      }, function(){ throw new Error('"' + name + '": no se pudo leer la imagen.'); });
+    }
+    if(kind === 'pdf'){
+      if(file.size > CHAT_PDF_MAX) return Promise.reject(new Error('"' + name + '": el PDF supera los 8 MB.'));
+      return fileToBase64(file).then(function(b64){
+        return { kind: 'pdf', name: name, mime: 'application/pdf', data: b64, size: file.size };
+      });
+    }
+    return chatReadText(file).then(function(txt){
+      var cut = txt.length > CHAT_TEXT_MAX_CHARS;
+      return { kind: 'text', name: name, mime: 'text/plain', text: cut ? txt.slice(0, CHAT_TEXT_MAX_CHARS) : txt, truncated: cut, size: file.size };
+    }, function(){ throw new Error('"' + name + '": no se pudo leer el archivo.'); });
+  }
+  function chatAttIcon(a){ return a.kind === 'pdf' ? '📕' : '📄'; }
+  function chatAttHtml(a, removable, idx){
+    var thumb = a.kind === 'image' && a.thumb
+      ? '<img src="' + escapeHtml(a.thumb) + '" alt="">'
+      : '<span class="ca-ic">' + chatAttIcon(a) + '</span>';
+    return '<span class="chat-att">' + thumb + (a.kind === 'image' ? '' : '<span class="ca-name">' + escapeHtml(a.name) + '</span>') +
+      (removable ? '<button type="button" class="ca-x" data-rm="' + idx + '" aria-label="Quitar adjunto">×</button>' : '') + '</span>';
+  }
+  function renderChatPending(note){
+    var box = document.getElementById('chatPending');
+    var html = chatPending.map(function(a, i){ return chatAttHtml(a, true, i); }).join('');
+    if(note) html += '<div class="cp-note">' + escapeHtml(note) + '</div>';
+    box.innerHTML = html;
+    box.classList.toggle('has', chatPending.length > 0 || !!note);
+    Array.prototype.forEach.call(box.querySelectorAll('.ca-x'), function(b){
+      b.addEventListener('click', function(){ chatPending.splice(Number(b.getAttribute('data-rm')), 1); renderChatPending(); });
+    });
+  }
+  function addChatFiles(files){
+    var list = Array.prototype.slice.call(files || []);
+    var errors = [];
+    var chain = Promise.resolve();
+    list.forEach(function(f){
+      chain = chain.then(function(){
+        if(chatPending.length >= CHAT_ATT_MAX){ errors.push('Máximo ' + CHAT_ATT_MAX + ' adjuntos por mensaje.'); return; }
+        return prepareChatAttachment(f).then(function(a){ chatPending.push(a); }, function(err){ errors.push(err.message); });
+      });
+    });
+    return chain.then(function(){
+      var uniq = errors.filter(function(e, i){ return errors.indexOf(e) === i; });
+      renderChatPending(uniq.join(' '));
+    });
+  }
+  // Partes de Gemini de un mensaje del usuario. Las imágenes/PDF solo se reenvían si aún están
+  // en memoria (no se guardan: ocuparían el espacio del navegador); si no, se avisa a la IA.
+  function chatMessageParts(m, budget){
+    var parts = [];
+    (m.atts || []).forEach(function(a, i){
+      if(a.kind === 'text'){
+        parts.push({ text: '[Archivo adjunto: ' + a.name + (a.truncated ? ' (recortado)' : '') + ']\n' + (a.text || '') });
+        return;
+      }
+      var live = chatLive[m.ts] && chatLive[m.ts][i];
+      if(live && live.data && budget.left >= live.data.length){
+        budget.left -= live.data.length;
+        parts.push({ inline_data: { mime_type: live.mime, data: live.data } });
+      } else {
+        parts.push({ text: '[' + (a.kind === 'pdf' ? 'PDF' : 'Imagen') + ' adjunto "' + a.name + '" enviado antes: ya no está disponible]' });
+      }
+    });
+    parts.push({ text: m.text });
+    return parts;
+  }
+
   function callChatGemini(chat){
     if(!getGeminiKey()){
       return Promise.reject(new Error('Añade tu API key de Gemini en Ajustes (⚙) para usar el chat.'));
     }
     var history = chat.messages.slice(-CHAT_HISTORY_MAX);
     while(history.length && history[0].role !== 'user') history.shift(); // Gemini exige empezar por el usuario
+    function contentsFor(hist){
+      var budget = { left: CHAT_LIVE_BUDGET };
+      var out = new Array(hist.length);
+      for(var i = hist.length - 1; i >= 0; i--){ // de más reciente a más antiguo
+        var m = hist[i];
+        out[i] = { role: m.role, parts: m.role === 'user' ? chatMessageParts(m, budget) : [{ text: m.text }] };
+      }
+      return out;
+    }
     var body = {
       systemInstruction: { parts: [{ text: CHAT_SYSTEM + buildChatContext() + (chat.context ? '\n\nCONTEXTO DE UNA CONVERSACIÓN ANTERIOR del usuario con otro asistente (Gemini), importada por él. Úsalo como memoria de lo ya hablado y continúa desde ahí; si algo contradice los datos reales de arriba, prevalecen los datos de la app:\n"""\n' + chat.context + '\n"""' : '') }] },
-      contents: history.map(function(m){ return { role: m.role, parts: [{ text: m.text }] }; }),
+      contents: contentsFor(history),
       generationConfig: { temperature: 0.7 }
     };
     return fetch(chatGeminiUrl(), {
@@ -5187,6 +5311,7 @@
 
   function openChatConversation(id){
     currentChatId = id || null;
+    chatPending = []; renderChatPending();
     showChatView(true);
     renderChatConversation();
     var inp = document.getElementById('chatInput');
@@ -5204,11 +5329,12 @@
         '<div class="chat-welcome-t">Tu asistente de nutrición y entrenamiento</div>' +
         '<div class="chat-welcome-s">Conoce tus objetivos, tus macros y lo que has comido estos días. Pregúntale lo que quieras.</div>' +
         '<div class="chat-sugs">' + CHAT_SUGGESTIONS.map(function(s, i){ return '<button type="button" class="chat-sug" data-sug="' + i + '">' + escapeHtml(s) + '</button>'; }).join('') + '</div>' +
-        '<div class="chat-privacy">Para responder, la app envía a Gemini tus objetivos y tus comidas de los últimos días, además de lo que escribas.</div></div>';
+        '<div class="chat-privacy">Para responder, la app envía a Gemini tus objetivos y tus comidas de los últimos días, además de lo que escribas y adjuntes.</div></div>';
     } else {
       chat.messages.forEach(function(m){
         html += '<div class="chat-msg ' + (m.role === 'user' ? 'me' : 'ai') + '"><div class="chat-bubble">' +
-          (m.role === 'user' ? '<p>' + escapeHtml(m.text).replace(/\n/g, '<br>') + '</p>' : chatFormat(m.text)) + '</div></div>';
+          (m.role === 'user' ? ((m.atts && m.atts.length) ? '<div class="chat-atts-row">' + m.atts.map(function(a){ return chatAttHtml(a, false); }).join('') + '</div>' : '') +
+            '<p>' + escapeHtml(m.text).replace(/\n/g, '<br>') + '</p>' : chatFormat(m.text)) + '</div></div>';
       });
     }
     if(chatBusy && chatBusy === currentChatId){
@@ -5230,15 +5356,29 @@
 
   function sendChatMessage(text){
     text = (text || '').trim();
-    if(!text || chatBusy) return;
+    var atts = chatPending.slice();
+    if((!text && atts.length === 0) || chatBusy) return;
+    var msgText = text || ('Adjunto: ' + atts.map(function(a){ return a.name; }).join(', '));
     var chat = currentChatId ? chatById(currentChatId) : null;
     if(!chat){
-      chat = { id: 'c' + Date.now() + Math.random().toString(36).slice(2, 6), title: chatTruncate(text, 40),
+      chat = { id: 'c' + Date.now() + Math.random().toString(36).slice(2, 6), title: chatTruncate(msgText, 40),
         titleAuto: true, createdAt: Date.now(), updatedAt: Date.now(), messages: [] };
       chats.push(chat);
       currentChatId = chat.id;
     }
-    chat.messages.push({ role: 'user', text: text, ts: Date.now() });
+    var userMsg = { role: 'user', text: msgText, ts: Date.now() };
+    if(atts.length){
+      userMsg.atts = atts.map(function(a){
+        var o = { kind: a.kind, name: a.name, mime: a.mime };
+        if(a.thumb) o.thumb = a.thumb;
+        if(a.kind === 'text'){ o.text = a.text; if(a.truncated) o.truncated = true; }
+        if(a.size) o.size = a.size;
+        return o;
+      });
+      chatLive[userMsg.ts] = atts.map(function(a){ return a.data ? { mime: a.mime, data: a.data } : null; });
+    }
+    chat.messages.push(userMsg);
+    chatPending = []; renderChatPending();
     chat.updatedAt = Date.now();
     saveChats();
     chatError = null;
@@ -5377,7 +5517,19 @@
     incoming.forEach(function(c){
       if(!c || typeof c.id !== 'string' || !Array.isArray(c.messages)) return;
       var msgs = c.messages.filter(function(m){ return m && (m.role === 'user' || m.role === 'model') && typeof m.text === 'string' && m.text; })
-        .map(function(m){ return { role: m.role, text: m.text, ts: Number(m.ts) || Date.now() }; });
+        .map(function(m){
+          var o = { role: m.role, text: m.text, ts: Number(m.ts) || Date.now() };
+          if(m.role === 'user' && Array.isArray(m.atts)){
+            var at = m.atts.filter(function(a){ return a && typeof a.name === 'string' && (a.kind === 'image' || a.kind === 'pdf' || a.kind === 'text'); }).slice(0, CHAT_ATT_MAX).map(function(a){
+              var c = { kind: a.kind, name: String(a.name).slice(0, 120), mime: String(a.mime || '').slice(0, 60) };
+              if(a.kind === 'image' && typeof a.thumb === 'string' && a.thumb.indexOf('data:image/') === 0 && a.thumb.length < 40000) c.thumb = a.thumb;
+              if(a.kind === 'text' && typeof a.text === 'string') { c.text = a.text.slice(0, CHAT_TEXT_MAX_CHARS); if(a.truncated) c.truncated = true; }
+              return c;
+            });
+            if(at.length) o.atts = at;
+          }
+          return o;
+        });
       if(msgs.length === 0) return;
       var clean = { id: c.id, title: chatTruncate(String(c.title || 'Chat importado'), 60), titleAuto: !!c.titleAuto,
         createdAt: Number(c.createdAt) || Date.now(), updatedAt: Number(c.updatedAt) || Date.now(), messages: msgs };
@@ -5407,6 +5559,12 @@
   document.getElementById('chatMenuBtn').addEventListener('click', function(){ if(currentChatId) openChatActions(currentChatId); });
   document.getElementById('chatSend').addEventListener('click', function(){ sendChatMessage(chatInput.value); });
   chatInput.addEventListener('input', chatAutoGrow);
+  document.getElementById('chatAttach').addEventListener('click', function(){ document.getElementById('chatFile').click(); });
+  document.getElementById('chatFile').addEventListener('change', function(){
+    var files = Array.prototype.slice.call(this.files || []);
+    this.value = '';
+    if(files.length) addChatFiles(files);
+  });
   chatInput.addEventListener('keydown', function(e){
     var coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
     if(e.key === 'Enter' && !e.shiftKey && !coarse){ e.preventDefault(); sendChatMessage(chatInput.value); }
