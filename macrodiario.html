@@ -67,8 +67,7 @@
   .hidden{display:none !important;}
 
   /* Day header */
-  .day-title{font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-soft);margin:0 0 2px 0;font-weight:600;}
-  .day-date{font-size:19px;font-weight:700;margin:0 0 16px 0;font-family:'Poppins',sans-serif;}
+  .day-date{font-size:14px;font-weight:400;color:var(--ink-soft);margin:0 0 16px 0;}
 
   /* Facts card: calorie ring + macro pills. Se queda fija (sticky) arriba al hacer scroll:
      el carrusel de días y la fecha (que van antes en el flujo) se desplazan fuera de la
@@ -485,7 +484,6 @@
 
     <!-- HOY -->
     <section id="tab-hoy">
-      <p class="day-title" id="dayTitle">HOY</p>
       <h2 class="day-date" id="dayDate">—</h2>
 
       <div class="facts" id="factsPanel"></div>
@@ -1513,7 +1511,6 @@
     var dk = dayKeyFromDate(viewDate);
     var isToday = (iso === todayIso());
 
-    document.getElementById('dayTitle').textContent = (isToday ? 'HOY · ' : '') + DAY_LABELS[dk].toUpperCase();
     document.getElementById('dayDate').textContent = fmtLong(viewDate);
 
     var consumed = totalsFor(iso);
