@@ -127,6 +127,23 @@
   .wte-skel i{display:block;height:12px;border-radius:6px;background:linear-gradient(90deg,rgba(0,0,0,.05) 25%,rgba(255,255,255,.75) 50%,rgba(0,0,0,.05) 75%);background-size:200% 100%;animation:wteShimmer 1.3s linear infinite;}
   .wte-skel i:nth-child(2){width:82%;} .wte-skel i:nth-child(3){width:64%;}
   .wte-reveal{animation:wteIn .45s ease-out both;}
+  .scan-card{background:var(--bg);border-radius:var(--radius-md);padding:10px 10px 14px;text-align:center;}
+  .scan-photo{position:relative;overflow:hidden;border-radius:14px;background:#1b1e29;max-height:340px;display:flex;align-items:center;justify-content:center;}
+  .scan-photo img{display:block;width:100%;max-height:340px;object-fit:cover;animation:scanDim 2.4s ease-in-out infinite;}
+  .scan-photo .scan-tint{position:absolute;inset:0;background:linear-gradient(120deg,rgba(15,191,143,.28),rgba(80,120,255,.22),rgba(15,191,143,.28));background-size:250% 250%;mix-blend-mode:screen;animation:wteGlow 3.2s ease-in-out infinite;pointer-events:none;}
+  .scan-photo .scan-line{position:absolute;left:0;right:0;top:0;height:64px;margin-top:-64px;background:linear-gradient(180deg,rgba(15,191,143,0),rgba(15,191,143,.38) 80%,rgba(190,255,235,.95));border-bottom:2px solid rgba(220,255,245,.95);box-shadow:0 6px 22px 2px rgba(15,191,143,.65);animation:scanSweep 2.2s cubic-bezier(.45,.05,.55,.95) infinite;pointer-events:none;}
+  .scan-photo .scan-c{position:absolute;width:26px;height:26px;border:3px solid #fff;opacity:.9;pointer-events:none;animation:scanBreath 1.8s ease-in-out infinite;}
+  .scan-c.tl{top:10px;left:10px;border-right:none;border-bottom:none;border-top-left-radius:9px;}
+  .scan-c.tr{top:10px;right:10px;border-left:none;border-bottom:none;border-top-right-radius:9px;}
+  .scan-c.bl{bottom:10px;left:10px;border-right:none;border-top:none;border-bottom-left-radius:9px;}
+  .scan-c.br{bottom:10px;right:10px;border-left:none;border-top:none;border-bottom-right-radius:9px;}
+  .scan-photo .scan-dot{position:absolute;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 0 0 0 rgba(255,255,255,.7);animation:scanPing 1.9s ease-out infinite;pointer-events:none;}
+  .scan-text{margin-top:12px;font-size:13px;font-weight:600;color:var(--primary-dark);min-height:18px;animation:wteFade 1.6s ease-in-out infinite;}
+  @keyframes scanSweep{0%{top:0}100%{top:calc(100% + 64px)}}
+  @keyframes scanDim{0%,100%{filter:brightness(.92) saturate(1)}50%{filter:brightness(1.05) saturate(1.15)}}
+  @keyframes scanBreath{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(.88);opacity:.55}}
+  @keyframes scanPing{0%{box-shadow:0 0 0 0 rgba(255,255,255,.75);transform:scale(.8)}70%{box-shadow:0 0 0 14px rgba(255,255,255,0);transform:scale(1.1)}100%{box-shadow:0 0 0 0 rgba(255,255,255,0);transform:scale(.8)}}
+  @media (prefers-reduced-motion:reduce){.scan-photo img,.scan-tint,.scan-line,.scan-c,.scan-dot,.scan-text{animation:none;}.scan-line{top:45%;margin-top:0;}}
   @keyframes wteGlow{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
   @keyframes wtePulse{0%{box-shadow:0 0 0 0 rgba(15,191,143,.45)}100%{box-shadow:0 0 0 22px rgba(15,191,143,0)}}
   @keyframes wteSpin{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.25) rotate(18deg)}}
@@ -3979,6 +3996,38 @@
     this.value = '';
   });
 
+  // Animación sobre la propia foto mientras la IA la analiza: barrido de luz, esquinas de
+  // enfoque, puntos de detección y frases que van cambiando.
+  var PHOTO_SCAN_PHRASES = ['Identificando los alimentos…', 'Reconociendo cada ingrediente…', 'Estimando las cantidades…',
+    'Calculando las calorías…', 'Calculando proteínas, carbohidratos y grasas…', 'Ajustando las raciones…', 'Revisando el resultado…'];
+  function showPhotoScanning(status, file){
+    var url = null;
+    try{ if(window.URL && URL.createObjectURL) url = URL.createObjectURL(file); }catch(e){}
+    var dots = [[24,30],[68,22],[46,58],[78,66],[30,76]].map(function(d, i){
+      return '<span class="scan-dot" style="left:'+d[0]+'%;top:'+d[1]+'%;animation-delay:'+(i*0.38).toFixed(2)+'s"></span>';
+    }).join('');
+    status.innerHTML = '<div class="scan-card" id="photoScan">' +
+      '<div class="scan-photo">' + (url ? '<img alt="" src="' + url + '">' : '') +
+        '<div class="scan-tint"></div><div class="scan-line"></div>' + dots +
+        '<span class="scan-c tl"></span><span class="scan-c tr"></span><span class="scan-c bl"></span><span class="scan-c br"></span></div>' +
+      '<div class="scan-text" id="photoScanText">' + PHOTO_SCAN_PHRASES[0] + '</div></div>';
+    var card = document.getElementById('photoScan');
+    try{ card.scrollIntoView({ block: 'center', behavior: 'smooth' }); }catch(e){}
+    var img = card.querySelector('img');
+    if(img) img.addEventListener('error', function(){ img.style.display = 'none'; });
+    var i = 0;
+    var timer = setInterval(function(){
+      var t = document.getElementById('photoScanText');
+      if(!card.isConnected || !t || !document.body.contains(card)){ // el análisis terminó o empezó otro
+        clearInterval(timer);
+        if(url){ try{ URL.revokeObjectURL(url); }catch(e){} }
+        return;
+      }
+      if(i < PHOTO_SCAN_PHRASES.length - 1) i++;
+      t.textContent = PHOTO_SCAN_PHRASES[i];
+    }, 1800);
+  }
+
   function analyzeAndAutoAddPhoto(file){
     var key = getGeminiKey();
     var status = document.getElementById('photoStatus');
@@ -3988,7 +4037,7 @@
       status.innerHTML = '<div class="msg err">Añade tu API key de Gemini en Ajustes (⚙) para usar esta función.</div>';
       return;
     }
-    status.innerHTML = '<div class="msg">Analizando la foto…</div>';
+    showPhotoScanning(status, file);
 
     var note = document.getElementById('photoNote').value.trim();
     var promptText = PHOTO_PROMPT;
