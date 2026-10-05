@@ -1176,45 +1176,93 @@
   // imágenes de producto. La única foto REAL que se usa es la que el propio usuario tomó al
   // analizar un plato por foto (o la de la comida creada, si se creó a partir de una foto).
   var FOOD_EMOJI_GROUPS = [
-    ['🍺', ['cerveza']],
-    ['🍷', ['vino', 'cava', 'champan', 'sangria']],
-    ['🥃', ['whisky', ' ron', 'vodka', 'ginebra', 'tequila', 'orujo', 'licor', 'vermut']],
-    ['☕', ['cafe', 'capuchino', 'cortado']],
+    // --- Bebidas y Alcohólicas ---
+    ['🍺', ['cerveza', 'caña', 'clara', 'pinta', 'tercio']],
+    ['🍷', ['vino', 'cava', 'champan', 'sangria', 'tinto', 'blanco', 'rosado', 'vermut']],
+    ['🥃', ['whisky', 'ron', 'vodka', 'ginebra', 'tequila', 'orujo', 'licor', 'cubata', 'combinado']],
+    ['🍹', ['gin-tonic', 'gintonic', 'coctel', 'mojito', 'margarita', 'piña colada']],
+    ['☕', ['cafe', 'capuchino', 'cortado', 'expreso', 'descafeinado', 'carajillo', 'latte']],
+    ['🫖', ['te', 'infusion', 'manzanilla', 'poleo', 'kombucha']],
     ['🥛', ['leche', 'yogur', 'kefir', 'cuajada', 'requeson']],
-    ['🥤', ['whey', 'batido', 'isolate', 'creatina', 'bcaa', 'colageno', 'gin-tonic', 'gintonic', 'refresco', 'zumo']],
-    ['🧀', ['queso']],
-    ['🥚', ['huevo']],
-    ['🍌', ['platano', 'manzana', 'naranja', 'fresa', 'pera', 'pina', 'mango', 'papaya', 'sandia',
-            'melon', 'kiwi', 'uva', 'ciruela', 'melocoton', 'albaricoque', 'cereza', 'frambuesa',
-            'arandano', 'mora', 'pomelo', 'mandarina', 'limon', 'lima', 'higo', 'granada',
-            'chirimoya', 'caqui', 'nectarina', 'paraguayo', 'datil', 'pasas', 'coco', 'maracuya',
-            'lichi', 'fruta', 'aguacate']],
-    ['🥦', ['brocoli', 'espinaca', 'calabacin', 'pepino', 'cebolla', 'pimiento', 'champinon',
-            'lechuga', 'tomate', 'zanahoria', 'coliflor', 'col', 'acelga', 'apio', 'esparrago',
-            'guisante', 'remolacha', 'rabano', 'puerro', 'alcachofa', 'calabaza', 'nabo',
-            'endibia', 'verdura', 'ensalada', 'ensaladilla', 'escalivada', 'menestra', 'pisto',
-            'guacamole', 'aceituna']],
-    ['🍞', ['pan ', 'tostada']],
-    ['🍚', ['arroz', 'paella', 'fideua']],
-    ['🍝', ['pasta', 'macarrones', 'espagueti', 'canelon', 'lasagna']],
-    ['🥣', ['avena', 'cuscus', 'lenteja', 'garbanzo', 'judia', 'legumbre', 'cocido', 'fabada',
-            'callos', 'pote gallego', 'gazpacho', 'salmorejo', 'sopa', 'crema de'],],
-    ['🥜', ['almendra', 'nuez', 'nueces', 'cacahuete', 'anacardo', 'pistacho', 'avellana',
-            'pinon', 'semilla', 'tahini']],
-    ['🍫', ['chocolate', 'cacao', 'miel', 'mermelada', 'sirope', 'azucar', 'galleta', 'bizcocho',
-            'flan', 'natillas', 'postre', 'dulce']],
-    ['🍗', ['pollo', 'pavo']],
-    ['🥩', ['ternera', 'cerdo', 'lomo', 'cordero', 'solomillo', 'rabo de toro', 'jamon',
-            'chorizo', 'salchichon', 'fuet', 'salami', 'mortadela', 'bacon', 'panceta',
-            'salchicha', 'morcilla', 'albondiga', 'torrezno', 'cochinillo', 'carne']],
-    ['🐟', ['atun', 'salmon', 'merluza', 'gamba', 'langostino', 'pulpo', 'bacalao', 'marmitako',
-            'mejillon', 'marisco', 'zarzuela', 'calamar', 'boqueron', 'pescado']],
+    ['🧃', ['zumo', 'nectar', 'mosto', 'horchata']],
+    ['🥤', ['whey', 'batido', 'isolate', 'creatina', 'bcaa', 'colageno', 'refresco', 'cola', 'isotonica', 'proteina']],
+
+    // --- Frutas Específicas ---
+    ['🥑', ['aguacate', 'guacamole']],
+    ['🍎', ['manzana']],
+    ['🍊', ['naranja', 'mandarina', 'clementina']],
+    ['🍋', ['limon', 'lima', 'pomelo']],
+    ['🍌', ['platano', 'banana']],
+    ['🍉', ['sandia']],
+    ['🍈', ['melon']],
+    ['🍇', ['uva', 'pasas']],
+    ['🍓', ['fresa', 'freson']],
+    ['🫐', ['arandano']],
+    ['🍒', ['cereza', 'picota']],
+    ['🍑', ['melocoton', 'albaricoque', 'nectarina', 'paraguayo']],
+    ['🍍', ['pina']],
+    ['🥭', ['mango']],
+    ['🥥', ['coco']],
+    ['🥝', ['kiwi']],
+    ['🍐', ['pera']],
+    ['🫒', ['aceituna', 'oliva']],
+    ['🍏', ['fruta', 'chirimoya', 'caqui', 'datil', 'maracuya', 'lichi', 'higo', 'granada', 'ciruela', 'papaya', 'frambuesa', 'mora']],
+
+    // --- Hortalizas y Verduras Específicas ---
+    ['🍅', ['tomate', 'gazpacho', 'salmorejo']],
+    ['🥕', ['zanahoria']],
+    ['🌽', ['maiz']],
+    ['🌶️', ['guindilla', 'picante', 'jalapeño']],
+    ['🫑', ['pimiento', 'pimenton']],
+    ['🥒', ['pepino', 'calabacin']],
+    ['🥦', ['brocoli', 'coliflor']],
+    ['🧄', ['ajo', 'alioli']],
+    ['🧅', ['cebolla', 'cebolleta', 'puerro']],
+    ['🥔', ['patata', 'papa', 'bravas', 'patata frita', 'patatas fritas', 'puré de patata', 'cachelo']],
+    ['🍆', ['berenjena', 'escalivada']],
+    ['🥬', ['espinaca', 'lechuga', 'col', 'acelga', 'apio', 'esparrago', 'guisante', 'remolacha', 'rabano', 'alcachofa', 'calabaza', 'nabo', 'endibia', 'verdura', 'ensalada', 'ensaladilla', 'menestra', 'pisto', 'champinon', 'seta', 'gula']],
+
+    // --- Lácteos, Yogures y Huevos ---
+    ['🍦', ['yogur helado', 'frozen yogurt', 'helado']],
+    ['🥣', ['yogur', 'kefir', 'cuajada', 'requeson', 'skyr', 'yogur griego', 'petit']],
+    ['🥛', ['leche', 'actimel', 'batido de leche']],
+    ['🧀', ['queso', 'quesito', 'mozzarella', 'parmesano', 'curado']],
+    ['🥚', ['huevo', 'tortilla', 'huevos']],
+
+    // --- Cereales, Panes y Pasta ---
+    ['🍞', ['pan', 'tostada', 'hogaza', 'baguette']],
+    ['🥐', ['bolleria', 'croissant', 'napolitana', 'magdalena', 'brioche', 'muffin']],
+    ['🍩', ['donut', 'rosquilla']],
+    ['🥨', ['pretzel', 'pico', 'colin', 'picos', 'regañá']],
+    ['🫓', ['pan pita', 'tortilla de trigo', 'crepe', 'pancake', 'tortita']],
+    ['🍚', ['arroz', 'paella', 'fideua', 'risotto']],
+    ['🍝', ['pasta', 'macarrones', 'espagueti', 'canelon', 'lasagna', 'tallarines', 'ravioli', 'ravioles']],
+    ['🥣', ['avena', 'cuscus', 'lenteja', 'garbanzo', 'judia', 'legumbre', 'cocido', 'fabada', 'callos', 'pote gallego', 'sopa', 'crema de', 'cereales', 'muesli', 'granola']],
+
+    // --- Frutos Secos y Semillas ---
+    ['🥜', ['almendra', 'nuez', 'nueces', 'cacahuete', 'anacardo', 'pistacho', 'avellana', 'pinon', 'semilla', 'tahini', 'pipa']],
+
+    // --- Dulces, Postres y Azúcares ---
+    ['🍫', ['chocolate', 'cacao', 'miel', 'mermelada', 'sirope', 'azucar', 'galleta', 'bizcocho', 'flan', 'natillas', 'postre', 'dulce', 'tarta', 'pastel', 'turron', 'bombón']],
+    ['🍦', ['helado', 'tarrina', 'polo']],
+
+    // --- Carnes y Aves ---
+    ['🍗', ['pollo', 'pavo', 'alita', 'muslo de pollo']],
+    ['🥩', ['ternera', 'cerdo', 'lomo', 'cordero', 'solomillo', 'rabo de toro', 'jamon', 'chorizo', 'salchichon', 'fuet', 'salami', 'mortadela', 'bacon', 'panceta', 'salchicha', 'morcilla', 'albondiga', 'torrezno', 'cochinillo', 'carne', 'secreto', 'presa', 'chuleton']],
+
+    // --- Pescados y Mariscos ---
+    ['🍣', ['sushi', 'sashimi', 'maki', 'nigiri']],
+    ['🦐', ['gamba', 'langostino', 'gamba roja', 'cigala', 'carabinero']],
+    ['🦑', ['pulpo', 'calamar', 'chipiron', 'sepia', 'rabas']],
+    ['🦪', ['mejillon', 'almeja', 'ostra', 'berberecho', 'coquina']],
+    ['🐟', ['atun', 'salmon', 'merluza', 'bacalao', 'marmitako', 'marisco', 'zarzuela', 'boqueron', 'pescado', 'lubina', 'dorada', 'sardina', 'anchoa']],
+
+    // --- Comidas Preparadas / Rápidas ---
     ['🍕', ['pizza']],
-    ['🍔', ['hamburguesa']],
-    ['🍟', ['patata frita', 'patatas fritas', 'nachos', 'bravas', 'alioli']],
-    ['🥐', ['bolleria', 'croissant', 'donut', 'napolitana', 'magdalena']],
-    ['🍽️', ['croqueta', 'empanad', 'alita', 'canelone']]
-  ];
+    ['🍔', ['hamburguesa', 'burger']],
+    ['🌮', ['taco', 'burrito', 'fajita', 'nachos', 'quesadilla']],
+    ['🍽️', ['croqueta', 'empanada', 'empanad', 'canelone', 'plato', 'menu', 'guisado', 'estofado']]
+];
   function foodEmoji(name){
     var n = normalizeStr(name);
     for(var i=0; i<FOOD_EMOJI_GROUPS.length; i++){
