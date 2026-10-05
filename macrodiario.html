@@ -772,8 +772,21 @@
     <div class="cm-log-block" id="cmLogQtyField">
       <p class="section-label">Registrar hoy</p>
       <div class="m-field">
-        <label>Cantidad a añadir hoy (g)</label>
-        <input type="number" id="cmLogGrams" step="1" min="0" inputmode="decimal">
+        <label>Cantidad a añadir hoy</label>
+        <div class="pd-qty-row">
+          <input type="number" id="cmLogGrams" step="any" min="0" inputmode="decimal">
+          <select class="pd-unit-select" id="cmLogUnit"></select>
+        </div>
+        <div class="pd-new-serving hidden" id="cmNewServingForm">
+          <input type="text" id="cmNewServingLabel" placeholder="Nombre (p.ej. Ración, Plato)">
+          <input type="number" id="cmNewServingGrams" placeholder="g" inputmode="decimal">
+          <button type="button" id="cmNewServingSave">Guardar ración</button>
+          <button type="button" id="cmNewServingCancel">Cancelar</button>
+        </div>
+        <div class="pd-custom-serving-actions hidden" id="cmServingActions">
+          <button type="button" class="pd-serving-hint" id="cmEditServingBtn">Editar ración</button>
+          <button type="button" class="pd-serving-hint pd-serving-hint-danger" id="cmDeleteServingBtn">Eliminar ración</button>
+        </div>
         <div class="cm-totals" id="cmLogQtyPreview"></div>
       </div>
     </div>
@@ -781,6 +794,7 @@
     <div id="cmMsg" class="hint" style="color:var(--fat)"></div>
     <button class="primary-btn" id="btnLogCreatedMeal">Añadir a la comida</button>
     <button class="secondary-btn" id="btnSaveCreatedMeal">Guardar sin añadir hoy</button>
+    <button class="secondary-btn hidden" id="btnPhotoToCreated">Guardar en Creados</button>
   </div>
 </div>
 
@@ -4355,10 +4369,12 @@
     cmPhotoDataUrl = photoDataUrl || null;
     document.getElementById('cmTitle').textContent = opts.title || 'Plato detectado';
     document.getElementById('cmName').value = dishName;
-    document.getElementById('cmMsg').textContent = '';
+    document.getElementById('cmMsg').style.color = 'var(--fat)'; document.getElementById('cmMsg').textContent = '';
     document.getElementById('btnLogCreatedMeal').classList.add('hidden');
     document.getElementById('btnSaveCreatedMeal').textContent = '✓ Añadir a Hoy';
     document.getElementById('cmLogQtyField').classList.add('hidden');
+    document.getElementById('btnPhotoToCreated').classList.remove('hidden');
+    cmServKeyName = '';
     cmRenderPhotoPreview();
     cmRenderIngredients();
     createMealOverlay.classList.remove('hidden');
@@ -4981,10 +4997,136 @@
   // La cantidad a añadir se indica en gramos de la comida completa (igual que con
   // cualquier otro alimento), no como un multiplicador de "raciones": se reescalan todos
   // los ingredientes en proporción a los gramos totales de la receta tal como está ahora.
+  /* Raciones de una comida creada: se guardan por nombre de la comida, igual que las de
+     cualquier alimento (customServingsMap), así que valen también para las comidas creadas a
+     partir de una foto una vez guardadas en "Creados". */
+  var cmUnitOptions = [{ id: 'g', label: 'Gramos', gramsPerUnit: 1 }];
+  var cmUnitId = 'g';
+  var cmServKeyName = '';      // nombre bajo el que están guardadas las raciones de esta comida
+  var cmEditingServingId = null;
+  function cmServName(){
+    return cmServKeyName || document.getElementById('cmName').value.trim();
+  }
+  function cmLogEnteredGrams(){
+    var el = document.getElementById('cmLogGrams');
+    var u = cmUnitOptions.filter(function(x){ return x.id === cmUnitId; })[0] || cmUnitOptions[0];
+    return (Number(el && el.value) || 0) * u.gramsPerUnit;
+  }
+  function cmBuildUnits(selectId){
+    var list = [{ id: 'g', label: 'Gramos', gramsPerUnit: 1 }];
+    getCustomServingsFor(cmServName()).forEach(function(c){
+      list.push({ id: 'custom:' + c.id, label: c.label + ' (' + round2(c.grams) + ' g)', gramsPerUnit: c.grams });
+    });
+    cmUnitOptions = list;
+    cmUnitId = selectId && list.some(function(u){ return u.id === selectId; }) ? selectId : 'g';
+    cmRenderUnitSelect();
+  }
+  function cmRenderUnitSelect(){
+    var sel = document.getElementById('cmLogUnit');
+    sel.innerHTML = cmUnitOptions.map(function(u){
+      return '<option value="'+escapeHtml(u.id)+'"'+(u.id === cmUnitId ? ' selected' : '')+'>'+escapeHtml(u.label)+'</option>';
+    }).join('') + '<option value="__new__">+ Crear ración nueva…</option>';
+    document.getElementById('cmServingActions').classList.toggle('hidden', cmUnitId.indexOf('custom:') !== 0);
+  }
+  // Al abrir: gramos totales de la receta; si ya tiene raciones, la más reciente x 1.
+  function cmInitLogQty(){
+    cmBuildUnits(null);
+    var totalG = round(cmBaseTotals().grams) || 100;
+    var last = getCustomServingsFor(cmServName()).slice(-1)[0];
+    if(last){
+      cmUnitId = 'custom:' + last.id;
+      cmRenderUnitSelect();
+      document.getElementById('cmLogGrams').value = 1;
+    } else {
+      document.getElementById('cmLogGrams').value = totalG;
+    }
+    cmCloseServingForm();
+    cmUpdateLogQtyPreview();
+  }
+  function cmCloseServingForm(){
+    document.getElementById('cmNewServingForm').classList.add('hidden');
+    document.getElementById('cmNewServingLabel').value = '';
+    document.getElementById('cmNewServingGrams').value = '';
+    document.getElementById('cmNewServingSave').textContent = 'Guardar ración';
+    cmEditingServingId = null;
+    var sel = document.getElementById('cmLogUnit'); if(sel) sel.value = cmUnitId;
+  }
+  function cmOpenServingForm(editing){
+    var label = '', grams = '';
+    if(editing){
+      var u = cmUnitOptions.filter(function(x){ return x.id === cmUnitId; })[0];
+      var c = getCustomServingsFor(cmServName()).filter(function(s){ return 'custom:' + s.id === cmUnitId; })[0];
+      if(!c) return;
+      cmEditingServingId = c.id; label = c.label; grams = round2(c.grams);
+    } else {
+      cmEditingServingId = null;
+      // Sugerencia útil: el peso total de la receta como "1 ración".
+      grams = round(cmBaseTotals().grams) || '';
+    }
+    document.getElementById('cmNewServingLabel').value = label;
+    document.getElementById('cmNewServingGrams').value = grams;
+    document.getElementById('cmNewServingSave').textContent = editing ? 'Guardar cambios' : 'Guardar ración';
+    document.getElementById('cmNewServingForm').classList.remove('hidden');
+    document.getElementById('cmNewServingLabel').focus();
+  }
+  document.getElementById('cmLogUnit').addEventListener('change', function(){
+    var val = this.value;
+    if(val === '__new__'){ this.value = cmUnitId; cmOpenServingForm(false); return; }
+    var grams = cmLogEnteredGrams();
+    cmUnitId = val;
+    var u = cmUnitOptions.filter(function(x){ return x.id === val; })[0];
+    document.getElementById('cmLogGrams').value = round2(grams / u.gramsPerUnit);
+    document.getElementById('cmServingActions').classList.toggle('hidden', val.indexOf('custom:') !== 0);
+    cmUpdateLogQtyPreview();
+  });
+  document.getElementById('cmNewServingCancel').addEventListener('click', cmCloseServingForm);
+  document.getElementById('cmNewServingSave').addEventListener('click', function(){
+    var label = document.getElementById('cmNewServingLabel').value.trim();
+    var grams = Number(document.getElementById('cmNewServingGrams').value) || 0;
+    if(!label || grams <= 0) return;
+    if(!cmServKeyName){
+      var nm = document.getElementById('cmName').value.trim();
+      if(!nm){ document.getElementById('cmMsg').textContent = 'Ponle un nombre a la comida antes de crear una ración.'; return; }
+      cmServKeyName = nm;
+    }
+    document.getElementById('cmMsg').style.color = 'var(--fat)'; document.getElementById('cmMsg').textContent = '';
+    if(cmEditingServingId){
+      var oldG = cmLogEnteredGrams();
+      updateCustomServing(cmServKeyName, cmEditingServingId, label, grams);
+      cmBuildUnits(cmUnitId);
+      document.getElementById('cmLogGrams').value = round2(oldG / grams);
+    } else {
+      var created = addCustomServing(cmServKeyName, label, grams);
+      cmBuildUnits('custom:' + created.id);
+      document.getElementById('cmLogGrams').value = 1;
+    }
+    cmCloseServingForm();
+    cmUpdateLogQtyPreview();
+  });
+  document.getElementById('cmEditServingBtn').addEventListener('click', function(){ cmOpenServingForm(true); });
+  document.getElementById('cmDeleteServingBtn').addEventListener('click', function(){
+    var id = cmUnitId.slice(7);
+    customConfirm('¿Eliminar esta ración?', function(){
+      var g = cmLogEnteredGrams();
+      deleteCustomServing(cmServKeyName || cmServName(), id);
+      cmBuildUnits('g');
+      document.getElementById('cmLogGrams').value = round(g) || 100;
+      cmUpdateLogQtyPreview();
+    });
+  });
+  // Si se renombra la comida, sus raciones se mueven al nombre nuevo (como en favoritos).
+  function cmMoveServings(oldName, newName){
+    var o = normalizeStr(oldName), n = normalizeStr(newName);
+    if(!o || o === n || !customServingsMap[o]) return;
+    customServingsMap[n] = (customServingsMap[n] || []).concat(customServingsMap[o]);
+    delete customServingsMap[o];
+    saveCustomServings(customServingsMap);
+  }
+
   function cmLogScaleFactor(){
     var gramsEl = document.getElementById('cmLogGrams');
     if(!gramsEl) return 1;
-    var enteredGrams = Number(gramsEl.value) || 0;
+    var enteredGrams = cmLogEnteredGrams();
     var base = cmBaseTotals();
     if(base.grams > 0) return enteredGrams / base.grams;
     return base.kcal > 0 ? 1 : 0; // receta sin gramos en sus ingredientes: no hay forma de escalar
@@ -5030,13 +5172,15 @@
     cmIsAiPhotoSource = false;
     document.getElementById('cmTitle').textContent = existingMeal ? 'Editar comida' : 'Nueva comida';
     document.getElementById('cmName').value = existingMeal ? existingMeal.name : '';
-    document.getElementById('cmMsg').textContent = '';
+    document.getElementById('cmMsg').style.color = 'var(--fat)'; document.getElementById('cmMsg').textContent = '';
     document.getElementById('btnLogCreatedMeal').classList.remove('hidden');
     document.getElementById('btnSaveCreatedMeal').textContent = 'Guardar sin añadir hoy';
     document.getElementById('cmLogQtyField').classList.remove('hidden');
     // Por defecto se propone el peso total de la receta tal como está compuesta; el
     // usuario puede cambiarlo a los gramos que realmente vaya a comer hoy.
-    document.getElementById('cmLogGrams').value = round(cmBaseTotals().grams) || 100;
+    cmServKeyName = existingMeal ? existingMeal.name : '';
+    cmInitLogQty();
+    document.getElementById('btnPhotoToCreated').classList.add('hidden');
     cmRenderPhotoPreview();
     cmRenderIngredients();
     createMealOverlay.classList.remove('hidden');
@@ -5058,10 +5202,11 @@
     cmIsAiPhotoSource = e.source === 'ai-photo';
     document.getElementById('cmTitle').textContent = 'Editar comida registrada';
     document.getElementById('cmName').value = e.name || '';
-    document.getElementById('cmMsg').textContent = '';
+    document.getElementById('cmMsg').style.color = 'var(--fat)'; document.getElementById('cmMsg').textContent = '';
     document.getElementById('btnLogCreatedMeal').classList.add('hidden');
     document.getElementById('btnSaveCreatedMeal').textContent = 'Guardar cambios';
     document.getElementById('cmLogQtyField').classList.add('hidden');
+    document.getElementById('btnPhotoToCreated').classList.add('hidden');
     cmRenderPhotoPreview();
     cmRenderIngredients();
     createMealOverlay.classList.remove('hidden');
@@ -5130,11 +5275,14 @@
   // Devuelve true si se guardó correctamente, false si faltaba algo (y ya muestra el aviso).
   function cmValidateAndSave(){
     var msgEl = document.getElementById('cmMsg');
+    msgEl.style.color = 'var(--fat)';
     var name = document.getElementById('cmName').value.trim();
     if(!name){ msgEl.textContent = 'Ponle un nombre a la comida.'; return false; }
     if(cmIngredients.length === 0){ msgEl.textContent = 'Añade al menos un ingrediente.'; return false; }
     msgEl.textContent = '';
     var payload = { name: name, photo: cmPhotoDataUrl, ingredients: cmIngredients };
+    cmMoveServings(cmServKeyName, name);
+    cmServKeyName = name;
     if(cmEditingId){
       updateCreatedMeal(cmEditingId, payload);
     } else {
@@ -5202,11 +5350,31 @@
     renderCreatedMealsList();
   });
 
+  // Guarda en "Creados" el plato detectado por foto (con su foto e ingredientes). La ventana
+  // pasa a ser la de esa comida creada, para poder definir raciones o añadirla a Hoy.
+  document.getElementById('btnPhotoToCreated').addEventListener('click', function(){
+    if(cmMode !== 'photoLog') return;
+    if(!cmValidateAndSave()) return;
+    cmMode = 'recipe';
+    cmIsAiPhotoSource = false;
+    document.getElementById('cmTitle').textContent = 'Editar comida';
+    document.getElementById('btnLogCreatedMeal').classList.remove('hidden');
+    document.getElementById('btnSaveCreatedMeal').textContent = 'Guardar sin añadir hoy';
+    document.getElementById('btnPhotoToCreated').classList.add('hidden');
+    document.getElementById('cmLogQtyField').classList.remove('hidden');
+    cmInitLogQty();
+    cmRenderPhotoPreview();
+    renderCreatedMealsList();
+    document.getElementById('cmMsg').style.color = 'var(--primary)';
+    document.getElementById('cmMsg').textContent = '✓ Guardada en Creados. Ahora puedes definir raciones o añadirla a Hoy.';
+    document.getElementById('cmLogQtyField').scrollIntoView({ block: 'nearest' });
+  });
+
   document.getElementById('btnLogCreatedMeal').addEventListener('click', function(){
     // "Guardar" siempre conserva la receta tal cual está compuesta en Ingredientes; los
     // gramos de aquí abajo solo escalan lo que se registra HOY, sin tocar la receta guardada.
     if(!cmValidateAndSave()) return;
-    var enteredGrams = Number(document.getElementById('cmLogGrams').value) || 0;
+    var enteredGrams = cmLogEnteredGrams();
     var factor = cmLogScaleFactor();
     var mealVal = document.getElementById('mealSelect').value;
     var name = document.getElementById('cmName').value.trim();
