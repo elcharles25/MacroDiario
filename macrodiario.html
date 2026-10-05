@@ -1171,107 +1171,189 @@
   }
 
   // Icono/foto de cada registro en la lista del día, para distinguirlo de un vistazo sin
-  // tener que leer el nombre (como hace Fitia). Un poco de normalizeStr()-matching por
-  // palabras clave asigna un emoji según el tipo de alimento; no hace falta red ni guardar
-  // imágenes de producto. La única foto REAL que se usa es la que el propio usuario tomó al
-  // analizar un plato por foto (o la de la comida creada, si se creó a partir de una foto).
+  // tener que leer el nombre (como hace Fitia). Se asigna un emoji por palabras clave sobre
+  // normalizeStr(nombre); no hace falta red ni guardar imágenes. La única foto REAL que se usa
+  // es la que el propio usuario tomó al analizar un plato (o la de la comida creada).
+  //
+  // Palabras clave (separadas por coma):
+  //   'pollo'          → alguna palabra del nombre EMPIEZA por "pollo" (cubre plurales)
+  //   '=pan'           → palabra exacta (admite plural s/es): "pan" no casa con "panceta"
+  //   'tarta de queso' → frase (la última palabra puede estar incompleta)
+  // Si casan varias gana la que aparece ANTES en el nombre; en empate, la más larga; y luego
+  // la de la tabla que va primero. Así "arroz con pollo" → 🍚, "pollo con arroz" → 🍗,
+  // "arroz con leche" → 🍮 y "tortilla de patata" → 🍳.
   var FOOD_EMOJI_GROUPS = [
-    // --- Bebidas y Alcohólicas ---
-    ['🍺', ['cerveza', 'caña', 'clara', 'pinta', 'tercio']],
-    ['🍷', ['vino', 'cava', 'champan', 'sangria', 'tinto', 'blanco', 'rosado', 'vermut']],
-    ['🥃', ['whisky', 'ron', 'vodka', 'ginebra', 'tequila', 'orujo', 'licor', 'cubata', 'combinado']],
-    ['🍹', ['gin-tonic', 'gintonic', 'coctel', 'mojito', 'margarita', 'piña colada']],
-    ['☕', ['cafe', 'capuchino', 'cortado', 'expreso', 'descafeinado', 'carajillo', 'latte']],
-    ['🫖', ['te', 'infusion', 'manzanilla', 'poleo', 'kombucha']],
-    ['🥛', ['leche', 'yogur', 'kefir', 'cuajada', 'requeson']],
-    ['🧃', ['zumo', 'nectar', 'mosto', 'horchata']],
-    ['🥤', ['whey', 'batido', 'isolate', 'creatina', 'bcaa', 'colageno', 'refresco', 'cola', 'isotonica', 'proteina']],
-
-    // --- Frutas Específicas ---
-    ['🥑', ['aguacate', 'guacamole']],
-    ['🍎', ['manzana']],
-    ['🍊', ['naranja', 'mandarina', 'clementina']],
-    ['🍋', ['limon', 'lima', 'pomelo']],
-    ['🍌', ['platano', 'banana']],
-    ['🍉', ['sandia']],
-    ['🍈', ['melon']],
-    ['🍇', ['uva', 'pasas']],
-    ['🍓', ['fresa', 'freson']],
-    ['🫐', ['arandano']],
-    ['🍒', ['cereza', 'picota']],
-    ['🍑', ['melocoton', 'albaricoque', 'nectarina', 'paraguayo']],
-    ['🍍', ['pina']],
-    ['🥭', ['mango']],
-    ['🥥', ['coco']],
-    ['🥝', ['kiwi']],
-    ['🍐', ['pera']],
-    ['🫒', ['aceituna', 'oliva']],
-    ['🍏', ['fruta', 'chirimoya', 'caqui', 'datil', 'maracuya', 'lichi', 'higo', 'granada', 'ciruela', 'papaya', 'frambuesa', 'mora']],
-
-    // --- Hortalizas y Verduras Específicas ---
-    ['🍅', ['tomate', 'gazpacho', 'salmorejo']],
-    ['🥕', ['zanahoria']],
-    ['🌽', ['maiz']],
-    ['🌶️', ['guindilla', 'picante', 'jalapeño']],
-    ['🫑', ['pimiento', 'pimenton']],
-    ['🥒', ['pepino', 'calabacin']],
-    ['🥦', ['brocoli', 'coliflor']],
-    ['🧄', ['ajo', 'alioli']],
-    ['🧅', ['cebolla', 'cebolleta', 'puerro']],
-    ['🥔', ['patata', 'papa', 'bravas', 'patata frita', 'patatas fritas', 'puré de patata', 'cachelo']],
-    ['🍆', ['berenjena', 'escalivada']],
-    ['🥬', ['espinaca', 'lechuga', 'col', 'acelga', 'apio', 'esparrago', 'guisante', 'remolacha', 'rabano', 'alcachofa', 'calabaza', 'nabo', 'endibia', 'verdura', 'ensalada', 'ensaladilla', 'menestra', 'pisto', 'champinon', 'seta', 'gula']],
-
-    // --- Lácteos, Yogures y Huevos ---
-    ['🍦', ['yogur helado', 'frozen yogurt', 'helado']],
-    ['🥣', ['yogur', 'kefir', 'cuajada', 'requeson', 'skyr', 'yogur griego', 'petit']],
-    ['🥛', ['leche', 'actimel', 'batido de leche']],
-    ['🧀', ['queso', 'quesito', 'mozzarella', 'parmesano', 'curado']],
-    ['🥚', ['huevo', 'tortilla', 'huevos']],
-
-    // --- Cereales, Panes y Pasta ---
-    ['🍞', ['pan', 'tostada', 'hogaza', 'baguette']],
-    ['🥐', ['bolleria', 'croissant', 'napolitana', 'magdalena', 'brioche', 'muffin']],
-    ['🍩', ['donut', 'rosquilla']],
-    ['🥨', ['pretzel', 'pico', 'colin', 'picos', 'regañá']],
-    ['🫓', ['pan pita', 'tortilla de trigo', 'crepe', 'pancake', 'tortita']],
-    ['🍚', ['arroz', 'paella', 'fideua', 'risotto']],
-    ['🍝', ['pasta', 'macarrones', 'espagueti', 'canelon', 'lasagna', 'tallarines', 'ravioli', 'ravioles']],
-    ['🥣', ['avena', 'cuscus', 'lenteja', 'garbanzo', 'judia', 'legumbre', 'cocido', 'fabada', 'callos', 'pote gallego', 'sopa', 'crema de', 'cereales', 'muesli', 'granola']],
-
-    // --- Frutos Secos y Semillas ---
-    ['🥜', ['almendra', 'nuez', 'nueces', 'cacahuete', 'anacardo', 'pistacho', 'avellana', 'pinon', 'semilla', 'tahini', 'pipa']],
-
-    // --- Dulces, Postres y Azúcares ---
-    ['🍫', ['chocolate', 'cacao', 'miel', 'mermelada', 'sirope', 'azucar', 'galleta', 'bizcocho', 'flan', 'natillas', 'postre', 'dulce', 'tarta', 'pastel', 'turron', 'bombón']],
-    ['🍦', ['helado', 'tarrina', 'polo']],
-
-    // --- Carnes y Aves ---
-    ['🍗', ['pollo', 'pavo', 'alita', 'muslo de pollo']],
-    ['🥩', ['ternera', 'cerdo', 'lomo', 'cordero', 'solomillo', 'rabo de toro', 'jamon', 'chorizo', 'salchichon', 'fuet', 'salami', 'mortadela', 'bacon', 'panceta', 'salchicha', 'morcilla', 'albondiga', 'torrezno', 'cochinillo', 'carne', 'secreto', 'presa', 'chuleton']],
-
-    // --- Pescados y Mariscos ---
-    ['🍣', ['sushi', 'sashimi', 'maki', 'nigiri']],
-    ['🦐', ['gamba', 'langostino', 'gamba roja', 'cigala', 'carabinero']],
-    ['🦑', ['pulpo', 'calamar', 'chipiron', 'sepia', 'rabas']],
-    ['🦪', ['mejillon', 'almeja', 'ostra', 'berberecho', 'coquina']],
-    ['🐟', ['atun', 'salmon', 'merluza', 'bacalao', 'marmitako', 'marisco', 'zarzuela', 'boqueron', 'pescado', 'lubina', 'dorada', 'sardina', 'anchoa']],
-
-    // --- Comidas Preparadas / Rápidas ---
-    ['🍕', ['pizza']],
-    ['🍔', ['hamburguesa', 'burger']],
-    ['🌮', ['taco', 'burrito', 'fajita', 'nachos', 'quesadilla']],
-    ['🍽️', ['croqueta', 'empanada', 'empanad', 'canelone', 'plato', 'menu', 'guisado', 'estofado']]
-];
+    // Dulces y postres
+    ['🍘', 'tortita de arroz,tortitas de arroz,galleta de arroz,senbei'],
+    ['🥠', 'galleta de la suerte'],
+    ['🍨', 'helado,sorbete,gelato'],
+    ['🍦', 'cucurucho,cornetto,magnum'],
+    ['🍧', 'granizado,raspado'],
+    ['🎂', 'tarta de cumple'],
+    ['🥧', 'quiche,=pie,tarta de manzana,tarta salada,pastel de carne,pastel salado'],
+    ['🍰', 'tarta,pastel,cheesecake,tiramisu,milhojas,profiterol,carlota,tres leches'],
+    ['🧁', 'cupcake,muffin,magdalena,bizcocho,mantecada,plumcake,plum cake'],
+    ['🍩', 'donut,dona,rosquilla,berlina,churro,bunuelo,porra'],
+    ['🥞', 'pancake,tortita,crepe,panqueque,blini'],
+    ['🧇', 'gofre,waffle'],
+    ['🍮', 'arroz con leche,flan,natillas,crema catalana,pudin,panna cotta,mousse,gelatina,torrija,tocino de cielo'],
+    ['🥮', 'mooncake'],
+    ['🍥', 'narutomaki,kamaboko'],
+    ['🍡', 'mochi,dango'],
+    ['🍪', 'galleta,cookie,oreo,=maria,barquillo,mantecado,polvoron,digestive'],
+    ['🍭', 'piruleta,chupachups,chupa chups'],
+    ['🍬', 'caramelo,gominola,chicle,regaliz,golosina,chuche,turron,mazapan,azucar,edulcorante,stevia,sacarina,dulce,postre'],
+    ['🍫', 'chocolate,cacao,nutella,nocilla,bombon,snickers,kitkat,kit kat,twix,mars,bounty,lacasitos,kinder,milka,barrita,brownie'],
+    ['🍯', 'miel,sirope,mermelada,melaza,jarabe,agave,dulce de leche,membrillo,confitura,compota'],
+    ['🍿', 'palomitas,popcorn'],
+    ['🥨', 'pretzel,=picos,grissini,ganchitos,kikos,snack,aperitivo,cheetos,doritos,gusanitos'],
+    // Platos preparados
+    ['🥪', 'bocadillo,sandwich,bocata,montadito,pepito,panini,serranito'],
+    ['🍕', 'pizza'],
+    ['🍔', 'hamburguesa,burger,whopper,big mac'],
+    ['🌭', 'perrito,hot dog,hotdog,frankfurt,salchicha,bratwurst,butifarra'],
+    ['🌮', 'taco,quesadilla,enchilada,nacho,chilaquiles'],
+    ['🌯', 'burrito,wrap,fajita,durum'],
+    ['🥙', 'kebab,kebap,shawarma,=pita,gyros,doner'],
+    ['🧆', 'falafel,hummus,humus'],
+    ['🫔', 'tamal,humita'],
+    ['🥟', 'empanadilla,empanada,gyoza,dumpling,samosa,ravioli,wonton,dim sum,pierogi'],
+    ['🫓', 'arepa,naan,chapati,piadina,focaccia,tortilla de trigo,tortilla de maiz,roti,paratha'],
+    ['🍳', 'tortilla,huevo frito,huevos fritos,huevos rotos,revuelto,omelette,huevos estrellados,huevo a la plancha,huevos a la plancha,shakshuka'],
+    ['🥚', 'huevo,clara,yema'],
+    ['🍢', 'brocheta,pincho,pinchito,yakitori,espeto'],
+    ['🥘', 'paella,fideua,guiso,estofado,cazuela,fabada,callos,carrillada,pisto,marmitako,rabo de toro,potaje,cassoulet,tajine,goulash,risotto,caldereta,zarzuela,migas,moussaka,pote gallego,cocido,chili con carne'],
+    ['🍛', 'curry,biryani,tikka,korma,katsu,=dal,arroz frito,arroz tres delicias'],
+    ['🍣', 'sushi,sashimi,nigiri,maki,temaki,chirashi'],
+    ['🍙', 'onigiri'],
+    ['🍜', 'ramen,fideos,noodles,udon,=pho,pad thai,soba,yakisoba,chow mein'],
+    ['🫕', 'fondue,raclette,queso fundido'],
+    ['🥗', 'ensalada,ensaladilla,poke,tabule,escalivada,coleslaw,pipirrana,ceviche,cebiche,tartar de,crudites'],
+    ['🥣', 'avena,porridge,gachas,muesli,granola,cereales,cereal,gazpacho,salmorejo,cuscus,couscous,copos,papilla,ajoblanco,corn flakes'],
+    ['🍲', 'sopa,caldo,crema de,puchero,consome,minestrone,borsch,vichyssoise,miso,porrusalda'],
+    ['🍝', 'pasta,macarrones,espagueti,spaghetti,tallarines,canelones,lasana,lasagna,tortellini,fusilli,penne,noquis,gnocchi,carbonara,bolonesa,rigatoni,tagliatelle,fettuccine,pesto'],
+    ['🍚', 'arroz,pilaf,gohan,congee'],
+    ['🍱', 'bento,plato combinado,thali'],
+    ['🥡', 'comida china,para llevar,takeaway,rollito de primavera,agridulce'],
+    ['🍟', 'patatas bravas,patatas fritas,patata frita,papas fritas,bravas,chips,fries,aros de cebolla,pringles,lays'],
+    ['🍠', 'boniato,batata,camote'],
+    ['🧀', 'queso,mozzarella,parmesano,feta,cheddar,brie,burrata,manchego,cabrales,roquefort,gouda,emmental,philadelphia,ricotta,provolone,gorgonzola,camembert'],
+    ['🥔', 'patata,papa,pure de patata'],
+    ['🥫', 'tomate frito,atun en lata,sardinas en lata,en lata,conserva,spam,piquillo,en escabeche'],
+    // Bebidas
+    ['🍻', 'jarra de cerveza'],
+    ['🍺', 'cerveza,birra,=cana,shandy,lager,mahou,estrella,alhambra,heineken,san miguel,cruzcampo,amstel,guinness,corona'],
+    ['🥂', 'cava,champan,champagne,prosecco,espumoso,sidra,lambrusco,moscatel,aperol,spritz'],
+    ['🍷', 'vino,tinto de verano,sangria,rioja,ribera,rosado,tempranillo,verdejo,albarino,txakoli,jerez,oporto,calimocho,kalimotxo'],
+    ['🥃', 'whisky,whiskey,bourbon,=ron,vodka,tequila,brandy,conac,cognac,orujo,licor,vermut,pacharan,=anis,chupito,mezcal,baileys,cubata,carajillo'],
+    ['🍸', 'martini,cocktail,coctel,gin tonic,gin-tonic,gintonic,ginebra,daiquiri,negroni,cosmopolitan,caipirinha,bloody mary,=gin'],
+    ['🍹', 'mojito,pina colada,mai tai,margarita,tequila sunrise,long island,ponche'],
+    ['🍾', 'botella de champan,nochevieja'],
+    ['🍶', 'sake,soju,shochu'],
+    ['🧉', '=mate,yerba'],
+    ['🍵', '=te,matcha,infusion,manzanilla,poleo,rooibos,=tila,chai,kombucha,tisana,hibisco'],
+    ['🫖', 'tetera'],
+    ['☕', 'cafe,capuchino,cappuccino,cortado,espresso,expreso,latte,americano,moka,descafeinado,nespresso,macchiato,carajillo de cafe'],
+    ['🧋', 'bubble tea,boba,frappe,milk tea,dalgona'],
+    ['🍼', 'biberon,formula infantil,leche de formula,leche materna,potito'],
+    ['🥛', 'leche,yogur,yogurt,kefir,cuajada,requeson,bebida de,horchata,skyr,nata,lassi,actimel,danone,activia,petit suisse'],
+    ['🧃', 'zumo,jugo,nectar,mosto,tropicana,minute maid,brik'],
+    ['🥤', 'refresco,=cola,coca-cola,coca cola,fanta,sprite,pepsi,tonica,aquarius,nestea,gaseosa,isotonic,energetica,redbull,red bull,monster,whey,proteina,batido,isolate,creatina,bcaa,colageno,suplemento,preentreno,pre-entreno,aminoacido,gainer,caseina,smoothie,limonada,naranjada,gatorade,powerade,7up,schweppes,milkshake'],
+    ['💧', '=agua'],
+    ['🧊', 'hielo,cubitos'],
+    // Carnes, pescados y mariscos
+    ['🥓', 'bacon,beicon,panceta,torrezno,tocino,lardones,chicharron'],
+    ['🍖', 'costilla,chuleton,chuleta,barbacoa,cochinillo,lechazo,codillo,carrillera,pierna de cordero,paletilla,churrasco,parrillada,pulled pork,asado de'],
+    ['🍗', 'pollo,pavo,pechuga,muslo,contramuslo,alita,nugget,pato,codorniz,gallina,tenders,fingers,kfc'],
+    ['🥩', 'ternera,vacuno,filete,solomillo,entrecot,lomo,cerdo,cordero,conejo,carne,jamon,chorizo,salchichon,fuet,salami,mortadela,morcilla,albondiga,embutido,sobrasada,cecina,pastrami,fiambre,buey,cabrito,jabali,higado,lengua,steak,secreto iberico,presa iberica'],
+    ['🦐', 'gamba,langostino,camaron,quisquilla,carabinero,gambon'],
+    ['🦞', 'langosta,bogavante,cigala'],
+    ['🦀', 'cangrejo,centollo,buey de mar,necora,txangurro,surimi,palitos de mar,angula,gula'],
+    ['🦑', 'calamar,sepia,chipiron,jibia,pota,puntillita'],
+    ['🐙', 'pulpo'],
+    ['🦪', 'ostra,mejillon,almeja,berberecho,navaja,vieira,percebe,marisco,coquina,chirla,zamburina'],
+    ['🍤', 'tempura,fritura de pescado,pescaito,fish and chips,gambas rebozadas'],
+    ['🐟', 'atun,salmon,merluza,bacalao,lubina,dorada,sardina,anchoa,boqueron,caballa,bonito,rape,lenguado,trucha,pescado,pescadilla,=gallo,rodaballo,besugo,pez espada,emperador,jurel,abadejo,=mero,tilapia,panga,fletan,eglefino,anguila,congrio,raya,cazon,arenque,caviar,huevas,ventresca,mojama,pescaito'],
+    // Frutas
+    ['🍏', 'manzana verde,granny smith'],
+    ['🍎', 'manzana,fruta,higo,granada,chirimoya,caqui,datil,lichi,guayaba,macedonia,nispero'],
+    ['🍐', 'pera,nashi'],
+    ['🍊', 'naranja,mandarina,clementina,pomelo,satsuma'],
+    ['🍋', 'limon,=lima,limonada natural'],
+    ['🍌', 'platano,banana'],
+    ['🍉', 'sandia'],
+    ['🍈', 'melon'],
+    ['🍇', 'uva,pasas,=pasa'],
+    ['🫐', 'arandano,=mora,grosella,zarzamora,frutos rojos,frutos del bosque,acai,goji'],
+    ['🍓', 'fresa,frambuesa,freson'],
+    ['🍒', 'cereza,guinda,picota'],
+    ['🍑', 'melocoton,nectarina,paraguayo,albaricoque,ciruela,orejones'],
+    ['🍍', '=pina'],
+    ['🥭', 'mango,papaya,maracuya'],
+    ['🥝', 'kiwi'],
+    ['🥥', '=coco,agua de coco,leche de coco'],
+    // Verduras, legumbres, frutos secos, hierbas y condimentos
+    ['🥑', 'aguacate,guacamole,palta'],
+    ['🍅', 'tomate,gazpachuelo'],
+    ['🫒', 'aceituna,oliva,aceite,tapenade'],
+    ['🧈', 'mantequilla,margarina,manteca'],
+    ['🧂', '=sal,pimienta,nuez moscada,especias,comino,curcuma,pimenton,azafran,vinagre,salsa,mostaza,ketchup,mayonesa,alioli,canela'],
+    ['🌿', 'perejil,albahaca,cilantro,menta,romero,tomillo,oregano,hierbabuena,laurel,eneldo,hierbas,cebollino'],
+    ['🧄', '=ajo,ajos'],
+    ['🧅', 'cebolla,cebolleta,chalota,puerro'],
+    ['🍞', '=pan,tostada,tosta,biscote,regana,pan de molde,pan integral'],
+    ['🥐', 'croissant,cruasan,bolleria,napolitana,ensaimada,brioche,palmera'],
+    ['🥖', 'baguette,barra de pan,chapata,picatoste'],
+    ['🥯', 'bagel'],
+    ['🌾', 'harina,trigo,centeno,cebada,quinoa,mijo,espelta,salvado,gluten,seitan,bulgur,amaranto'],
+    ['🥕', 'zanahoria'],
+    ['🌽', 'maiz,mazorca,panocha'],
+    ['🌶️', 'chile,guindilla,picante,jalapeno,cayena,tabasco,sriracha'],
+    ['🫑', 'pimiento'],
+    ['🥒', 'pepino,pepinillo,calabacin'],
+    ['🍆', 'berenjena'],
+    ['🥦', 'brocoli,coliflor,romanesco,verdura,hortaliza,calabaza,esparrago,alcachofa,remolacha,rabano,nabo,apio,menestra,acelga'],
+    ['🥬', 'lechuga,espinaca,rucula,canonigos,escarola,endibia,berros,=col,repollo,lombarda,berza,kale,grelos,bruselas'],
+    ['🍄', 'champinon,seta,hongo,boletus,portobello,shiitake,trufa'],
+    ['🫛', 'guisante,judia verde,judias verdes,edamame,=haba,tirabeque'],
+    ['🫘', 'judia,alubia,lenteja,garbanzo,frijol,soja,legumbre,tofu,tempeh,altramuz,fabes'],
+    ['🌰', 'castana,=nuez,nueces,pinon'],
+    ['🥜', 'cacahuete,=mani,frutos secos,almendra,anacardo,pistacho,avellana,semillas,=pipa,chia,lino,sesamo,tahini,crema de cacahuete,mantequilla de cacahuete,crema de almendra'],
+    ['🫚', 'jengibre,ginger']
+  ];
+  var FOOD_EMOJI_COMPILED = null;
+  function compileFoodEmoji(){
+    var out = [];
+    FOOD_EMOJI_GROUPS.forEach(function(g, gi){
+      g[1].split(',').forEach(function(kw){
+        kw = normalizeStr(kw.trim());
+        if(!kw) return;
+        var exact = kw.charAt(0) === '=';
+        if(exact) kw = kw.slice(1);
+        var esc = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        var re = new RegExp('(^|[^a-z0-9])' + esc + (exact ? '(?:s|es)?(?![a-z0-9])' : ''));
+        out.push({ re: re, len: kw.length, emoji: g[0], g: gi });
+      });
+    });
+    return out;
+  }
+  var foodEmojiCache = {};
   function foodEmoji(name){
     var n = normalizeStr(name);
-    for(var i=0; i<FOOD_EMOJI_GROUPS.length; i++){
-      var emoji = FOOD_EMOJI_GROUPS[i][0], keywords = FOOD_EMOJI_GROUPS[i][1];
-      for(var j=0; j<keywords.length; j++){
-        if(n.indexOf(normalizeStr(keywords[j])) !== -1) return emoji;
+    if(foodEmojiCache.hasOwnProperty(n)) return foodEmojiCache[n];
+    if(!FOOD_EMOJI_COMPILED) FOOD_EMOJI_COMPILED = compileFoodEmoji();
+    var best = null, bestPos = 0;
+    for(var i=0; i<FOOD_EMOJI_COMPILED.length; i++){
+      var k = FOOD_EMOJI_COMPILED[i], m = k.re.exec(n);
+      if(!m) continue;
+      var pos = m.index + m[1].length;
+      if(!best || pos < bestPos || (pos === bestPos && (k.len > best.len || (k.len === best.len && k.g < best.g)))){
+        best = k; bestPos = pos;
       }
     }
-    return '🍽️';
+    var r = best ? best.emoji : '🍽️';
+    foodEmojiCache[n] = r;
+    return r;
   }
   function entryIconHtml(e){
     var photo = e.photo;
