@@ -5955,8 +5955,8 @@
   function saveWorkouts(){ try{ localStorage.setItem(LS_WORKOUTS, JSON.stringify(workouts)); }catch(e){} cloudMarkDirty(); }
   var workouts = loadWorkouts();
   var progTab = 'cuerpo';
-  var wkRange = '3m';
-  var WK_RANGES = [['1m', '4 semanas', 28], ['3m', '3 meses', 91], ['6m', '6 meses', 183], ['all', 'Todo', 0]];
+  var wkRange = '4w';
+  var WK_RANGES = [['1w', 'Semana', 7], ['4w', '4 semanas', 28], ['3m', '3 meses', 91], ['1y', '1 año', 365], ['all', 'Todo', 0]];
 
   // Tipo de entrenamiento -> nombre en español + icono.
   var WK_TYPES = [
@@ -6299,9 +6299,9 @@
         bars += '<path d="M'+(cx - bw / 2).toFixed(1)+' '+(H - pb)+' V'+(y + r).toFixed(1)+' Q'+(cx - bw / 2).toFixed(1)+' '+y.toFixed(1)+' '+(cx - bw / 2 + r).toFixed(1)+' '+y.toFixed(1)+' H'+(cx + bw / 2 - r).toFixed(1)+' Q'+(cx + bw / 2).toFixed(1)+' '+y.toFixed(1)+' '+(cx + bw / 2).toFixed(1)+' '+(y + r).toFixed(1)+' V'+(H - pb)+' Z" fill="'+color+'"/>';
       }
     });
-    var xl = '<text x="'+pl+'" y="'+(H - 6)+'" style="font-size:9px;fill:var(--ink-soft)">'+bodyDateLabel(weeks[0].start)+'</text>';
-    if(n > 1) xl += '<text x="'+(W - pr)+'" y="'+(H - 6)+'" text-anchor="end" style="font-size:9px;fill:var(--ink-soft)">'+bodyDateLabel(weeks[n - 1].start)+'</text>';
-    return { xy: xs, W: W, H: H, svg: '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Entrenos por semana">'+grid+bars+xl+
+    var xl = '<text x="'+pl+'" y="'+(H - 6)+'" style="font-size:9px;fill:var(--ink-soft)">'+weeks[0].label+'</text>';
+    if(n > 1) xl += '<text x="'+(W - pr)+'" y="'+(H - 6)+'" text-anchor="end" style="font-size:9px;fill:var(--ink-soft)">'+weeks[n - 1].label+'</text>';
+    return { xy: xs, W: W, H: H, svg: '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Entrenos por periodo">'+grid+bars+xl+
       '<line class="bp-cross" x1="0" x2="0" y1="'+pt+'" y2="'+(H - pb)+'" stroke="var(--ink-soft)" stroke-width="1" stroke-dasharray="3 3" style="display:none"/>'+
       '<rect class="bp-hit" x="0" y="0" width="'+W+'" height="'+H+'" fill="transparent"/></svg>' };
   }
@@ -6316,7 +6316,7 @@
     }
     var rdef = WK_RANGES.filter(function(r){ return r[0] === wkRange; })[0];
     var cutoff = null;
-    if(rdef[2]){ cutoff = new Date(); cutoff.setHours(0, 0, 0, 0); cutoff.setDate(cutoff.getDate() - rdef[2]); }
+    if(rdef[2]){ cutoff = new Date(); cutoff.setHours(0, 0, 0, 0); cutoff.setDate(cutoff.getDate() - (rdef[2] - 1)); }
     var cutIso = cutoff ? isoDate(cutoff) : '';
     var inR = all.filter(function(w){ return !cutIso || w.date >= cutIso; });
     html += '<div class="bp-ranges">' + WK_RANGES.map(function(r){ return '<button type="button" data-r="'+r[0]+'" class="'+(r[0] === wkRange ? 'on' : '')+'">'+r[1]+'</button>'; }).join('') + '</div>';
@@ -6328,18 +6328,31 @@
       html += '<div class="wk-stats"><div class="wk-stat"><div class="v">'+inR.length+'</div><div class="l">Sesiones</div></div>'+
         '<div class="wk-stat"><div class="v">'+bodyFmt(totMin / 60, 1)+' h</div><div class="l">Tiempo</div></div>'+
         '<div class="wk-stat"><div class="v">'+totKcal.toLocaleString('es-ES')+'</div><div class="l">kcal activas</div></div></div>';
-      // semanas contiguas
-      var first = wkWeekStart(inR[0].date), last = wkWeekStart(isoDate(new Date())), weeks = [], map = {};
-      var d = new Date(first + 'T12:00:00');
-      while(isoDate(d) <= last && weeks.length < 60){ var s = isoDate(d); var o = { start: s, min: 0, kcal: 0, n: 0 }; map[s] = o; weeks.push(o); d.setDate(d.getDate() + 7); }
-      if(weeks.length > 52){ weeks = weeks.slice(-52); }
-      inR.forEach(function(w){ var o = map[wkWeekStart(w.date)]; if(o){ o.min += w.min || 0; o.kcal += w.kcal || 0; o.n++; } });
+      // Cubos de tiempo contiguos: días (Semana), semanas (4 semanas, 3 meses, 1 año) o meses (Todo, si abarca más de un año).
+      var todayIso = isoDate(new Date()), firstIso = cutIso || inR[0].date;
+      var spanDays = Math.round((new Date(todayIso + 'T12:00:00') - new Date(inR[0].date + 'T12:00:00')) / 86400000);
+      var kind = wkRange === '1w' ? 'day' : ((wkRange === 'all' && spanDays > 400) ? 'month' : 'week');
+      var weeks = [], map = {}, d, DOW = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+      function addBucket(key, label, tip){ var o = { key: key, start: key, label: label, tip: tip, min: 0, kcal: 0, n: 0 }; map[key] = o; weeks.push(o); }
+      if(kind === 'day'){
+        d = new Date(firstIso + 'T12:00:00');
+        while(isoDate(d) <= todayIso){ var s = isoDate(d); addBucket(s, bodyDateLabel(s), DOW[d.getDay()] + ' ' + bodyDateLabel(s)); d.setDate(d.getDate() + 1); }
+      } else if(kind === 'week'){
+        d = new Date(wkWeekStart(firstIso) + 'T12:00:00');
+        while(isoDate(d) <= todayIso){ var s2 = isoDate(d); addBucket(s2, bodyDateLabel(s2), 'Sem. del ' + bodyDateLabel(s2)); d.setDate(d.getDate() + 7); }
+      } else {
+        d = new Date(inR[0].date.slice(0, 7) + '-01T12:00:00');
+        while(isoDate(d).slice(0, 7) <= todayIso.slice(0, 7)){ var s3 = isoDate(d); var ml = d.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' }); addBucket(s3.slice(0, 7), ml, ml); d.setMonth(d.getMonth() + 1); }
+      }
+      function bucketOf(date){ return map[kind === 'day' ? date : (kind === 'week' ? wkWeekStart(date) : date.slice(0, 7))]; }
+      inR.forEach(function(w){ var o = bucketOf(w.date); if(o){ o.min += w.min || 0; o.kcal += w.kcal || 0; o.n++; } });
+      var per = kind === 'day' ? 'día' : (kind === 'week' ? 'semana' : 'mes'), perShort = kind === 'day' ? 'día' : (kind === 'week' ? 'sem' : 'mes');
       var avgW = inR.length / Math.max(1, weeks.length);
-      html += '<div class="bp-card"><div class="bp-card-head"><div><div class="bp-name"><span class="bp-dot" style="background:#0FBF8F"></span>Minutos por semana</div>'+
-        '<div class="bp-val">'+bodyFmt(totMin / Math.max(1, weeks.length), 0)+'<small>min/sem</small></div></div><div class="bp-delta"><b>'+bodyFmt(avgW, 1)+'</b> sesiones/sem</div></div>'+
+      html += '<div class="bp-card"><div class="bp-card-head"><div><div class="bp-name"><span class="bp-dot" style="background:#0FBF8F"></span>Minutos por '+per+'</div>'+
+        '<div class="bp-val">'+bodyFmt(totMin / Math.max(1, weeks.length), 0)+'<small>min/'+perShort+'</small></div></div><div class="bp-delta"><b>'+bodyFmt(avgW, 1)+'</b> sesiones/'+perShort+'</div></div>'+
         '<div class="bp-chart" id="wkChartMin"></div></div>';
-      html += '<div class="bp-card"><div class="bp-card-head"><div><div class="bp-name"><span class="bp-dot" style="background:#F5A623"></span>kcal activas por semana</div>'+
-        '<div class="bp-val">'+bodyFmt(totKcal / Math.max(1, weeks.length), 0)+'<small>kcal/sem</small></div></div></div>'+
+      html += '<div class="bp-card"><div class="bp-card-head"><div><div class="bp-name"><span class="bp-dot" style="background:#F5A623"></span>kcal activas por '+per+'</div>'+
+        '<div class="bp-val">'+bodyFmt(totKcal / Math.max(1, weeks.length), 0)+'<small>kcal/'+perShort+'</small></div></div></div>'+
         '<div class="bp-chart" id="wkChartKcal"></div></div>';
       // por tipo
       var byType = {};
@@ -6371,7 +6384,7 @@
           ch.xy.forEach(function(p, i){ var dd = Math.abs(p[0] - x); if(dd < bd){ bd = dd; best = i; } });
           var p = ch.xy[best], w = weeks[best];
           cross.setAttribute('x1', p[0]); cross.setAttribute('x2', p[0]); cross.style.display = '';
-          tip.textContent = 'Sem. del ' + bodyDateLabel(w.start) + ' · ' + Math.round(w[c[1]]) + ' ' + c[2] + ' · ' + w.n + ' ses.';
+          tip.textContent = w.tip + ' · ' + Math.round(w[c[1]]) + ' ' + c[2] + ' · ' + w.n + ' ses.';
           tip.style.left = Math.max(70, Math.min(r.width - 70, p[0] / ch.W * r.width)) + 'px';
           tip.style.top = (p[1] / ch.H * r.height) + 'px'; tip.style.opacity = 1;
         }
