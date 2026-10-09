@@ -594,7 +594,7 @@
   </div>
 </div>
 <input type="file" id="bodyFileInput" accept="image/*,application/pdf,.pdf,.csv,.tsv,.txt,.json" multiple hidden>
-<input type="file" id="workoutFileInput" accept=".json,.csv,.tsv,.txt,application/json,text/csv,image/*,application/pdf" multiple hidden>
+<input type="file" id="workoutFileInput" accept=".json,.csv,.tsv,.txt,.zip,application/zip,application/json,text/csv,image/*,application/pdf" multiple hidden>
 <input type="file" id="bodyCamInput" accept="image/*" capture="environment" hidden>
 
 <div class="overlay hidden" id="bodyReviewOverlay">
@@ -6151,8 +6151,72 @@
       return out;
     });
   }
+  // --- ZIP (lo que devuelve Health Auto Export): lector mínimo con DecompressionStream nativo ---
+  function wkReadBuffer(file){
+    return new Promise(function(resolve, reject){
+      var r = new FileReader();
+      r.onload = function(){ resolve(r.result); };
+      r.onerror = function(){ reject(new Error('No se pudo leer "' + (file.name || 'archivo') + '".')); };
+      r.readAsArrayBuffer(file);
+    });
+  }
+  function wkInflateRaw(bytes){
+    if(typeof DecompressionStream === 'undefined') return Promise.reject(new Error('Este navegador no puede descomprimir ZIP. Descomprímelo en Archivos (toca el .zip) e importa el JSON o CSV de dentro.'));
+    var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return new Response(stream).arrayBuffer().then(function(b){ return new Uint8Array(b); });
+  }
+  // Devuelve [{name, read()}] con las entradas de un ZIP (sin ZIP64 ni cifrado).
+  function wkZipEntries(buf){
+    var u8 = new Uint8Array(buf), dv = new DataView(buf), eocd = -1, i;
+    for(i = u8.length - 22; i >= Math.max(0, u8.length - 22 - 65557); i--){
+      if(dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; }
+    }
+    if(eocd < 0) throw new Error('El archivo no parece un ZIP válido.');
+    var total = dv.getUint16(eocd + 10, true), pos = dv.getUint32(eocd + 16, true), out = [];
+    for(var n = 0; n < total; n++){
+      if(dv.getUint32(pos, true) !== 0x02014b50) break;
+      var method = dv.getUint16(pos + 10, true), csize = dv.getUint32(pos + 20, true);
+      var nl = dv.getUint16(pos + 28, true), el = dv.getUint16(pos + 30, true), cl = dv.getUint16(pos + 32, true);
+      var lho = dv.getUint32(pos + 42, true);
+      var name = new TextDecoder().decode(u8.subarray(pos + 46, pos + 46 + nl));
+      (function(name, method, csize, lho){
+        out.push({ name: name, read: function(){
+          var lnl = dv.getUint16(lho + 26, true), lel = dv.getUint16(lho + 28, true), start = lho + 30 + lnl + lel;
+          var data = u8.subarray(start, start + csize);
+          if(method === 0) return Promise.resolve(data);
+          if(method === 8) return wkInflateRaw(data);
+          return Promise.reject(new Error('Método de compresión no admitido en el ZIP.'));
+        } });
+      })(name, method, csize, lho);
+      pos += 46 + nl + el + cl;
+    }
+    return out;
+  }
+  function wkReadZip(file){
+    return wkReadBuffer(file).then(function(buf){
+      var entries = wkZipEntries(buf).filter(function(e){
+        return /\.(json|csv|tsv|txt)$/i.test(e.name) && !/(^|\/)(__MACOSX|\.)/.test(e.name) && !/(^|\/)\._/.test(e.name);
+      });
+      if(!entries.length) throw new Error('El ZIP no contiene ningún JSON o CSV.');
+      var all = [], idx = 0;
+      function next(){
+        if(idx >= entries.length) return Promise.resolve();
+        var e = entries[idx++];
+        return e.read().then(function(bytes){
+          var text = new TextDecoder('utf-8').decode(bytes);
+          var got = /^\s*[\[{]/.test(text) ? wkParseHaeJson(text) : wkParseCsv(text);
+          if(got && got.length) all = all.concat(got);
+        }).then(next);
+      }
+      return next().then(function(){
+        if(!all.length) throw new Error('No encontré entrenamientos dentro de "' + (file.name || 'el ZIP') + '". Al exportar en Health Auto Export elige el tipo de dato «Entrenamientos» (Workouts).');
+        return all;
+      });
+    });
+  }
   function wkReadFile(file){
     var name = file.name || '', type = file.type || '';
+    if(/\.zip$/i.test(name) || /zip/.test(type)) return wkReadZip(file);
     var isText = /\.(csv|tsv|txt|json)$/i.test(name) || /^text\//.test(type) || type === 'application/json';
     if(!isText) return getGeminiKey() ? wkGeminiExtract(file) : Promise.reject(new Error('Para leer imágenes o PDF hace falta la API key de Gemini (Ajustes).'));
     return wkReadText(file).then(function(text){
@@ -6243,11 +6307,11 @@
   }
   function renderWorkoutsTab(){
     var box = document.getElementById('progressBody');
-    var html = '<div class="bp-add-row"><button type="button" class="secondary-btn" id="wkImport">📎 Importar entrenos (JSON / CSV)</button></div>'+
+    var html = '<div class="bp-add-row"><button type="button" class="secondary-btn" id="wkImport">📎 Importar entrenos (ZIP / JSON / CSV)</button></div>'+
       '<div class="bp-status" id="bpStatus">' + bodyStatusHtml + '</div>';
     var all = wkSorted();
     if(!all.length){
-      html += '<div class="bp-empty"><b>Aún no hay entrenamientos.</b><br>En el iPhone abre <b>Health Auto Export</b> → Exportar datos → <b>Entrenamientos</b> (formato JSON o CSV) y guárdalo en Archivos/iCloud Drive. Después pulsa «Importar entrenos» y elige ese archivo. Puedes repetirlo cuando quieras: los que ya tienes no se duplican.</div>';
+      html += '<div class="bp-empty"><b>Aún no hay entrenamientos.</b><br>En el iPhone abre <b>Health Auto Export</b> → Exportar datos → <b>Entrenamientos</b> (JSON o CSV; el .zip que devuelve también vale) y guárdalo en Archivos/iCloud Drive. Después pulsa «Importar entrenos» y elige ese archivo. Puedes repetirlo cuando quieras: los que ya tienes no se duplican.</div>';
       box.innerHTML = html; bindWorkoutButtons(); return;
     }
     var rdef = WK_RANGES.filter(function(r){ return r[0] === wkRange; })[0];
