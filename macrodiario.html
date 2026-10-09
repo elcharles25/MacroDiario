@@ -5476,20 +5476,16 @@
      dibujan gráficas por indicador y se pasan como contexto al chat con la IA. */
   var LS_BODY = 'md_body_v1';
   var BODY_METRICS = [
-    { k:'weight',     label:'Peso',                 unit:'kg',   dec:1, json:'peso_kg',               color:'#0FBF8F' },
-    { k:'fat_pct',    label:'Grasa corporal',       unit:'%',    dec:1, json:'grasa_pct',             color:'#F4436C' },
-    { k:'muscle_kg',  label:'Masa muscular',        unit:'kg',   dec:1, json:'musculo_kg',            color:'#8B5CF6' },
-    { k:'water_pct',  label:'Agua corporal',        unit:'%',    dec:1, json:'agua_pct',              color:'#0EA5E9' },
-    { k:'bmi',        label:'IMC',                  unit:'',     dec:1, json:'imc',                   color:'#3B82F6' },
-    { k:'visceral',   label:'Grasa visceral',       unit:'',     dec:0, json:'grasa_visceral',        color:'#F5A623' },
-    { k:'fat_kg',     label:'Masa grasa',           unit:'kg',   dec:1, json:'grasa_kg',              color:'#E8590C' },
-    { k:'muscle_pct', label:'Músculo',              unit:'%',    dec:1, json:'musculo_pct',           color:'#7C3AED' },
-    { k:'bone_kg',    label:'Masa ósea',            unit:'kg',   dec:1, json:'masa_osea_kg',          color:'#64748B' },
-    { k:'protein_pct',label:'Proteína',             unit:'%',    dec:1, json:'proteina_pct',          color:'#A855F7' },
-    { k:'bmr',        label:'Metabolismo basal',    unit:'kcal', dec:0, json:'metabolismo_basal_kcal',color:'#14B8A6' },
-    { k:'meta_age',   label:'Edad metabólica',      unit:'años', dec:0, json:'edad_metabolica',       color:'#D97706' }
+    { k:'weight',      label:'Peso',                      unit:'kg',   dec:1, json:'peso_kg',                 color:'#0FBF8F' },
+    { k:'fat_pct',     label:'Grasa corporal',            unit:'%',    dec:1, json:'grasa_pct',               color:'#F4436C' },
+    { k:'fat_kg',      label:'Masa de grasa',             unit:'kg',   dec:1, json:'grasa_kg',                color:'#E8590C' },
+    { k:'muscle_pct',  label:'Músculo',                   unit:'%',    dec:1, json:'musculo_pct',             color:'#7C3AED' },
+    { k:'skeletal_kg', label:'Masa muscular esquelética', unit:'kg',   dec:1, json:'musculo_esqueletico_kg',  color:'#8B5CF6' },
+    { k:'water_pct',   label:'Agua corporal',             unit:'%',    dec:1, json:'agua_pct',                color:'#0EA5E9' },
+    { k:'bmr',         label:'Metabolismo basal',         unit:'kcal', dec:0, json:'metabolismo_basal_kcal',  color:'#14B8A6' },
+    { k:'bmi',         label:'IMC',                       unit:'',     dec:1, json:'imc',                     color:'#3B82F6' }
   ];
-  var BODY_DEFAULT_FIELDS = ['weight', 'fat_pct', 'muscle_kg', 'water_pct'];
+  var BODY_DEFAULT_FIELDS = ['weight', 'fat_pct', 'fat_kg', 'muscle_pct'];
   function bodyMetric(k){ return BODY_METRICS.filter(function(m){ return m.k === k; })[0]; }
 
   function loadBody(){
@@ -5648,7 +5644,7 @@
     });
     html += cards.map(function(c){ return c.html; }).join('');
     html += '<p class="section-label" style="margin-top:22px">Historial</p>' + all.slice().reverse().map(function(m){
-      return '<div class="bp-hist-row" data-id="'+m.id+'"><div><div class="d">'+bodyDateLabel(m.date, true)+(m.time ? ' · ' + m.time : '')+'</div><div class="s">'+escapeHtml(bodyValuesText(m, ['weight', 'fat_pct', 'muscle_kg', 'water_pct', 'bmi']) || bodyValuesText(m))+'</div></div><span class="ch">›</span></div>';
+      return '<div class="bp-hist-row" data-id="'+m.id+'"><div><div class="d">'+bodyDateLabel(m.date, true)+(m.time ? ' · ' + m.time : '')+'</div><div class="s">'+escapeHtml(bodyValuesText(m, ['weight', 'fat_pct', 'muscle_pct', 'skeletal_kg', 'bmi']) || bodyValuesText(m))+'</div></div><span class="ch">›</span></div>';
     }).join('');
     box.innerHTML = html;
     cards.forEach(function(c){
@@ -5689,7 +5685,7 @@
       'Extrae TODAS las mediciones que aparezcan (puede ser una sola o muchas, una por fecha). Hoy es ' + today + '. ' +
       'Para cada medición devuelve "fecha" (YYYY-MM-DD; si no aparece el año usa el actual; si no hay fecha visible, null) y "hora" (HH:MM, o null), más los valores que figuren. ' +
       'NO inventes ni calcules nada: si un dato no aparece, omite su clave. Unidades: peso, masas y huesos en kg (convierte si están en lb o st); porcentajes como número sin el símbolo %. ' +
-      'Claves posibles: peso_kg, imc, grasa_pct, grasa_kg, musculo_kg, musculo_pct, agua_pct, grasa_visceral, masa_osea_kg, proteina_pct, metabolismo_basal_kcal, edad_metabolica. ' +
+      'Claves posibles (ignora cualquier otro dato): peso_kg, grasa_pct (porcentaje de grasa corporal), grasa_kg (masa de grasa en kg), musculo_pct (porcentaje de músculo), musculo_esqueletico_kg (masa muscular esquelética en kg), agua_pct (porcentaje de agua corporal), metabolismo_basal_kcal, imc. ' +
       'Si una cifra es un rango o una etiqueta cualitativa (p.ej. "Normal") sin número, ignórala. ' +
       'Devuelve ÚNICAMENTE JSON, sin markdown: {"mediciones":[{"fecha":"YYYY-MM-DD","hora":"HH:MM","peso_kg":number,...}]}';
   }
@@ -5698,7 +5694,7 @@
     var n = typeof v === 'number' ? v : parseFloat(String(v).replace(',', '.').replace(/[^0-9.\-]/g, ''));
     return isFinite(n) ? n : null;
   }
-  var BODY_RANGES_OK = { weight:[20, 400], bmi:[8, 80], fat_pct:[1, 75], fat_kg:[0.5, 250], muscle_kg:[5, 150], muscle_pct:[5, 90], water_pct:[20, 80], visceral:[1, 60], bone_kg:[0.3, 10], protein_pct:[3, 40], bmr:[600, 5000], meta_age:[5, 110] };
+  var BODY_RANGES_OK = { weight:[20, 400], bmi:[8, 80], fat_pct:[1, 75], fat_kg:[0.5, 250], skeletal_kg:[5, 120], muscle_pct:[5, 90], water_pct:[20, 80], bmr:[600, 5000] };
   function bodyNormalizeItems(parsed){
     var list = parsed && (parsed.mediciones || parsed.measurements || (Array.isArray(parsed) ? parsed : null)) || [];
     var out = [];
@@ -5914,7 +5910,7 @@
     });
     if(changes.length) L.push('- Evolución: ' + changes.join(' | ') + '.');
     var recent = all.slice(-10).reverse().map(function(m){
-      return '  · ' + m.date + ': ' + (bodyValuesText(m, ['weight', 'fat_pct', 'muscle_kg', 'water_pct', 'visceral']) || bodyValuesText(m));
+      return '  · ' + m.date + ': ' + (bodyValuesText(m, ['weight', 'fat_pct', 'fat_kg', 'muscle_pct', 'skeletal_kg', 'water_pct', 'bmr']) || bodyValuesText(m));
     });
     L.push('- Últimas mediciones:\n' + recent.join('\n'));
     return L.join('\n');
