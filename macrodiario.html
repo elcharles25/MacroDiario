@@ -472,6 +472,45 @@
   .chat-atts-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;justify-content:flex-end;}
   .chat-msg.me .chat-att{background:rgba(255,255,255,.14);box-shadow:none;color:#fff;padding-right:8px;}
   .chat-msg.me .chat-att .ca-ic{background:rgba(255,255,255,.18);}
+  /* ---------- Progreso corporal (báscula) ---------- */
+  .progress-screen{position:fixed;left:0;right:0;top:0;bottom:0;background:var(--bg);z-index:42;display:flex;justify-content:center;overflow:hidden;}
+  .progress-inner{width:100%;max-width:640px;height:100%;display:flex;flex-direction:column;}
+  .progress-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px calc(28px + env(safe-area-inset-bottom)) 16px;}
+  .bp-add-row{display:flex;gap:8px;}
+  .bp-add-row button{flex:1;margin-top:0;}
+  .bp-empty{background:var(--card);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);padding:20px;margin-top:14px;text-align:center;font-size:13px;color:var(--ink-soft);line-height:1.55;}
+  .bp-empty b{color:var(--ink);}
+  .bp-ranges{display:flex;gap:6px;margin:16px 0 4px;}
+  .bp-ranges button{flex:1;border:none;border-radius:var(--radius-full);padding:8px 0;font-size:12px;font-weight:700;background:var(--card);color:var(--ink-soft);box-shadow:var(--shadow-card);}
+  .bp-ranges button.on{background:var(--ink);color:#fff;}
+  .bp-card{background:var(--card);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);padding:14px 14px 10px;margin-top:12px;}
+  .bp-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+  .bp-name{font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.05em;display:flex;align-items:center;gap:6px;}
+  .bp-dot{width:8px;height:8px;border-radius:50%;flex:none;}
+  .bp-val{font-family:'Poppins',sans-serif;font-size:26px;font-weight:700;color:var(--ink);line-height:1.15;margin-top:2px;}
+  .bp-val small{font-size:13px;font-weight:600;color:var(--ink-soft);margin-left:3px;}
+  .bp-delta{font-size:12px;color:var(--ink-soft);text-align:right;line-height:1.4;}
+  .bp-delta b{color:var(--ink);font-weight:700;}
+  .bp-chart{position:relative;margin-top:6px;touch-action:pan-y;}
+  .bp-chart svg{display:block;width:100%;height:auto;overflow:visible;}
+  .bp-tip{position:absolute;top:0;pointer-events:none;background:var(--ink);color:#fff;font-size:11px;font-weight:600;border-radius:8px;padding:4px 8px;white-space:nowrap;transform:translate(-50%,-110%);opacity:0;transition:opacity .1s;z-index:2;}
+  .bp-hist-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border-radius:var(--radius-md);box-shadow:var(--shadow-card);padding:11px 14px;margin-top:8px;cursor:pointer;}
+  .bp-hist-row .d{font-weight:700;font-size:13px;}
+  .bp-hist-row .s{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .bp-hist-row .ch{color:var(--ink-soft);font-size:18px;}
+  .br-card{background:var(--card);border-radius:var(--radius-md);box-shadow:var(--shadow-card);padding:12px;margin-top:10px;}
+  .br-head{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+  .br-head input{flex:1;min-width:0;border:none;border-radius:var(--radius-sm);padding:9px 10px;font-size:16px;background:var(--bg);color:var(--ink);}
+  .br-del{flex:none;border:none;border-radius:var(--radius-full);width:30px;height:30px;background:var(--bg);color:var(--ink-soft);font-size:14px;}
+  .br-note{font-size:11px;color:var(--ink-soft);margin:-2px 0 8px;line-height:1.4;}
+  .br-note.warn{color:#B26A00;}
+  .br-card .m-field input{background:var(--bg);box-shadow:none;}
+  .br-add{width:100%;border:none;border-radius:var(--radius-sm);padding:9px;font-size:13px;background:var(--bg);color:var(--ink-soft);margin-top:2px;}
+  .bp-status{font-size:12px;color:var(--ink-soft);padding:10px 0 0;line-height:1.5;}
+  .bp-status.err{color:var(--danger);}
+  .bp-spin{display:inline-block;width:12px;height:12px;border:2px solid var(--border-soft);border-top-color:var(--primary);border-radius:50%;animation:bpspin .8s linear infinite;vertical-align:-2px;margin-right:6px;}
+  @keyframes bpspin{to{transform:rotate(360deg);}}
+  #bodyReviewOverlay{z-index:61;}
 </style>
 </head>
 <body>
@@ -489,7 +528,7 @@
         </svg>
         <h1>MacroFit</h1>
       </div>
-      <div class="brand-actions"><button class="gear" id="btnChat" title="Chat con IA"></button><button class="gear" id="btnSettings" title="Ajustes"></button></div>
+      <div class="brand-actions"><button class="gear" id="btnProgress" title="Progreso corporal"></button><button class="gear" id="btnChat" title="Chat con IA"></button><button class="gear" id="btnSettings" title="Ajustes"></button></div>
     </div>
   </header>
 
@@ -524,6 +563,31 @@
     <div class="sheet-scroll-body">
       <div id="wteBody"></div>
     </div>
+  </div>
+</div>
+
+<!-- PROGRESO CORPORAL (báscula) -->
+<div class="progress-screen hidden" id="progressScreen">
+  <div class="progress-inner">
+    <div class="chat-top">
+      <button type="button" class="chat-icon-btn" id="progressClose" aria-label="Cerrar">‹</button>
+      <h2>Progreso</h2>
+    </div>
+    <div class="progress-body" id="progressBody"></div>
+  </div>
+</div>
+<input type="file" id="bodyFileInput" accept="image/*,application/pdf,.pdf,.csv,.tsv,.txt,.json" multiple hidden>
+<input type="file" id="bodyCamInput" accept="image/*" capture="environment" hidden>
+
+<div class="overlay hidden" id="bodyReviewOverlay">
+  <div class="sheet sheet-wrap">
+    <button class="close-x" id="closeBodyReview">×</button>
+    <h2 id="bodyReviewTitle">Revisa las mediciones</h2>
+    <div class="hint" id="bodyReviewHint"></div>
+    <div id="bodyReviewList"></div>
+    <div id="bodyReviewMsg" class="hint" style="color:var(--fat)"></div>
+    <button class="primary-btn" id="bodyReviewSave">Guardar</button>
+    <button class="secondary-btn hidden" id="bodyReviewDelete" style="color:var(--fat)">Eliminar medición</button>
   </div>
 </div>
 
@@ -1076,6 +1140,8 @@
              '<line x1="4" y1="12" x2="20" y2="12"></line>';
     } else if(name === 'chat'){
       body = '<path d="M10 4c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7z"></path><path d="M18.5 3v4M16.5 5h4" stroke-width="1.5"></path><path d="M18 16.5v3M16.5 18h3" stroke-width="1.5"></path>';
+    } else if(name === 'progress'){
+      body = '<polyline points="3,17 9,11 13,15 21,6"></polyline><polyline points="15,6 21,6 21,12"></polyline>';
     } else if(name === 'camera'){
       body = '<path d="M4 8h2.5l1.3-2h8.4l1.3 2H20a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"></path><circle cx="12" cy="13.5" r="3.3"></circle>';
     } else {
@@ -2053,7 +2119,8 @@
       localStorage.removeItem(LS_GEMINI);
       localStorage.removeItem(LS_PROXY);
       localStorage.removeItem(LS_FAVORITES);
-      targets = {}; logs = {}; favorites = [];
+      localStorage.removeItem(LS_BODY);
+      targets = {}; logs = {}; favorites = []; bodyLog = [];
       cloudMarkDirty();
       renderDay(); renderTargetsForm();
       settingsOverlay.classList.add('hidden');
@@ -5403,6 +5470,456 @@
     closeAddAndRefresh();
   });
 
+  /* ---------- Progreso corporal: mediciones de la báscula ----------
+     El usuario sube capturas/fotos/PDF/CSV de su báscula; Gemini extrae las mediciones, el
+     usuario las revisa y se guardan (md_body_v1, sincronizadas con la nube). Con ellas se
+     dibujan gráficas por indicador y se pasan como contexto al chat con la IA. */
+  var LS_BODY = 'md_body_v1';
+  var BODY_METRICS = [
+    { k:'weight',     label:'Peso',                 unit:'kg',   dec:1, json:'peso_kg',               color:'#0FBF8F' },
+    { k:'fat_pct',    label:'Grasa corporal',       unit:'%',    dec:1, json:'grasa_pct',             color:'#F4436C' },
+    { k:'muscle_kg',  label:'Masa muscular',        unit:'kg',   dec:1, json:'musculo_kg',            color:'#8B5CF6' },
+    { k:'water_pct',  label:'Agua corporal',        unit:'%',    dec:1, json:'agua_pct',              color:'#0EA5E9' },
+    { k:'bmi',        label:'IMC',                  unit:'',     dec:1, json:'imc',                   color:'#3B82F6' },
+    { k:'visceral',   label:'Grasa visceral',       unit:'',     dec:0, json:'grasa_visceral',        color:'#F5A623' },
+    { k:'fat_kg',     label:'Masa grasa',           unit:'kg',   dec:1, json:'grasa_kg',              color:'#E8590C' },
+    { k:'muscle_pct', label:'Músculo',              unit:'%',    dec:1, json:'musculo_pct',           color:'#7C3AED' },
+    { k:'bone_kg',    label:'Masa ósea',            unit:'kg',   dec:1, json:'masa_osea_kg',          color:'#64748B' },
+    { k:'protein_pct',label:'Proteína',             unit:'%',    dec:1, json:'proteina_pct',          color:'#A855F7' },
+    { k:'bmr',        label:'Metabolismo basal',    unit:'kcal', dec:0, json:'metabolismo_basal_kcal',color:'#14B8A6' },
+    { k:'meta_age',   label:'Edad metabólica',      unit:'años', dec:0, json:'edad_metabolica',       color:'#D97706' }
+  ];
+  var BODY_DEFAULT_FIELDS = ['weight', 'fat_pct', 'muscle_kg', 'water_pct'];
+  function bodyMetric(k){ return BODY_METRICS.filter(function(m){ return m.k === k; })[0]; }
+
+  function loadBody(){
+    try{ var a = JSON.parse(localStorage.getItem(LS_BODY) || '[]'); return Array.isArray(a) ? a : []; }catch(e){ return []; }
+  }
+  function saveBody(){ try{ localStorage.setItem(LS_BODY, JSON.stringify(bodyLog)); }catch(e){} cloudMarkDirty(); }
+  var bodyLog = loadBody();
+
+  function bodySorted(){
+    return bodyLog.slice().sort(function(a, b){
+      return (a.date + (a.time || '')) < (b.date + (b.time || '')) ? -1 : 1;
+    });
+  }
+  function bodyFmt(v, dec){ return (Math.round(v * Math.pow(10, dec)) / Math.pow(10, dec)).toFixed(dec).replace('.', ','); }
+  function bodyDateLabel(iso, withYear){
+    var d = new Date(iso + 'T12:00:00');
+    return isNaN(d) ? iso : d.toLocaleDateString('es-ES', withYear ? { day:'numeric', month:'short', year:'numeric' } : { day:'numeric', month:'short' });
+  }
+  function bodyValuesText(m, only){
+    return BODY_METRICS.filter(function(x){ return m.m[x.k] != null && (!only || only.indexOf(x.k) >= 0); }).map(function(x){
+      return x.label + ' ' + bodyFmt(m.m[x.k], x.dec) + (x.unit ? ' ' + x.unit : '');
+    }).join(' · ');
+  }
+  // Añade una medición; si ya hay otra del mismo día y hora (o ambas sin hora) se combinan.
+  function bodyUpsert(item){
+    var found = bodyLog.filter(function(x){ return x.date === item.date && (x.time || '') === (item.time || ''); })[0];
+    if(found){
+      Object.keys(item.m).forEach(function(k){ found.m[k] = item.m[k]; });
+      return found;
+    }
+    item.id = 'bd' + Date.now() + Math.random().toString(36).slice(2, 7);
+    bodyLog.push(item);
+    return item;
+  }
+
+  /* --- Pantalla --- */
+  var progressScreen = document.getElementById('progressScreen');
+  var bodyRange = '3m';
+  var BODY_RANGES = [['1m', '1 mes', 30], ['3m', '3 meses', 91], ['6m', '6 meses', 183], ['all', 'Todo', 0]];
+  var bodyStatusHtml = '';
+  var bodyBusy = false;
+
+  function openProgress(){
+    progressScreen.classList.remove('hidden');
+    renderProgress();
+  }
+  function closeProgress(){ progressScreen.classList.add('hidden'); }
+  document.getElementById('progressClose').addEventListener('click', closeProgress);
+  document.getElementById('btnProgress').innerHTML = iconSvg('progress', 18);
+  document.getElementById('btnProgress').addEventListener('click', openProgress);
+
+  function bodyChartSvg(pts, met){
+    var W = 320, H = 150, pl = 36, pr = 12, pt = 12, pb = 24;
+    var ts = pts.map(function(p){ return new Date(p.date + 'T12:00:00').getTime() + (p.time ? 0 : 0); });
+    var vs = pts.map(function(p){ return p.v; });
+    var tmin = Math.min.apply(null, ts), tmax = Math.max.apply(null, ts);
+    var vmin = Math.min.apply(null, vs), vmax = Math.max.apply(null, vs);
+    var span = vmax - vmin;
+    var pad = span > 0 ? span * 0.15 : Math.max(Math.abs(vmax) * 0.03, 0.5);
+    vmin -= pad; vmax += pad;
+    function X(t){ return tmax === tmin ? (pl + (W - pl - pr) / 2) : pl + (t - tmin) / (tmax - tmin) * (W - pl - pr); }
+    function Y(v){ return pt + (1 - (v - vmin) / (vmax - vmin)) * (H - pt - pb); }
+    var xy = pts.map(function(p, i){ return [X(ts[i]), Y(p.v)]; });
+    var grid = '', i;
+    for(i = 0; i < 3; i++){
+      var gv = vmin + (vmax - vmin) * (i / 2), gy = Y(gv);
+      grid += '<line x1="'+pl+'" x2="'+(W - pr)+'" y1="'+gy.toFixed(1)+'" y2="'+gy.toFixed(1)+'" stroke="var(--border-soft)" stroke-width="1"/>'+
+        '<text x="'+(pl - 6)+'" y="'+(gy + 3).toFixed(1)+'" text-anchor="end" style="font-size:9px;fill:var(--ink-soft)">'+bodyFmt(gv, met.dec)+'</text>';
+    }
+    var line = xy.map(function(p, k){ return (k ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' ');
+    var base = (H - pb).toFixed(1);
+    var area = xy.length > 1 ? '<path d="'+line+' L'+xy[xy.length - 1][0].toFixed(1)+' '+base+' L'+xy[0][0].toFixed(1)+' '+base+' Z" fill="'+met.color+'" opacity="0.12"/>' : '';
+    var dots = '';
+    if(pts.length <= 40){
+      xy.forEach(function(p, k){
+        dots += '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+(k === xy.length - 1 ? 4.5 : 3)+'" fill="'+met.color+'" stroke="var(--card)" stroke-width="2"/>';
+      });
+    } else {
+      var lp = xy[xy.length - 1];
+      dots = '<circle cx="'+lp[0].toFixed(1)+'" cy="'+lp[1].toFixed(1)+'" r="4.5" fill="'+met.color+'" stroke="var(--card)" stroke-width="2"/>';
+    }
+    var xl = '<text x="'+pl+'" y="'+(H - 6)+'" text-anchor="start" style="font-size:9px;fill:var(--ink-soft)">'+bodyDateLabel(pts[0].date)+'</text>';
+    if(pts.length > 1) xl += '<text x="'+(W - pr)+'" y="'+(H - 6)+'" text-anchor="end" style="font-size:9px;fill:var(--ink-soft)">'+bodyDateLabel(pts[pts.length - 1].date)+'</text>';
+    return { xy: xy, W: W, H: H, pt: pt, pb: pb,
+      svg: '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Evolución de '+met.label+'">'+grid+area+
+        (xy.length > 1 ? '<path d="'+line+'" fill="none" stroke="'+met.color+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' : '')+
+        dots+xl+
+        '<line class="bp-cross" x1="0" x2="0" y1="'+pt+'" y2="'+(H - pb)+'" stroke="var(--ink-soft)" stroke-width="1" stroke-dasharray="3 3" style="display:none"/>'+
+        '<rect class="bp-hit" x="0" y="0" width="'+W+'" height="'+H+'" fill="transparent"/></svg>' };
+  }
+  function bodyAttachHover(wrap, pts, met, chart){
+    var svg = wrap.querySelector('svg'), tip = wrap.querySelector('.bp-tip'), cross = wrap.querySelector('.bp-cross');
+    function show(ev){
+      var r = svg.getBoundingClientRect();
+      if(!r.width) return;
+      var x = (ev.clientX - r.left) / r.width * chart.W, best = 0, bd = 1e9;
+      chart.xy.forEach(function(p, i){ var d = Math.abs(p[0] - x); if(d < bd){ bd = d; best = i; } });
+      var p = chart.xy[best];
+      cross.setAttribute('x1', p[0]); cross.setAttribute('x2', p[0]); cross.style.display = '';
+      tip.textContent = bodyDateLabel(pts[best].date, true) + ' · ' + bodyFmt(pts[best].v, met.dec) + (met.unit ? ' ' + met.unit : '');
+      tip.style.left = Math.max(60, Math.min(r.width - 60, p[0] / chart.W * r.width)) + 'px';
+      tip.style.top = (p[1] / chart.H * r.height) + 'px';
+      tip.style.opacity = 1;
+    }
+    function hide(){ cross.style.display = 'none'; tip.style.opacity = 0; }
+    svg.addEventListener('pointermove', show);
+    svg.addEventListener('pointerdown', show);
+    svg.addEventListener('pointerleave', hide);
+    svg.addEventListener('pointerup', function(e){ if(e.pointerType !== 'mouse') setTimeout(hide, 1500); });
+  }
+
+  function renderProgress(){
+    var box = document.getElementById('progressBody');
+    var all = bodySorted();
+    var html = '<div class="bp-add-row">'+
+      '<button type="button" class="secondary-btn" id="bpCam">📷 Foto</button>'+
+      '<button type="button" class="secondary-btn" id="bpFile">📎 Archivo</button>'+
+      '<button type="button" class="secondary-btn" id="bpManual">✍️ Manual</button></div>'+
+      '<div class="bp-status' + (/class="err"/.test(bodyStatusHtml) ? '' : '') + '" id="bpStatus">' + bodyStatusHtml + '</div>';
+    if(all.length === 0){
+      html += '<div class="bp-empty"><b>Aún no hay mediciones.</b><br>Sube una captura de la app de tu báscula, una foto de su pantalla, un PDF o un CSV exportado, y la IA extraerá peso, % de grasa, músculo, etc. Las gráficas aparecerán aquí y el chat con IA tendrá esos datos para conocerte mejor.</div>';
+      box.innerHTML = html;
+      bindProgressButtons();
+      return;
+    }
+    var rdef = BODY_RANGES.filter(function(r){ return r[0] === bodyRange; })[0];
+    var cutoff = null;
+    if(rdef[2]){ cutoff = new Date(); cutoff.setHours(0, 0, 0, 0); cutoff.setDate(cutoff.getDate() - rdef[2]); }
+    html += '<div class="bp-ranges">' + BODY_RANGES.map(function(r){
+      return '<button type="button" data-r="'+r[0]+'" class="'+(r[0] === bodyRange ? 'on' : '')+'">'+r[1]+'</button>';
+    }).join('') + '</div>';
+    var cards = [], any = false;
+    BODY_METRICS.forEach(function(met){
+      var series = all.filter(function(m){ return m.m[met.k] != null; }).map(function(m){ return { date:m.date, time:m.time, v:m.m[met.k] }; });
+      if(!series.length) return;
+      var pts = cutoff ? series.filter(function(p){ return new Date(p.date + 'T12:00:00') >= cutoff; }) : series;
+      var latest = series[series.length - 1];
+      var deltaHtml = '';
+      if(pts.length > 1){
+        var dv = pts[pts.length - 1].v - pts[0].v;
+        deltaHtml = '<b>' + (dv > 0 ? '▲ +' : (dv < 0 ? '▼ −' : '= ')) + bodyFmt(Math.abs(dv), met.dec) + (met.unit ? ' ' + met.unit : '') + '</b><br>desde ' + bodyDateLabel(pts[0].date);
+      } else {
+        deltaHtml = bodyDateLabel(latest.date, true);
+      }
+      var inner;
+      if(pts.length){
+        any = true;
+        var ch = bodyChartSvg(pts, met);
+        inner = { pts: pts, chart: ch, html: '<div class="bp-chart" data-k="'+met.k+'">'+ch.svg+'<div class="bp-tip"></div></div>' };
+      } else {
+        inner = { html: '<div class="msg">Sin mediciones en este periodo.</div>' };
+      }
+      cards.push({ met: met, inner: inner,
+        html: '<div class="bp-card"><div class="bp-card-head"><div><div class="bp-name"><span class="bp-dot" style="background:'+met.color+'"></span>'+met.label+'</div>'+
+          '<div class="bp-val">'+bodyFmt(latest.v, met.dec)+'<small>'+met.unit+'</small></div></div><div class="bp-delta">'+deltaHtml+'</div></div>'+inner.html+'</div>' });
+    });
+    html += cards.map(function(c){ return c.html; }).join('');
+    html += '<p class="section-label" style="margin-top:22px">Historial</p>' + all.slice().reverse().map(function(m){
+      return '<div class="bp-hist-row" data-id="'+m.id+'"><div><div class="d">'+bodyDateLabel(m.date, true)+(m.time ? ' · ' + m.time : '')+'</div><div class="s">'+escapeHtml(bodyValuesText(m, ['weight', 'fat_pct', 'muscle_kg', 'water_pct', 'bmi']) || bodyValuesText(m))+'</div></div><span class="ch">›</span></div>';
+    }).join('');
+    box.innerHTML = html;
+    cards.forEach(function(c){
+      if(!c.inner.pts) return;
+      var wrap = box.querySelector('.bp-chart[data-k="'+c.met.k+'"]');
+      if(wrap) bodyAttachHover(wrap, c.inner.pts, c.met, c.inner.chart);
+    });
+    Array.prototype.forEach.call(box.querySelectorAll('.bp-ranges button'), function(b){
+      b.addEventListener('click', function(){ bodyRange = b.getAttribute('data-r'); renderProgress(); });
+    });
+    Array.prototype.forEach.call(box.querySelectorAll('.bp-hist-row'), function(row){
+      row.addEventListener('click', function(){
+        var m = bodyLog.filter(function(x){ return x.id === row.getAttribute('data-id'); })[0];
+        if(m) openBodyReview([{ date:m.date, time:m.time || null, m:JSON.parse(JSON.stringify(m.m)), editId:m.id }], 'edit');
+      });
+    });
+    bindProgressButtons();
+  }
+  function bpSetStatus(html){
+    bodyStatusHtml = html || '';
+    var el = document.getElementById('bpStatus');
+    if(el) el.innerHTML = bodyStatusHtml;
+  }
+  function bindProgressButtons(){
+    var cam = document.getElementById('bpCam'), file = document.getElementById('bpFile'), man = document.getElementById('bpManual');
+    if(cam) cam.addEventListener('click', function(){ if(!bodyBusy) document.getElementById('bodyCamInput').click(); });
+    if(file) file.addEventListener('click', function(){ if(!bodyBusy) document.getElementById('bodyFileInput').click(); });
+    if(man) man.addEventListener('click', function(){
+      var m = {}; BODY_DEFAULT_FIELDS.forEach(function(k){ m[k] = null; });
+      openBodyReview([{ date: isoDate(new Date()), time:null, m:m, manual:true }], 'new');
+    });
+  }
+
+  /* --- Extracción con Gemini --- */
+  function bodyPrompt(){
+    var today = isoDate(new Date());
+    return 'Eres un extractor de datos de básculas de composición corporal. El material adjunto es una captura de una app de báscula, una foto de la pantalla de la báscula, un informe PDF o una exportación CSV/texto. ' +
+      'Extrae TODAS las mediciones que aparezcan (puede ser una sola o muchas, una por fecha). Hoy es ' + today + '. ' +
+      'Para cada medición devuelve "fecha" (YYYY-MM-DD; si no aparece el año usa el actual; si no hay fecha visible, null) y "hora" (HH:MM, o null), más los valores que figuren. ' +
+      'NO inventes ni calcules nada: si un dato no aparece, omite su clave. Unidades: peso, masas y huesos en kg (convierte si están en lb o st); porcentajes como número sin el símbolo %. ' +
+      'Claves posibles: peso_kg, imc, grasa_pct, grasa_kg, musculo_kg, musculo_pct, agua_pct, grasa_visceral, masa_osea_kg, proteina_pct, metabolismo_basal_kcal, edad_metabolica. ' +
+      'Si una cifra es un rango o una etiqueta cualitativa (p.ej. "Normal") sin número, ignórala. ' +
+      'Devuelve ÚNICAMENTE JSON, sin markdown: {"mediciones":[{"fecha":"YYYY-MM-DD","hora":"HH:MM","peso_kg":number,...}]}';
+  }
+  function bodyCleanNumber(v){
+    if(v == null || v === '') return null;
+    var n = typeof v === 'number' ? v : parseFloat(String(v).replace(',', '.').replace(/[^0-9.\-]/g, ''));
+    return isFinite(n) ? n : null;
+  }
+  var BODY_RANGES_OK = { weight:[20, 400], bmi:[8, 80], fat_pct:[1, 75], fat_kg:[0.5, 250], muscle_kg:[5, 150], muscle_pct:[5, 90], water_pct:[20, 80], visceral:[1, 60], bone_kg:[0.3, 10], protein_pct:[3, 40], bmr:[600, 5000], meta_age:[5, 110] };
+  function bodyNormalizeItems(parsed){
+    var list = parsed && (parsed.mediciones || parsed.measurements || (Array.isArray(parsed) ? parsed : null)) || [];
+    var out = [];
+    list.forEach(function(raw){
+      if(!raw || typeof raw !== 'object') return;
+      var m = {};
+      BODY_METRICS.forEach(function(met){
+        var v = bodyCleanNumber(raw[met.json]);
+        var r = BODY_RANGES_OK[met.k];
+        if(v != null && v >= r[0] && v <= r[1]) m[met.k] = v;
+      });
+      if(!Object.keys(m).length) return;
+      var date = /^\d{4}-\d{2}-\d{2}$/.test(String(raw.fecha || '')) ? raw.fecha : null;
+      var time = /^\d{1,2}:\d{2}$/.test(String(raw.hora || '')) ? ('0' + raw.hora).slice(-5) : null;
+      out.push({ date: date || isoDate(new Date()), time: time, m: m, noDate: !date });
+    });
+    return out;
+  }
+  function bodyFilePart(file){
+    var type = file.type || '', name = file.name || 'archivo';
+    if(/^image\//.test(type)){
+      return resizeImageToDataUrl(file, 1600, 0.85).then(function(url){
+        return { inline_data: { mime_type: 'image/jpeg', data: url.split(',')[1] } };
+      });
+    }
+    if(type === 'application/pdf' || /\.pdf$/i.test(name)){
+      if(file.size > 14 * 1024 * 1024) return Promise.reject(new Error('El PDF "' + name + '" es demasiado grande (máx. 14 MB).'));
+      return fileToBase64(file).then(function(b64){ return { inline_data: { mime_type: 'application/pdf', data: b64 } }; });
+    }
+    if(/\.(csv|tsv|txt|json)$/i.test(name) || /^text\//.test(type) || type === 'application/json'){
+      return new Promise(function(resolve, reject){
+        var r = new FileReader();
+        r.onload = function(){
+          var t = String(r.result || '');
+          var cut = t.length > 80000;
+          resolve({ text: 'Contenido del archivo "' + name + '"' + (cut ? ' (recortado a los primeros 80.000 caracteres)' : '') + ':\n' + t.slice(0, 80000) });
+        };
+        r.onerror = function(){ reject(new Error('No se pudo leer "' + name + '".')); };
+        r.readAsText(file);
+      });
+    }
+    return Promise.reject(new Error('Formato no admitido: "' + name + '". Usa imagen, PDF, CSV o TXT (si es Excel, expórtalo a CSV).'));
+  }
+  function bodyExtractOne(file){
+    var key = getGeminiKey();
+    return bodyFilePart(file).then(function(part){
+      var body = {
+        contents: [{ parts: [{ text: bodyPrompt() }, part] }],
+        generationConfig: { response_mime_type: 'application/json', maxOutputTokens: 24000 }
+      };
+      return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=' + encodeURIComponent(key), {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+      });
+    }).then(function(r){ return r.json(); }).then(function(data){
+      if(data && data.error) throw new Error('Gemini: ' + (data.error.message || data.error.status || 'error'));
+      var cand = data && data.candidates && data.candidates[0];
+      if(cand && cand.finishReason && cand.finishReason !== 'STOP'){
+        throw new Error(cand.finishReason === 'MAX_TOKENS' ? 'El archivo tiene demasiadas mediciones para una sola pasada; divídelo en partes.' : 'Gemini no completó la respuesta (' + cand.finishReason + ').');
+      }
+      var text = cand && cand.content && cand.content.parts && cand.content.parts[0] && cand.content.parts[0].text;
+      if(!text) throw new Error('Gemini no devolvió datos utilizables.');
+      var parsed;
+      try{ parsed = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, '')); }
+      catch(e){ throw new Error('No se pudo interpretar la respuesta de Gemini.'); }
+      return bodyNormalizeItems(parsed);
+    });
+  }
+  function bodyProcessFiles(files){
+    files = Array.prototype.slice.call(files || []);
+    if(!files.length) return;
+    if(!getGeminiKey()){
+      bpSetStatus('<span class="err" style="color:var(--danger)">Añade tu API key de Gemini en Ajustes (⚙) para leer archivos e imágenes. Mientras tanto puedes introducir los datos a mano.</span>');
+      return;
+    }
+    bodyBusy = true;
+    var items = [], errors = [], idx = 0;
+    function next(){
+      if(idx >= files.length) return Promise.resolve();
+      var f = files[idx++];
+      bpSetStatus('<span class="bp-spin"></span>Analizando ' + escapeHtml(f.name || 'imagen') + ' (' + idx + '/' + files.length + ')…');
+      return bodyExtractOne(f).then(function(got){
+        if(!got.length) errors.push('No se encontraron mediciones en "' + (f.name || 'imagen') + '".');
+        items = items.concat(got);
+      }).catch(function(e){ errors.push(e && e.message ? e.message : String(e)); }).then(next);
+    }
+    next().then(function(){
+      bodyBusy = false;
+      if(!items.length){
+        bpSetStatus('<span style="color:var(--danger)">' + escapeHtml(errors.join(' ') || 'No se encontraron mediciones.') + '</span>');
+        return;
+      }
+      bpSetStatus(errors.length ? '<span style="color:var(--danger)">' + escapeHtml(errors.join(' ')) + '</span>' : '');
+      openBodyReview(items, 'new');
+    });
+  }
+  ['bodyFileInput', 'bodyCamInput'].forEach(function(id){
+    var inp = document.getElementById(id);
+    inp.addEventListener('change', function(){
+      var fs = Array.prototype.slice.call(inp.files || []);
+      inp.value = '';
+      bodyProcessFiles(fs);
+    });
+  });
+
+  /* --- Revisión / edición --- */
+  var bodyReview = { items: [], mode: 'new' };
+  var bodyReviewOverlay = document.getElementById('bodyReviewOverlay');
+  function openBodyReview(items, mode){
+    bodyReview = { items: items, mode: mode };
+    var edit = mode === 'edit';
+    document.getElementById('bodyReviewTitle').textContent = edit ? 'Editar medición' : (items[0] && items[0].manual ? 'Nueva medición' : 'Revisa las mediciones');
+    document.getElementById('bodyReviewHint').textContent = edit ? '' : (items[0] && items[0].manual ? 'Rellena los datos que quieras registrar.' : 'La IA puede equivocarse al leer: comprueba fechas y valores antes de guardar. Si ya hay una medición del mismo día se combinan.');
+    document.getElementById('bodyReviewSave').textContent = edit ? 'Guardar cambios' : 'Guardar';
+    document.getElementById('bodyReviewDelete').classList.toggle('hidden', !edit);
+    document.getElementById('bodyReviewMsg').textContent = '';
+    renderBodyReview();
+    bodyReviewOverlay.classList.remove('hidden');
+  }
+  function renderBodyReview(){
+    var box = document.getElementById('bodyReviewList');
+    box.innerHTML = bodyReview.items.map(function(it, i){
+      var keys = Object.keys(it.m);
+      var missing = BODY_METRICS.filter(function(x){ return keys.indexOf(x.k) < 0; });
+      var dup = !it.editId && bodyLog.some(function(x){ return x.date === it.date && (x.time || '') === (it.time || ''); });
+      return '<div class="br-card" data-i="'+i+'">'+
+        '<div class="br-head"><input type="date" class="br-date" value="'+escapeHtml(it.date)+'">'+
+        (bodyReview.items.length > 1 ? '<button type="button" class="br-del" aria-label="Quitar">✕</button>' : '')+'</div>'+
+        (it.noDate ? '<div class="br-note warn">No se vio la fecha en el archivo: se ha puesto hoy. Corrígela si hace falta.</div>' : '')+
+        (dup ? '<div class="br-note warn">Ya hay una medición este día: se combinarán los valores.</div>' : '')+
+        '<div class="m-grid2">'+ BODY_METRICS.filter(function(x){ return keys.indexOf(x.k) >= 0; }).map(function(x){
+          return '<div class="m-field"><label>'+x.label+(x.unit ? ' ('+x.unit+')' : '')+'</label><input type="number" step="any" inputmode="decimal" data-k="'+x.k+'" value="'+(it.m[x.k] != null ? it.m[x.k] : '')+'"></div>';
+        }).join('') + '</div>'+
+        (missing.length ? '<select class="br-add"><option value="">+ Añadir campo…</option>'+missing.map(function(x){ return '<option value="'+x.k+'">'+x.label+'</option>'; }).join('')+'</select>' : '')+
+      '</div>';
+    }).join('');
+    Array.prototype.forEach.call(box.querySelectorAll('.br-card'), function(card){
+      var it = bodyReview.items[Number(card.getAttribute('data-i'))];
+      card.querySelector('.br-date').addEventListener('change', function(e){ it.date = e.target.value; it.noDate = false; });
+      Array.prototype.forEach.call(card.querySelectorAll('input[data-k]'), function(inp){
+        inp.addEventListener('input', function(){ it.m[inp.getAttribute('data-k')] = inp.value === '' ? null : Number(inp.value); });
+      });
+      var del = card.querySelector('.br-del');
+      if(del) del.addEventListener('click', function(){ bodyReview.items.splice(Number(card.getAttribute('data-i')), 1); renderBodyReview(); });
+      var add = card.querySelector('.br-add');
+      if(add) add.addEventListener('change', function(){
+        if(!add.value) return;
+        it.m[add.value] = null; renderBodyReview();
+        var again = box.querySelector('.br-card[data-i="'+card.getAttribute('data-i')+'"] input[data-k="'+add.value+'"]');
+        if(again) again.focus();
+      });
+    });
+  }
+  function closeBodyReview(){ bodyReviewOverlay.classList.add('hidden'); }
+  document.getElementById('closeBodyReview').addEventListener('click', closeBodyReview);
+  document.getElementById('bodyReviewSave').addEventListener('click', function(){
+    var msg = document.getElementById('bodyReviewMsg');
+    var clean = [];
+    for(var i = 0; i < bodyReview.items.length; i++){
+      var it = bodyReview.items[i], m = {};
+      Object.keys(it.m).forEach(function(k){
+        var v = it.m[k], r = BODY_RANGES_OK[k];
+        if(v != null && isFinite(v) && v > 0) m[k] = v;
+      });
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(it.date || '')){ msg.textContent = 'Revisa la fecha de la medición ' + (i + 1) + '.'; return; }
+      if(!Object.keys(m).length){ msg.textContent = 'La medición del ' + bodyDateLabel(it.date) + ' no tiene ningún valor.'; return; }
+      for(var k in m){ var rg = BODY_RANGES_OK[k]; if(m[k] < rg[0] || m[k] > rg[1]){ msg.textContent = 'Valor poco creíble en ' + bodyMetric(k).label + ' (' + m[k] + '). Revísalo.'; return; } }
+      clean.push({ date: it.date, time: it.time || null, m: m, editId: it.editId, manual: it.manual });
+    }
+    msg.textContent = '';
+    clean.forEach(function(it){
+      if(it.editId){
+        var cur = bodyLog.filter(function(x){ return x.id === it.editId; })[0];
+        if(cur){ cur.date = it.date; cur.time = it.time; cur.m = it.m; }
+      } else {
+        bodyUpsert({ date: it.date, time: it.time, m: it.m, src: it.manual ? 'manual' : 'ia' });
+      }
+    });
+    saveBody();
+    closeBodyReview();
+    bpSetStatus('');
+    renderProgress();
+  });
+  document.getElementById('bodyReviewDelete').addEventListener('click', function(){
+    var it = bodyReview.items[0];
+    customConfirm('¿Eliminar esta medición?', function(){
+      bodyLog = bodyLog.filter(function(x){ return x.id !== it.editId; });
+      saveBody();
+      closeBodyReview();
+      renderProgress();
+    });
+  });
+
+  /* --- Contexto para el chat con IA --- */
+  function buildBodyContext(){
+    var all = bodySorted();
+    if(!all.length) return '';
+    var last = all[all.length - 1];
+    var L = ['COMPOSICIÓN CORPORAL (mediciones de su báscula; ' + all.length + ' registradas, desde ' + all[0].date + '):'];
+    L.push('- Última (' + last.date + (last.time ? ' ' + last.time : '') + '): ' + bodyValuesText(last) + '.');
+    // Variación en ~30 días y desde la primera medición, por indicador.
+    var lastT = new Date(last.date + 'T12:00:00').getTime();
+    var changes = [];
+    BODY_METRICS.forEach(function(met){
+      var series = all.filter(function(m){ return m.m[met.k] != null; });
+      if(series.length < 2) return;
+      var cur = series[series.length - 1], first = series[0];
+      var ref = series.filter(function(m){ return lastT - new Date(m.date + 'T12:00:00').getTime() >= 25 * 86400000; }).pop();
+      var parts = [];
+      function d(a, b){ var v = a - b; return (v > 0 ? '+' : (v < 0 ? '−' : '')) + bodyFmt(Math.abs(v), met.dec) + (met.unit ? ' ' + met.unit : ''); }
+      if(ref && ref !== cur) parts.push(d(cur.m[met.k], ref.m[met.k]) + ' desde el ' + ref.date);
+      if(first !== cur && first !== ref) parts.push(d(cur.m[met.k], first.m[met.k]) + ' desde el ' + first.date);
+      if(parts.length) changes.push(met.label + ' ' + parts.join('; '));
+    });
+    if(changes.length) L.push('- Evolución: ' + changes.join(' | ') + '.');
+    var recent = all.slice(-10).reverse().map(function(m){
+      return '  · ' + m.date + ': ' + (bodyValuesText(m, ['weight', 'fat_pct', 'muscle_kg', 'water_pct', 'visceral']) || bodyValuesText(m));
+    });
+    L.push('- Últimas mediciones:\n' + recent.join('\n'));
+    return L.join('\n');
+  }
+
   /* ---------- Init ---------- */
   document.getElementById('btnSettings').innerHTML = iconSvg('settings', 17);
   document.getElementById('cmPhotoBtn').innerHTML =
@@ -5522,6 +6039,8 @@
     }
     L.push('TOTALES DE LOS ÚLTIMOS ' + CHAT_CONTEXT_DAYS + ' DÍAS (solo lo contado):\n' + totalsLines.join('\n'));
     L.push('DETALLE DE LO COMIDO (últimos ' + CHAT_DETAIL_DAYS + ' días):\n' + (detailLines.join('\n') || '- sin registros'));
+    var bodyCtx = buildBodyContext();
+    if(bodyCtx) L.push(bodyCtx);
     if(favorites.length){
       L.push('ALIMENTOS FAVORITOS (los que suele tener en casa): ' + favorites.map(function(f){ return f.name; }).join(', ') + '.');
     }
@@ -5529,7 +6048,7 @@
   }
   var CHAT_SYSTEM = 'Eres el asistente de nutrición y entrenamiento de la app MacroFit, un seguimiento personal de calorías y macros. ' +
     'Respondes siempre en español, con tono cercano, práctico y detallado. ' +
-    'Usa los datos reales del usuario que aparecen abajo para dar recomendaciones concretas (cita cifras y días cuando ayude). ' +
+    'Usa los datos reales del usuario que aparecen abajo para dar recomendaciones concretas (cita cifras y días cuando ayude). Si hay datos de composición corporal de su báscula, tenlos en cuenta (tendencia de peso, grasa y músculo) y relaciónalos con lo que come; sé prudente: las básculas de bioimpedancia son orientativas y varían con la hidratación. ' +
     'No inventes datos que no tienes: la app NO registra su actividad física, así que si necesitas saber cuánto o qué entrena, pregúntaselo. ' +
     'Formato: texto detallado, listas con guiones cuando convenga, **negrita** para lo importante, sin tablas ni encabezados largos. ' +
     'Tus consejos son orientativos y no sustituyen a un profesional; si menciona lesiones, síntomas o condiciones médicas, recomiéndale consultarlo con un profesional sanitario. ' +
@@ -6125,6 +6644,7 @@
     });
     createdMeals.forEach(function(m){ if(m && m.id) docs['meal_' + m.id] = JSON.stringify(m); });
     chats.forEach(function(c){ if(c && c.id) docs['chat_' + c.id] = JSON.stringify(c); });
+    bodyLog.forEach(function(b){ if(b && b.id) docs['body_' + b.id] = JSON.stringify(b); });
     return docs;
   }
 
@@ -6145,12 +6665,15 @@
       cloudUpsert(createdMeals, v);
     } else if(id.indexOf('chat_') === 0){
       cloudUpsert(chats, v);
+    } else if(id.indexOf('body_') === 0){
+      cloudUpsert(bodyLog, v);
     }
   }
   function cloudRemoveLocal(id){
     if(id.indexOf('log_') === 0) delete logs[id.slice(4)];
     else if(id.indexOf('meal_') === 0) createdMeals = createdMeals.filter(function(m){ return m.id !== id.slice(5); });
     else if(id.indexOf('chat_') === 0) chats = chats.filter(function(c){ return c.id !== id.slice(5); });
+    else if(id.indexOf('body_') === 0) bodyLog = bodyLog.filter(function(b){ return b.id !== id.slice(5); });
   }
   function cloudMergeLog(localArr, remoteArr, remoteT, editAt){
     var localWins = editAt > remoteT;
@@ -6165,10 +6688,11 @@
   }
   function cloudPersistAll(){
     saveTargets(targets); saveLogs(logs); saveFavorites(favorites); saveCustomServings(customServingsMap);
-    saveCreatedMeals(createdMeals); saveChats();
+    saveCreatedMeals(createdMeals); saveChats(); saveBody();
   }
   function cloudRerender(){
     renderDay(); renderTargetsForm(); refreshChatViews();
+    if(!progressScreen.classList.contains('hidden')) renderProgress();
   }
 
   // Compara local, nube y el último estado sincronizado (3 vías) y aplica los cambios.
@@ -6375,7 +6899,7 @@
   function cloudWipeLocal(){
     cloud.applying = true;
     try{
-      targets = {}; favorites = []; customServingsMap = {}; createdMeals = []; chats = [];
+      targets = {}; favorites = []; customServingsMap = {}; createdMeals = []; chats = []; bodyLog = [];
       Object.keys(logs).forEach(function(k){ delete logs[k]; });
       cloudPersistAll();
       localStorage.removeItem(LS_SYNC_META); localStorage.removeItem(LS_EDIT_AT);
