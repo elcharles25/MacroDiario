@@ -511,6 +511,22 @@
   .bp-spin{display:inline-block;width:12px;height:12px;border:2px solid var(--border-soft);border-top-color:var(--primary);border-radius:50%;animation:bpspin .8s linear infinite;vertical-align:-2px;margin-right:6px;}
   @keyframes bpspin{to{transform:rotate(360deg);}}
   #bodyReviewOverlay{z-index:61;}
+  .bp-tabs{display:flex;gap:6px;padding:10px 16px 0;}
+  .bp-tabs button{flex:1;border:none;border-radius:var(--radius-full);padding:9px 0;font-size:13px;font-weight:700;background:var(--card);color:var(--ink-soft);box-shadow:var(--shadow-card);}
+  .bp-tabs button.on{background:var(--primary);color:#fff;}
+  .wk-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;}
+  .wk-stat{background:var(--card);border-radius:var(--radius-md);box-shadow:var(--shadow-card);padding:10px 8px;text-align:center;}
+  .wk-stat .v{font-family:'Poppins',sans-serif;font-size:20px;font-weight:700;color:var(--ink);line-height:1.2;}
+  .wk-stat .l{font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-soft);font-weight:600;margin-top:2px;}
+  .wk-type-row{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:13px;}
+  .wk-type-row .nm{flex:none;width:112px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .wk-type-row .bar{flex:1;height:8px;border-radius:4px;background:var(--bg);overflow:hidden;}
+  .wk-type-row .bar i{display:block;height:100%;border-radius:4px;background:var(--primary);}
+  .wk-type-row .ct{flex:none;font-size:11px;color:var(--ink-soft);width:84px;text-align:right;}
+  .wk-row{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:var(--radius-md);box-shadow:var(--shadow-card);padding:10px 14px;margin-top:8px;cursor:pointer;}
+  .wk-row .ic{font-size:22px;flex:none;width:30px;text-align:center;}
+  .wk-row .d{font-weight:700;font-size:13px;}
+  .wk-row .s{font-size:12px;color:var(--ink-soft);margin-top:2px;}
 </style>
 </head>
 <body>
@@ -573,10 +589,12 @@
       <button type="button" class="chat-icon-btn" id="progressClose" aria-label="Cerrar">‹</button>
       <h2>Progreso</h2>
     </div>
+    <div class="bp-tabs" id="bpTabs"><button type="button" data-t="cuerpo">Cuerpo</button><button type="button" data-t="entrenos">Entrenos</button></div>
     <div class="progress-body" id="progressBody"></div>
   </div>
 </div>
 <input type="file" id="bodyFileInput" accept="image/*,application/pdf,.pdf,.csv,.tsv,.txt,.json" multiple hidden>
+<input type="file" id="workoutFileInput" accept=".json,.csv,.tsv,.txt,application/json,text/csv,image/*,application/pdf" multiple hidden>
 <input type="file" id="bodyCamInput" accept="image/*" capture="environment" hidden>
 
 <div class="overlay hidden" id="bodyReviewOverlay">
@@ -2120,7 +2138,8 @@
       localStorage.removeItem(LS_PROXY);
       localStorage.removeItem(LS_FAVORITES);
       localStorage.removeItem(LS_BODY);
-      targets = {}; logs = {}; favorites = []; bodyLog = [];
+      localStorage.removeItem(LS_WORKOUTS);
+      targets = {}; logs = {}; favorites = []; bodyLog = []; workouts = [];
       cloudMarkDirty();
       renderDay(); renderTargetsForm();
       settingsOverlay.classList.add('hidden');
@@ -5597,7 +5616,7 @@
     svg.addEventListener('pointerup', function(e){ if(e.pointerType !== 'mouse') setTimeout(hide, 1500); });
   }
 
-  function renderProgress(){
+  function renderBodyTab(){
     var box = document.getElementById('progressBody');
     var all = bodySorted();
     var html = '<div class="bp-add-row">'+
@@ -5663,6 +5682,15 @@
     });
     bindProgressButtons();
   }
+  function renderProgress(){
+    Array.prototype.forEach.call(document.querySelectorAll('#bpTabs button'), function(b){
+      b.classList.toggle('on', b.getAttribute('data-t') === progTab);
+    });
+    if(progTab === 'entrenos') renderWorkoutsTab(); else renderBodyTab();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#bpTabs button'), function(b){
+    b.addEventListener('click', function(){ progTab = b.getAttribute('data-t'); bpSetStatus(''); renderProgress(); document.getElementById('progressBody').scrollTop = 0; });
+  });
   function bpSetStatus(html){
     bodyStatusHtml = html || '';
     var el = document.getElementById('bpStatus');
@@ -5916,6 +5944,418 @@
     return L.join('\n');
   }
 
+  /* ---------- Entrenamientos (importados desde Apple Salud/Fitness) ----------
+     Un navegador no puede leer HealthKit, así que el usuario exporta sus entrenos con la app
+     "Health Auto Export" (JSON o CSV) o un Atajo de iOS y los importa aquí. Se leen en el
+     propio dispositivo (sin IA); si el formato no se reconoce se prueba con Gemini. */
+  var LS_WORKOUTS = 'md_workouts_v1';
+  function loadWorkouts(){
+    try{ var a = JSON.parse(localStorage.getItem(LS_WORKOUTS) || '[]'); return Array.isArray(a) ? a : []; }catch(e){ return []; }
+  }
+  function saveWorkouts(){ try{ localStorage.setItem(LS_WORKOUTS, JSON.stringify(workouts)); }catch(e){} cloudMarkDirty(); }
+  var workouts = loadWorkouts();
+  var progTab = 'cuerpo';
+  var wkRange = '3m';
+  var WK_RANGES = [['1m', '4 semanas', 28], ['3m', '3 meses', 91], ['6m', '6 meses', 183], ['all', 'Todo', 0]];
+
+  // Tipo de entrenamiento -> nombre en español + icono.
+  var WK_TYPES = [
+    [/run|carrera|correr|footing/, 'Correr', '🏃'],
+    [/walk|caminata|caminar|paseo/, 'Caminar', '🚶'],
+    [/hik|sendero|senderismo/, 'Senderismo', '🥾'],
+    [/cycl|bike|bicicleta|ciclismo/, 'Ciclismo', '🚴'],
+    [/strength|fuerza|weight|pesas|musculacion/, 'Fuerza', '🏋️'],
+    [/hiit|high intensity|intervalos/, 'HIIT', '🔥'],
+    [/swim|natacion|nadar/, 'Natación', '🏊'],
+    [/yoga/, 'Yoga', '🧘'],
+    [/pilates|barre/, 'Pilates', '🤸'],
+    [/core|abdominal/, 'Core', '💪'],
+    [/row|remo/, 'Remo', '🚣'],
+    [/elliptical|eliptica/, 'Elíptica', '🏃'],
+    [/stair|escalera/, 'Escaleras', '🪜'],
+    [/dance|baile|danza/, 'Baile', '💃'],
+    [/box|kick|martial|artes marciales/, 'Combate', '🥊'],
+    [/tennis|tenis|padel|squash|badminton/, 'Raqueta', '🎾'],
+    [/soccer|futbol|football/, 'Fútbol', '⚽'],
+    [/basket|baloncesto/, 'Baloncesto', '🏀'],
+    [/ski|snowboard|esqui/, 'Nieve', '🎿'],
+    [/climb|escalada/, 'Escalada', '🧗'],
+    [/stretch|flexib|estiramiento|cooldown|recuper/, 'Estiramientos', '🤸'],
+    [/mixed|cross|funcional|functional/, 'Funcional', '🏋️']
+  ];
+  function wkTypeInfo(raw){
+    var n = normalizeStr(raw || '');
+    for(var i = 0; i < WK_TYPES.length; i++) if(WK_TYPES[i][0].test(n)) return { name: WK_TYPES[i][1], icon: WK_TYPES[i][2] };
+    return { name: (raw || 'Entreno').trim().replace(/^./, function(c){ return c.toUpperCase(); }), icon: '🏅' };
+  }
+
+  // --- Lectura de archivos ---
+  function wkNum(v){
+    if(v == null || v === '') return null;
+    if(typeof v === 'object') return wkNum(v.qty != null ? v.qty : (v.value != null ? v.value : (v.avg != null ? v.avg : null)));
+    var n = typeof v === 'number' ? v : parseFloat(String(v).replace(/[^0-9,.\-]/g, '').replace(',', '.'));
+    return isFinite(n) ? n : null;
+  }
+  // Devuelve {date:'YYYY-MM-DD', time:'HH:MM'} tomando la fecha/hora tal cual vienen (hora local del iPhone).
+  function wkParseDate(s){
+    s = String(s || '').trim();
+    var m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{1,2}):(\d{2}))?/);
+    if(m) return { date: m[1] + '-' + m[2] + '-' + m[3], time: m[4] ? ('0' + m[4]).slice(-2) + ':' + m[5] : null };
+    m = s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})(?:[, T]+(\d{1,2}):(\d{2}))?/);
+    if(m){
+      var y = m[3].length === 2 ? '20' + m[3] : m[3];
+      return { date: y + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2), time: m[4] ? ('0' + m[4]).slice(-2) + ':' + m[5] : null };
+    }
+    return null;
+  }
+  function wkMinutesBetween(a, b){
+    var pa = String(a || '').match(/(\d{4}-\d{2}-\d{2})[T ](\d{2}):(\d{2}):?(\d{2})?/), pb = String(b || '').match(/(\d{4}-\d{2}-\d{2})[T ](\d{2}):(\d{2}):?(\d{2})?/);
+    if(!pa || !pb) return null;
+    var ta = Date.UTC(+pa[1].slice(0, 4), +pa[1].slice(5, 7) - 1, +pa[1].slice(8, 10), +pa[2], +pa[3], +(pa[4] || 0));
+    var tb = Date.UTC(+pb[1].slice(0, 4), +pb[1].slice(5, 7) - 1, +pb[1].slice(8, 10), +pb[2], +pb[3], +(pb[4] || 0));
+    var d = (tb - ta) / 60000;
+    return d > 0 && d < 1440 ? d : null;
+  }
+  function wkDuration(v, unitHint){
+    if(v == null || v === '') return null;
+    if(typeof v === 'object') v = v.qty != null ? v.qty : v.value;
+    var s = String(v).trim(), m = s.match(/^(\d+):(\d{2})(?::(\d{2}))?$/);
+    if(m) return m[3] != null ? (+m[1] * 60 + +m[2] + +m[3] / 60) : (+m[1] + +m[2] / 60);
+    var n = wkNum(v);
+    if(n == null) return null;
+    if(unitHint === 'min') return n;
+    if(unitHint === 's') return n / 60;
+    return n >= 400 ? n / 60 : n; // sin unidad: valores grandes = segundos
+  }
+  function wkMake(type, start, end, durRaw, unitHint, kcal, dist, distUnit, avgHr, maxHr){
+    var dt = wkParseDate(start);
+    if(!dt) return null;
+    var mins = wkMinutesBetween(start, end);
+    if(mins == null) mins = wkDuration(durRaw, unitHint);
+    if(mins == null || mins <= 0) return null;
+    var km = dist;
+    if(km != null){
+      if(/mi/.test(distUnit || '') && !/km/.test(distUnit)) km = km * 1.609344;
+      else if(distUnit === 'm') km = km / 1000;
+    }
+    var info = wkTypeInfo(type);
+    return {
+      date: dt.date, time: dt.time, type: info.name, icon: info.icon,
+      min: Math.round(mins * 10) / 10,
+      kcal: kcal != null && kcal >= 0 ? Math.round(kcal) : null,
+      km: km != null && km > 0 ? Math.round(km * 100) / 100 : null,
+      hr: avgHr != null && avgHr > 30 && avgHr < 230 ? Math.round(avgHr) : null,
+      hrMax: maxHr != null && maxHr > 30 && maxHr < 240 ? Math.round(maxHr) : null
+    };
+  }
+  function wkParseHaeJson(text){
+    var j;
+    try{ j = JSON.parse(text); }catch(e){ return null; }
+    var list = (j && j.data && j.data.workouts) || (j && j.workouts) || (Array.isArray(j) ? j : null);
+    if(!Array.isArray(list)) return null;
+    var out = [];
+    list.forEach(function(w){
+      if(!w || typeof w !== 'object') return;
+      var hr = w.heartRate || {};
+      var kcalRaw = w.activeEnergyBurned != null ? w.activeEnergyBurned : (w.activeEnergy != null ? w.activeEnergy : w.energy);
+      var kcal = wkNum(kcalRaw);
+      if(kcal != null && kcalRaw && typeof kcalRaw === 'object' && /kj/i.test(kcalRaw.units || '')) kcal = kcal / 4.184;
+      var dist = w.distance, distUnit = dist && typeof dist === 'object' ? String(dist.units || 'km').toLowerCase() : 'km';
+      var rec = wkMake(w.name || w.workoutActivityType || w.type, w.start || w.startDate, w.end || w.endDate, w.duration, 's',
+        kcal, wkNum(dist), distUnit,
+        wkNum(w.avgHeartRate != null ? w.avgHeartRate : (hr.avg != null ? hr.avg : null)), wkNum(w.maxHeartRate != null ? w.maxHeartRate : (hr.max != null ? hr.max : null)));
+      if(rec) out.push(rec);
+    });
+    return out;
+  }
+  function wkSplitCsv(text){
+    var first = text.split(/\r?\n/, 1)[0] || '';
+    var delim = [';', '\t', ','].map(function(d){ return [d, first.split(d).length]; }).sort(function(a, b){ return b[1] - a[1]; })[0][0];
+    var rows = [], row = [], cur = '', q = false;
+    for(var i = 0; i < text.length; i++){
+      var c = text[i];
+      if(q){
+        if(c === '"'){ if(text[i + 1] === '"'){ cur += '"'; i++; } else q = false; } else cur += c;
+      } else if(c === '"') q = true;
+      else if(c === delim){ row.push(cur); cur = ''; }
+      else if(c === '\n' || c === '\r'){
+        if(c === '\r' && text[i + 1] === '\n') i++;
+        row.push(cur); cur = '';
+        if(row.some(function(x){ return x.trim() !== ''; })) rows.push(row);
+        row = [];
+      } else cur += c;
+    }
+    row.push(cur);
+    if(row.some(function(x){ return x.trim() !== ''; })) rows.push(row);
+    return rows;
+  }
+  function wkParseCsv(text){
+    var rows = wkSplitCsv(text.replace(/^﻿/, ''));
+    if(rows.length < 2) return null;
+    var heads = rows[0].map(function(h){ return normalizeStr(h); });
+    function find(preds){
+      for(var p = 0; p < preds.length; p++) for(var i = 0; i < heads.length; i++) if(preds[p].test(heads[i])) return i;
+      return -1;
+    }
+    var iType = find([/workout type|tipo de entren|tipo de actividad|^type$|^tipo$|^name$|^nombre$|activity|actividad|^workout$|entrenamiento/]);
+    var iStart = find([/^start( date)?$|start ?date|fecha de inicio|^inicio$|hora de inicio|^date$|^fecha$/]);
+    var iEnd = find([/^end( date)?$|end ?date|fecha de fin|^fin$|hora de fin/]);
+    var iDur = find([/duration|duracion|tiempo/]);
+    var iKcal = find([/active energy|energia activa|active calories|calorias activas|activeenergy/, /energy|energia|calorias|calories|kcal/]);
+    var iDist = find([/distance|distancia/]);
+    var iAvg = find([/avg.*heart|average.*heart|frecuencia cardiaca media|fc media|heart rate avg|heart rate \(avg|avg\. heart/]);
+    var iMax = find([/max.*heart|frecuencia cardiaca maxima|fc max|heart rate max|heart rate \(max/]);
+    if(iStart < 0 || iDur < 0 && iEnd < 0) return null;
+    var durUnit = iDur >= 0 ? (/\(min|minutos| min\)|min$/.test(heads[iDur]) ? 'min' : (/\(s\)|seg|sec/.test(heads[iDur]) ? 's' : null)) : null;
+    var distUnit = iDist >= 0 ? (/\(mi\)|miles| mi$/.test(heads[iDist]) ? 'mi' : (/\(m\)| m$|metros/.test(heads[iDist]) ? 'm' : 'km')) : 'km';
+    var kjUnit = iKcal >= 0 && /kj/.test(heads[iKcal]);
+    var out = [];
+    rows.slice(1).forEach(function(r){
+      var kcal = iKcal >= 0 ? wkNum(r[iKcal]) : null;
+      if(kcal != null && kjUnit) kcal = kcal / 4.184;
+      var rec = wkMake(iType >= 0 ? r[iType] : 'Entreno', r[iStart], iEnd >= 0 ? r[iEnd] : null, iDur >= 0 ? r[iDur] : null, durUnit,
+        kcal, iDist >= 0 ? wkNum(r[iDist]) : null, distUnit, iAvg >= 0 ? wkNum(r[iAvg]) : null, iMax >= 0 ? wkNum(r[iMax]) : null);
+      if(rec) out.push(rec);
+    });
+    return out;
+  }
+  function wkReadText(file){
+    return new Promise(function(resolve, reject){
+      var r = new FileReader();
+      r.onload = function(){ resolve(String(r.result || '')); };
+      r.onerror = function(){ reject(new Error('No se pudo leer "' + (file.name || 'archivo') + '".')); };
+      r.readAsText(file);
+    });
+  }
+  // Último recurso: que Gemini lea el archivo (capturas de Fitness, PDF, CSV con formato raro).
+  function wkGeminiExtract(file){
+    var prompt = 'Extrae los entrenamientos de este archivo (exportación o captura de Apple Fitness/Salud). Hoy es ' + isoDate(new Date()) + '. ' +
+      'Devuelve ÚNICAMENTE JSON: {"entrenos":[{"tipo":"string","inicio":"YYYY-MM-DD HH:MM","duracion_min":number,"kcal_activas":number,"distancia_km":number,"fc_media":number,"fc_max":number}]}. ' +
+      'No inventes datos: omite las claves que no aparezcan; si falta el año usa el actual.';
+    return bodyFilePart(file).then(function(part){
+      return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=' + encodeURIComponent(getGeminiKey()), {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, part] }], generationConfig: { response_mime_type: 'application/json', maxOutputTokens: 24000 } })
+      });
+    }).then(function(r){ return r.json(); }).then(function(data){
+      if(data && data.error) throw new Error('Gemini: ' + (data.error.message || 'error'));
+      var cand = data && data.candidates && data.candidates[0];
+      var text = cand && cand.content && cand.content.parts && cand.content.parts[0] && cand.content.parts[0].text;
+      if(!text) throw new Error('Gemini no devolvió datos utilizables.');
+      var parsed; try{ parsed = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, '')); }catch(e){ throw new Error('No se pudo interpretar la respuesta de Gemini.'); }
+      var out = [];
+      (parsed.entrenos || []).forEach(function(w){
+        var rec = wkMake(w.tipo, w.inicio, null, w.duracion_min, 'min', wkNum(w.kcal_activas), wkNum(w.distancia_km), 'km', wkNum(w.fc_media), wkNum(w.fc_max));
+        if(rec) out.push(rec);
+      });
+      return out;
+    });
+  }
+  function wkReadFile(file){
+    var name = file.name || '', type = file.type || '';
+    var isText = /\.(csv|tsv|txt|json)$/i.test(name) || /^text\//.test(type) || type === 'application/json';
+    if(!isText) return getGeminiKey() ? wkGeminiExtract(file) : Promise.reject(new Error('Para leer imágenes o PDF hace falta la API key de Gemini (Ajustes).'));
+    return wkReadText(file).then(function(text){
+      var got = /^\s*[\[{]/.test(text) ? wkParseHaeJson(text) : wkParseCsv(text);
+      if(got && got.length) return got;
+      if(getGeminiKey() && text.length < 80000) return wkGeminiExtract(file);
+      throw new Error('No reconozco el formato de "' + name + '". Usa el JSON o CSV de Health Auto Export.');
+    });
+  }
+
+  // --- Guardado ---
+  function wkKey(w){ return w.date + '|' + (w.time || '') + '|' + w.type; }
+  function wkMerge(list){
+    var have = {}; workouts.forEach(function(w){ have[wkKey(w)] = w; });
+    var added = 0, updated = 0;
+    list.forEach(function(w){
+      var k = wkKey(w);
+      if(have[k]){ Object.keys(w).forEach(function(f){ if(w[f] != null) have[k][f] = w[f]; }); updated++; return; }
+      w.id = 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+      workouts.push(w); have[k] = w; added++;
+    });
+    return { added: added, updated: updated };
+  }
+  function wkSorted(){ return workouts.slice().sort(function(a, b){ return (a.date + (a.time || '')) < (b.date + (b.time || '')) ? -1 : 1; }); }
+  function wkWeekStart(iso){
+    var d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return isoDate(d);
+  }
+  function wkImportFiles(files){
+    files = Array.prototype.slice.call(files || []);
+    if(!files.length) return;
+    bodyBusy = true;
+    var all = [], errors = [], idx = 0;
+    function next(){
+      if(idx >= files.length) return Promise.resolve();
+      var f = files[idx++];
+      bpSetStatus('<span class="bp-spin"></span>Leyendo ' + escapeHtml(f.name || 'archivo') + ' (' + idx + '/' + files.length + ')…');
+      return wkReadFile(f).then(function(got){ all = all.concat(got); }).catch(function(e){ errors.push(e && e.message ? e.message : String(e)); }).then(next);
+    }
+    next().then(function(){
+      bodyBusy = false;
+      var errHtml = errors.length ? '<span style="color:var(--danger)">' + escapeHtml(errors.join(' ')) + '</span>' : '';
+      if(!all.length){ bpSetStatus(errHtml || '<span style="color:var(--danger)">No se encontraron entrenamientos.</span>'); return; }
+      bpSetStatus(errHtml);
+      var keys = {}; workouts.forEach(function(w){ keys[wkKey(w)] = 1; });
+      var fresh = all.filter(function(w){ return !keys[wkKey(w)]; }).length;
+      var dates = all.map(function(w){ return w.date; }).sort();
+      customConfirm('Se han encontrado ' + all.length + ' entrenamientos (del ' + bodyDateLabel(dates[0], true) + ' al ' + bodyDateLabel(dates[dates.length - 1], true) + '): ' + fresh + ' nuevos y ' + (all.length - fresh) + ' que ya tenías. ¿Importar?', function(){
+        var r = wkMerge(all);
+        saveWorkouts();
+        bpSetStatus('<span style="color:var(--primary-dark)">✓ Importados ' + r.added + ' entrenamientos' + (r.updated ? ' (' + r.updated + ' actualizados)' : '') + '.</span>');
+        renderProgress();
+      });
+    });
+  }
+  var wkInput = document.getElementById('workoutFileInput');
+  wkInput.addEventListener('change', function(){
+    var fs = Array.prototype.slice.call(wkInput.files || []); wkInput.value = '';
+    wkImportFiles(fs);
+  });
+
+  // --- Pantalla "Entrenos" ---
+  function wkBarChart(weeks, key, unit, color){
+    var W = 320, H = 130, pl = 34, pr = 8, pt = 10, pb = 22;
+    var max = Math.max.apply(null, weeks.map(function(w){ return w[key]; })) || 1;
+    var step = max <= 5 ? 1 : (max <= 30 ? 5 : (max <= 120 ? 20 : (max <= 400 ? 50 : (max <= 1500 ? 250 : 500))));
+    var top = Math.ceil(max / step) * step;
+    function Y(v){ return pt + (1 - v / top) * (H - pt - pb); }
+    var n = weeks.length, slot = (W - pl - pr) / n, bw = Math.max(2, Math.min(22, slot - 3));
+    var grid = '';
+    [0, top / 2, top].forEach(function(g){
+      grid += '<line x1="'+pl+'" x2="'+(W - pr)+'" y1="'+Y(g).toFixed(1)+'" y2="'+Y(g).toFixed(1)+'" stroke="var(--border-soft)" stroke-width="1"/>'+
+        '<text x="'+(pl - 6)+'" y="'+(Y(g) + 3).toFixed(1)+'" text-anchor="end" style="font-size:9px;fill:var(--ink-soft)">'+Math.round(g)+'</text>';
+    });
+    var bars = '', xs = [];
+    weeks.forEach(function(w, i){
+      var cx = pl + slot * i + slot / 2, y = Y(w[key]), h = Math.max(0, (H - pb) - y);
+      xs.push([cx, y]);
+      if(w[key] > 0){
+        var r = Math.min(4, bw / 2, h);
+        bars += '<path d="M'+(cx - bw / 2).toFixed(1)+' '+(H - pb)+' V'+(y + r).toFixed(1)+' Q'+(cx - bw / 2).toFixed(1)+' '+y.toFixed(1)+' '+(cx - bw / 2 + r).toFixed(1)+' '+y.toFixed(1)+' H'+(cx + bw / 2 - r).toFixed(1)+' Q'+(cx + bw / 2).toFixed(1)+' '+y.toFixed(1)+' '+(cx + bw / 2).toFixed(1)+' '+(y + r).toFixed(1)+' V'+(H - pb)+' Z" fill="'+color+'"/>';
+      }
+    });
+    var xl = '<text x="'+pl+'" y="'+(H - 6)+'" style="font-size:9px;fill:var(--ink-soft)">'+bodyDateLabel(weeks[0].start)+'</text>';
+    if(n > 1) xl += '<text x="'+(W - pr)+'" y="'+(H - 6)+'" text-anchor="end" style="font-size:9px;fill:var(--ink-soft)">'+bodyDateLabel(weeks[n - 1].start)+'</text>';
+    return { xy: xs, W: W, H: H, svg: '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Entrenos por semana">'+grid+bars+xl+
+      '<line class="bp-cross" x1="0" x2="0" y1="'+pt+'" y2="'+(H - pb)+'" stroke="var(--ink-soft)" stroke-width="1" stroke-dasharray="3 3" style="display:none"/>'+
+      '<rect class="bp-hit" x="0" y="0" width="'+W+'" height="'+H+'" fill="transparent"/></svg>' };
+  }
+  function renderWorkoutsTab(){
+    var box = document.getElementById('progressBody');
+    var html = '<div class="bp-add-row"><button type="button" class="secondary-btn" id="wkImport">📎 Importar entrenos (JSON / CSV)</button></div>'+
+      '<div class="bp-status" id="bpStatus">' + bodyStatusHtml + '</div>';
+    var all = wkSorted();
+    if(!all.length){
+      html += '<div class="bp-empty"><b>Aún no hay entrenamientos.</b><br>En el iPhone abre <b>Health Auto Export</b> → Exportar datos → <b>Entrenamientos</b> (formato JSON o CSV) y guárdalo en Archivos/iCloud Drive. Después pulsa «Importar entrenos» y elige ese archivo. Puedes repetirlo cuando quieras: los que ya tienes no se duplican.</div>';
+      box.innerHTML = html; bindWorkoutButtons(); return;
+    }
+    var rdef = WK_RANGES.filter(function(r){ return r[0] === wkRange; })[0];
+    var cutoff = null;
+    if(rdef[2]){ cutoff = new Date(); cutoff.setHours(0, 0, 0, 0); cutoff.setDate(cutoff.getDate() - rdef[2]); }
+    var cutIso = cutoff ? isoDate(cutoff) : '';
+    var inR = all.filter(function(w){ return !cutIso || w.date >= cutIso; });
+    html += '<div class="bp-ranges">' + WK_RANGES.map(function(r){ return '<button type="button" data-r="'+r[0]+'" class="'+(r[0] === wkRange ? 'on' : '')+'">'+r[1]+'</button>'; }).join('') + '</div>';
+    if(!inR.length){
+      html += '<div class="bp-empty">Sin entrenamientos en este periodo.</div>';
+    } else {
+      var totMin = 0, totKcal = 0;
+      inR.forEach(function(w){ totMin += w.min || 0; totKcal += w.kcal || 0; });
+      html += '<div class="wk-stats"><div class="wk-stat"><div class="v">'+inR.length+'</div><div class="l">Sesiones</div></div>'+
+        '<div class="wk-stat"><div class="v">'+bodyFmt(totMin / 60, 1)+' h</div><div class="l">Tiempo</div></div>'+
+        '<div class="wk-stat"><div class="v">'+totKcal.toLocaleString('es-ES')+'</div><div class="l">kcal activas</div></div></div>';
+      // semanas contiguas
+      var first = wkWeekStart(inR[0].date), last = wkWeekStart(isoDate(new Date())), weeks = [], map = {};
+      var d = new Date(first + 'T12:00:00');
+      while(isoDate(d) <= last && weeks.length < 60){ var s = isoDate(d); var o = { start: s, min: 0, kcal: 0, n: 0 }; map[s] = o; weeks.push(o); d.setDate(d.getDate() + 7); }
+      if(weeks.length > 52){ weeks = weeks.slice(-52); }
+      inR.forEach(function(w){ var o = map[wkWeekStart(w.date)]; if(o){ o.min += w.min || 0; o.kcal += w.kcal || 0; o.n++; } });
+      var avgW = inR.length / Math.max(1, weeks.length);
+      html += '<div class="bp-card"><div class="bp-card-head"><div><div class="bp-name"><span class="bp-dot" style="background:#0FBF8F"></span>Minutos por semana</div>'+
+        '<div class="bp-val">'+bodyFmt(totMin / Math.max(1, weeks.length), 0)+'<small>min/sem</small></div></div><div class="bp-delta"><b>'+bodyFmt(avgW, 1)+'</b> sesiones/sem</div></div>'+
+        '<div class="bp-chart" id="wkChartMin"></div></div>';
+      html += '<div class="bp-card"><div class="bp-card-head"><div><div class="bp-name"><span class="bp-dot" style="background:#F5A623"></span>kcal activas por semana</div>'+
+        '<div class="bp-val">'+bodyFmt(totKcal / Math.max(1, weeks.length), 0)+'<small>kcal/sem</small></div></div></div>'+
+        '<div class="bp-chart" id="wkChartKcal"></div></div>';
+      // por tipo
+      var byType = {};
+      inR.forEach(function(w){ var t = byType[w.type] || (byType[w.type] = { type: w.type, icon: w.icon, n: 0, min: 0 }); t.n++; t.min += w.min || 0; });
+      var types = Object.keys(byType).map(function(k){ return byType[k]; }).sort(function(a, b){ return b.min - a.min; });
+      var maxT = types[0].min || 1;
+      html += '<div class="bp-card"><div class="bp-name">Por tipo de entreno</div>' + types.slice(0, 8).map(function(t){
+        return '<div class="wk-type-row"><span class="nm">'+t.icon+' '+escapeHtml(t.type)+'</span><span class="bar"><i style="width:'+Math.max(4, t.min / maxT * 100).toFixed(0)+'%"></i></span><span class="ct">'+t.n+' · '+Math.round(t.min)+' min</span></div>';
+      }).join('') + '</div>';
+      box.__wk = { weeks: weeks };
+    }
+    html += '<p class="section-label" style="margin-top:22px">Últimos entrenos</p>' + all.slice(-40).reverse().map(function(w){
+      var bits = [Math.round(w.min) + ' min'];
+      if(w.kcal != null) bits.push(w.kcal + ' kcal');
+      if(w.km != null) bits.push(bodyFmt(w.km, 1) + ' km');
+      if(w.hr != null) bits.push('FC ' + w.hr);
+      return '<div class="wk-row" data-id="'+w.id+'"><span class="ic">'+w.icon+'</span><div><div class="d">'+escapeHtml(w.type)+' · '+bodyDateLabel(w.date, true)+(w.time ? ' ' + w.time : '')+'</div><div class="s">'+bits.join(' · ')+'</div></div></div>';
+    }).join('');
+    box.innerHTML = html;
+    if(box.__wk){
+      [['wkChartMin', 'min', 'min', '#0FBF8F'], ['wkChartKcal', 'kcal', 'kcal', '#F5A623']].forEach(function(c){
+        var el = document.getElementById(c[0]); if(!el) return;
+        var weeks = box.__wk.weeks, ch = wkBarChart(weeks, c[1], c[2], c[3]);
+        el.innerHTML = ch.svg + '<div class="bp-tip"></div>';
+        var svg = el.querySelector('svg'), tip = el.querySelector('.bp-tip'), cross = el.querySelector('.bp-cross');
+        function show(ev){
+          var r = svg.getBoundingClientRect(); if(!r.width) return;
+          var x = (ev.clientX - r.left) / r.width * ch.W, best = 0, bd = 1e9;
+          ch.xy.forEach(function(p, i){ var dd = Math.abs(p[0] - x); if(dd < bd){ bd = dd; best = i; } });
+          var p = ch.xy[best], w = weeks[best];
+          cross.setAttribute('x1', p[0]); cross.setAttribute('x2', p[0]); cross.style.display = '';
+          tip.textContent = 'Sem. del ' + bodyDateLabel(w.start) + ' · ' + Math.round(w[c[1]]) + ' ' + c[2] + ' · ' + w.n + ' ses.';
+          tip.style.left = Math.max(70, Math.min(r.width - 70, p[0] / ch.W * r.width)) + 'px';
+          tip.style.top = (p[1] / ch.H * r.height) + 'px'; tip.style.opacity = 1;
+        }
+        function hide(){ cross.style.display = 'none'; tip.style.opacity = 0; }
+        svg.addEventListener('pointermove', show); svg.addEventListener('pointerdown', show); svg.addEventListener('pointerleave', hide);
+        svg.addEventListener('pointerup', function(e){ if(e.pointerType !== 'mouse') setTimeout(hide, 1500); });
+      });
+    }
+    Array.prototype.forEach.call(box.querySelectorAll('.bp-ranges button'), function(b){
+      b.addEventListener('click', function(){ wkRange = b.getAttribute('data-r'); renderProgress(); });
+    });
+    Array.prototype.forEach.call(box.querySelectorAll('.wk-row'), function(row){
+      row.addEventListener('click', function(){
+        var w = workouts.filter(function(x){ return x.id === row.getAttribute('data-id'); })[0]; if(!w) return;
+        customConfirm('¿Eliminar este entrenamiento (' + w.type + ', ' + bodyDateLabel(w.date, true) + ')?', function(){
+          workouts = workouts.filter(function(x){ return x.id !== w.id; }); saveWorkouts(); renderProgress();
+        });
+      });
+    });
+    bindWorkoutButtons();
+  }
+  function bindWorkoutButtons(){
+    var b = document.getElementById('wkImport');
+    if(b) b.addEventListener('click', function(){ if(!bodyBusy) wkInput.click(); });
+  }
+
+  /* --- Contexto para el chat --- */
+  function buildWorkoutContext(){
+    var all = wkSorted();
+    if(!all.length) return '';
+    var today = isoDate(new Date()), L = ['ENTRENAMIENTOS (importados de Apple Salud/Fitness; ' + all.length + ' registrados, el último el ' + all[all.length - 1].date + '):'];
+    function line(w){
+      return '  · ' + w.date + ' ' + w.type + ' ' + Math.round(w.min) + ' min' + (w.kcal != null ? ', ' + w.kcal + ' kcal activas' : '') + (w.km != null ? ', ' + bodyFmt(w.km, 1) + ' km' : '') + (w.hr != null ? ', FC media ' + w.hr : '');
+    }
+    var c14 = new Date(); c14.setDate(c14.getDate() - 14); var iso14 = isoDate(c14);
+    var recent = all.filter(function(w){ return w.date >= iso14; });
+    L.push(recent.length ? '- Últimos 14 días:\n' + recent.slice(-20).map(line).join('\n') : '- Sin entrenos registrados en los últimos 14 días (puede que no haya importado datos recientes).');
+    var wk = {}, order = [];
+    all.forEach(function(w){ var s = wkWeekStart(w.date); if(!wk[s]){ wk[s] = { n: 0, min: 0, kcal: 0 }; order.push(s); } wk[s].n++; wk[s].min += w.min || 0; wk[s].kcal += w.kcal || 0; });
+    var cur = wkWeekStart(today), weekLines = [];
+    for(var i = 0; i < 4; i++){
+      var d = new Date(cur + 'T12:00:00'); d.setDate(d.getDate() - 7 * i); var s = isoDate(d), o = wk[s] || { n: 0, min: 0, kcal: 0 };
+      weekLines.push('  · semana del ' + s + (i === 0 ? ' (en curso)' : '') + ': ' + o.n + ' sesiones, ' + Math.round(o.min) + ' min, ' + o.kcal + ' kcal activas');
+    }
+    L.push('- Resumen semanal (lunes a domingo):\n' + weekLines.join('\n'));
+    return L.join('\n');
+  }
+
   /* ---------- Init ---------- */
   document.getElementById('btnSettings').innerHTML = iconSvg('settings', 17);
   document.getElementById('cmPhotoBtn').innerHTML =
@@ -6037,6 +6477,8 @@
     L.push('DETALLE DE LO COMIDO (últimos ' + CHAT_DETAIL_DAYS + ' días):\n' + (detailLines.join('\n') || '- sin registros'));
     var bodyCtx = buildBodyContext();
     if(bodyCtx) L.push(bodyCtx);
+    var wkCtx = buildWorkoutContext();
+    if(wkCtx) L.push(wkCtx);
     if(favorites.length){
       L.push('ALIMENTOS FAVORITOS (los que suele tener en casa): ' + favorites.map(function(f){ return f.name; }).join(', ') + '.');
     }
@@ -6045,7 +6487,7 @@
   var CHAT_SYSTEM = 'Eres el asistente de nutrición y entrenamiento de la app MacroFit, un seguimiento personal de calorías y macros. ' +
     'Respondes siempre en español, con tono cercano, práctico y detallado. ' +
     'Usa los datos reales del usuario que aparecen abajo para dar recomendaciones concretas (cita cifras y días cuando ayude). Si hay datos de composición corporal de su báscula, tenlos en cuenta (tendencia de peso, grasa y músculo) y relaciónalos con lo que come; sé prudente: las básculas de bioimpedancia son orientativas y varían con la hidratación. ' +
-    'No inventes datos que no tienes: la app NO registra su actividad física, así que si necesitas saber cuánto o qué entrena, pregúntaselo. ' +
+    'No inventes datos que no tienes: la app solo conoce su actividad física si ha importado entrenamientos (sección ENTRENAMIENTOS de los datos); si no aparece o parece desactualizada, pregúntale cuánto y qué entrena. Si hay entrenos, tenlos en cuenta para ajustar calorías y proteína (días de entreno frente a descanso) y para valorar la recuperación. ' +
     'Formato: texto detallado, listas con guiones cuando convenga, **negrita** para lo importante, sin tablas ni encabezados largos. ' +
     'Tus consejos son orientativos y no sustituyen a un profesional; si menciona lesiones, síntomas o condiciones médicas, recomiéndale consultarlo con un profesional sanitario. ' +
     'Cuando propongas comidas, prioriza sus alimentos favoritos y ajusta a lo que le queda del día.\n\n' +
@@ -6641,6 +7083,9 @@
     createdMeals.forEach(function(m){ if(m && m.id) docs['meal_' + m.id] = JSON.stringify(m); });
     chats.forEach(function(c){ if(c && c.id) docs['chat_' + c.id] = JSON.stringify(c); });
     bodyLog.forEach(function(b){ if(b && b.id) docs['body_' + b.id] = JSON.stringify(b); });
+    var wkByMonth = {};
+    workouts.forEach(function(w){ if(w && w.date) (wkByMonth[w.date.slice(0, 7)] = wkByMonth[w.date.slice(0, 7)] || []).push(w); });
+    Object.keys(wkByMonth).forEach(function(mo){ docs['wk_' + mo] = JSON.stringify(wkByMonth[mo]); });
     return docs;
   }
 
@@ -6663,6 +7108,9 @@
       cloudUpsert(chats, v);
     } else if(id.indexOf('body_') === 0){
       cloudUpsert(bodyLog, v);
+    } else if(id.indexOf('wk_') === 0){
+      var mo = id.slice(3);
+      workouts = workouts.filter(function(w){ return (w.date || '').slice(0, 7) !== mo; }).concat(Array.isArray(v) ? v : []);
     }
   }
   function cloudRemoveLocal(id){
@@ -6670,6 +7118,7 @@
     else if(id.indexOf('meal_') === 0) createdMeals = createdMeals.filter(function(m){ return m.id !== id.slice(5); });
     else if(id.indexOf('chat_') === 0) chats = chats.filter(function(c){ return c.id !== id.slice(5); });
     else if(id.indexOf('body_') === 0) bodyLog = bodyLog.filter(function(b){ return b.id !== id.slice(5); });
+    else if(id.indexOf('wk_') === 0) workouts = workouts.filter(function(w){ return (w.date || '').slice(0, 7) !== id.slice(3); });
   }
   function cloudMergeLog(localArr, remoteArr, remoteT, editAt){
     var localWins = editAt > remoteT;
@@ -6684,7 +7133,7 @@
   }
   function cloudPersistAll(){
     saveTargets(targets); saveLogs(logs); saveFavorites(favorites); saveCustomServings(customServingsMap);
-    saveCreatedMeals(createdMeals); saveChats(); saveBody();
+    saveCreatedMeals(createdMeals); saveChats(); saveBody(); saveWorkouts();
   }
   function cloudRerender(){
     renderDay(); renderTargetsForm(); refreshChatViews();
@@ -6895,7 +7344,7 @@
   function cloudWipeLocal(){
     cloud.applying = true;
     try{
-      targets = {}; favorites = []; customServingsMap = {}; createdMeals = []; chats = []; bodyLog = [];
+      targets = {}; favorites = []; customServingsMap = {}; createdMeals = []; chats = []; bodyLog = []; workouts = [];
       Object.keys(logs).forEach(function(k){ delete logs[k]; });
       cloudPersistAll();
       localStorage.removeItem(LS_SYNC_META); localStorage.removeItem(LS_EDIT_AT);
