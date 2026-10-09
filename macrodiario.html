@@ -511,6 +511,13 @@
   .bp-spin{display:inline-block;width:12px;height:12px;border:2px solid var(--border-soft);border-top-color:var(--primary);border-radius:50%;animation:bpspin .8s linear infinite;vertical-align:-2px;margin-right:6px;}
   @keyframes bpspin{to{transform:rotate(360deg);}}
   #bodyReviewOverlay{z-index:61;}
+  .progress-inner .chat-top{position:relative;}
+  .pg-load-btn{flex:none;border:none;border-radius:var(--radius-full);background:var(--primary);color:#fff;font-weight:700;font-size:13px;padding:9px 14px;box-shadow:0 6px 16px -6px rgba(15,191,143,0.55);}
+  .pg-load-btn:active{opacity:0.85;}
+  .pg-menu{position:absolute;right:16px;top:calc(100% - 4px);z-index:5;background:var(--card);border-radius:var(--radius-md);box-shadow:var(--shadow-pop);padding:6px;min-width:160px;display:flex;flex-direction:column;}
+  .pg-menu.hidden{display:none;}
+  .pg-menu button{border:none;background:transparent;text-align:left;padding:11px 12px;font-size:14px;font-weight:600;color:var(--ink);border-radius:var(--radius-sm);}
+  .pg-menu button:active{background:var(--bg);}
   .bp-tabs{display:flex;gap:6px;padding:10px 16px 0;}
   .bp-tabs button{flex:1;border:none;border-radius:var(--radius-full);padding:9px 0;font-size:13px;font-weight:700;background:var(--card);color:var(--ink-soft);box-shadow:var(--shadow-card);}
   .bp-tabs button.on{background:var(--primary);color:#fff;}
@@ -588,6 +595,12 @@
     <div class="chat-top">
       <button type="button" class="chat-icon-btn" id="progressClose" aria-label="Cerrar">‹</button>
       <h2>Progreso</h2>
+      <button type="button" class="pg-load-btn" id="progressLoad" aria-label="Cargar datos">＋ Cargar</button>
+      <div class="pg-menu hidden" id="progressMenu">
+        <button type="button" id="bpCam">📷 Foto</button>
+        <button type="button" id="bpFile">📎 Archivo</button>
+        <button type="button" id="bpManual">✍️ Manual</button>
+      </div>
     </div>
     <div class="bp-tabs" id="bpTabs"><button type="button" data-t="cuerpo">Cuerpo</button><button type="button" data-t="entrenos">Entrenos</button></div>
     <div class="progress-body" id="progressBody"></div>
@@ -5619,11 +5632,7 @@
   function renderBodyTab(){
     var box = document.getElementById('progressBody');
     var all = bodySorted();
-    var html = '<div class="bp-add-row">'+
-      '<button type="button" class="secondary-btn" id="bpCam">📷 Foto</button>'+
-      '<button type="button" class="secondary-btn" id="bpFile">📎 Archivo</button>'+
-      '<button type="button" class="secondary-btn" id="bpManual">✍️ Manual</button></div>'+
-      '<div class="bp-status' + (/class="err"/.test(bodyStatusHtml) ? '' : '') + '" id="bpStatus">' + bodyStatusHtml + '</div>';
+    var html = '<div class="bp-status" id="bpStatus">' + bodyStatusHtml + '</div>';
     if(all.length === 0){
       html += '<div class="bp-empty"><b>Aún no hay mediciones.</b><br>Sube una captura de la app de tu báscula, una foto de su pantalla, un PDF o un CSV exportado, y la IA extraerá peso, % de grasa, músculo, etc. Las gráficas aparecerán aquí y el chat con IA tendrá esos datos para conocerte mejor.</div>';
       box.innerHTML = html;
@@ -5686,6 +5695,8 @@
     Array.prototype.forEach.call(document.querySelectorAll('#bpTabs button'), function(b){
       b.classList.toggle('on', b.getAttribute('data-t') === progTab);
     });
+    closeProgressMenu();
+    document.getElementById('progressLoad').setAttribute('aria-label', progTab === 'entrenos' ? 'Cargar entrenamientos' : 'Cargar datos');
     if(progTab === 'entrenos') renderWorkoutsTab(); else renderBodyTab();
   }
   Array.prototype.forEach.call(document.querySelectorAll('#bpTabs button'), function(b){
@@ -5696,15 +5707,27 @@
     var el = document.getElementById('bpStatus');
     if(el) el.innerHTML = bodyStatusHtml;
   }
-  function bindProgressButtons(){
-    var cam = document.getElementById('bpCam'), file = document.getElementById('bpFile'), man = document.getElementById('bpManual');
-    if(cam) cam.addEventListener('click', function(){ if(!bodyBusy) document.getElementById('bodyCamInput').click(); });
-    if(file) file.addEventListener('click', function(){ if(!bodyBusy) document.getElementById('bodyFileInput').click(); });
-    if(man) man.addEventListener('click', function(){
-      var m = {}; BODY_DEFAULT_FIELDS.forEach(function(k){ m[k] = null; });
-      openBodyReview([{ date: isoDate(new Date()), time:null, m:m, manual:true }], 'new');
-    });
+  function bindProgressButtons(){ /* los botones de carga viven en la cabecera (ver progressLoad) */ }
+
+  /* --- Botón "Cargar" de la cabecera de Progreso --- */
+  function bodyStartManual(){
+    var m = {}; BODY_DEFAULT_FIELDS.forEach(function(k){ m[k] = null; });
+    openBodyReview([{ date: isoDate(new Date()), time:null, m:m, manual:true }], 'new');
   }
+  var progressMenu = document.getElementById('progressMenu');
+  function closeProgressMenu(){ progressMenu.classList.add('hidden'); }
+  document.getElementById('progressLoad').addEventListener('click', function(e){
+    e.stopPropagation();
+    if(bodyBusy) return;
+    if(progTab === 'entrenos'){ closeProgressMenu(); document.getElementById('workoutFileInput').click(); return; }
+    progressMenu.classList.toggle('hidden');
+  });
+  document.addEventListener('click', function(e){
+    if(!progressMenu.classList.contains('hidden') && !progressMenu.contains(e.target)) closeProgressMenu();
+  });
+  document.getElementById('bpCam').addEventListener('click', function(){ closeProgressMenu(); if(!bodyBusy) document.getElementById('bodyCamInput').click(); });
+  document.getElementById('bpFile').addEventListener('click', function(){ closeProgressMenu(); if(!bodyBusy) document.getElementById('bodyFileInput').click(); });
+  document.getElementById('bpManual').addEventListener('click', function(){ closeProgressMenu(); bodyStartManual(); });
 
   /* --- Extracción con Gemini --- */
   function bodyPrompt(){
@@ -6307,11 +6330,10 @@
   }
   function renderWorkoutsTab(){
     var box = document.getElementById('progressBody');
-    var html = '<div class="bp-add-row"><button type="button" class="secondary-btn" id="wkImport">📎 Importar entrenos (ZIP / JSON / CSV)</button></div>'+
-      '<div class="bp-status" id="bpStatus">' + bodyStatusHtml + '</div>';
+    var html = '<div class="bp-status" id="bpStatus">' + bodyStatusHtml + '</div>';
     var all = wkSorted();
     if(!all.length){
-      html += '<div class="bp-empty"><b>Aún no hay entrenamientos.</b><br>En el iPhone abre <b>Health Auto Export</b> → Exportar datos → <b>Entrenamientos</b> (JSON o CSV; el .zip que devuelve también vale) y guárdalo en Archivos/iCloud Drive. Después pulsa «Importar entrenos» y elige ese archivo. Puedes repetirlo cuando quieras: los que ya tienes no se duplican.</div>';
+      html += '<div class="bp-empty"><b>Aún no hay entrenamientos.</b><br>En el iPhone abre <b>Health Auto Export</b> → Exportar datos → <b>Entrenamientos</b> (JSON o CSV; el .zip que devuelve también vale) y guárdalo en Archivos/iCloud Drive. Después pulsa «Cargar» (arriba a la derecha) y elige ese archivo. Puedes repetirlo cuando quieras: los que ya tienes no se duplican.</div>';
       box.innerHTML = html; bindWorkoutButtons(); return;
     }
     var rdef = WK_RANGES.filter(function(r){ return r[0] === wkRange; })[0];
@@ -6406,10 +6428,7 @@
     });
     bindWorkoutButtons();
   }
-  function bindWorkoutButtons(){
-    var b = document.getElementById('wkImport');
-    if(b) b.addEventListener('click', function(){ if(!bodyBusy) wkInput.click(); });
-  }
+  function bindWorkoutButtons(){ /* el botón de carga está en la cabecera */ }
 
   /* --- Contexto para el chat --- */
   function buildWorkoutContext(){
