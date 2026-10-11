@@ -4308,7 +4308,7 @@
         ]}],
         generationConfig: { response_mime_type: 'application/json' }
       };
-      return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=' + encodeURIComponent(key), {
+      return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=' + encodeURIComponent(key), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -4778,7 +4778,7 @@
       contents: [{ parts: [{ text: buildWhatToEatPrompt(remaining, avoidName, forced) }] }],
       generationConfig: { response_mime_type: 'application/json' }
     };
-    return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=' + encodeURIComponent(key), {
+    return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=' + encodeURIComponent(key), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -4958,6 +4958,7 @@
     }
     var cmTerm = addSearchTerm();
     var shownMeals = createdMeals.filter(function(m){ return matchesAddSearch(m.name, cmTerm); });
+    shownMeals.sort(function(x, y){ return (x.name || '').localeCompare(y.name || '', 'es', { sensitivity: 'base', numeric: true }); });
     if(shownMeals.length === 0){
       box.innerHTML = '<div class="msg">Ninguna comida creada coincide con "'+escapeHtml(cmTerm)+'".</div>';
       return;
@@ -5801,7 +5802,7 @@
         contents: [{ parts: [{ text: bodyPrompt() }, part] }],
         generationConfig: { response_mime_type: 'application/json', maxOutputTokens: 24000 }
       };
-      return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=' + encodeURIComponent(key), {
+      return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=' + encodeURIComponent(key), {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
       });
     }).then(function(r){ return r.json(); }).then(function(data){
@@ -6161,7 +6162,7 @@
       'Devuelve ÚNICAMENTE JSON: {"entrenos":[{"tipo":"string","inicio":"YYYY-MM-DD HH:MM","duracion_min":number,"kcal_activas":number,"distancia_km":number,"fc_media":number,"fc_max":number}]}. ' +
       'No inventes datos: omite las claves que no aparezcan; si falta el año usa el actual.';
     return bodyFilePart(file).then(function(part){
-      return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=' + encodeURIComponent(getGeminiKey()), {
+      return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=' + encodeURIComponent(getGeminiKey()), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, part] }], generationConfig: { response_mime_type: 'application/json', maxOutputTokens: 24000 } })
       });
@@ -6476,7 +6477,7 @@
 
   /* ---------- Chat con Gemini (conversaciones guardadas en el dispositivo) ---------- */
   var LS_CHATS = 'md_chats_v1';
-  var CHAT_MODEL = 'gemini-3.5-flash';
+  var CHAT_MODEL = 'gemini-3.6-flash';
   var CHAT_CONTEXT_IMPORT_MAX = 30000; // caracteres máximos de una conversación importada de Gemini
   var CHAT_HISTORY_MAX = 24;      // mensajes anteriores que se reenvían en cada petición
   var CHAT_CONTEXT_DAYS = 14;     // días con totales diarios en el contexto
