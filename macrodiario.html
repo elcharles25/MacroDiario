@@ -407,7 +407,21 @@
   .msg.err{color:var(--danger);}
 
   /* Chat con IA */
-  header .brand-actions{display:flex;gap:8px;}
+  header .brand-actions{display:flex;gap:8px;align-items:center;}
+  .user-wrap{position:relative;}
+  header .brand button.user-btn{padding:0;overflow:hidden;position:relative;}
+  .user-btn img{width:100%;height:100%;object-fit:cover;display:block;}
+  .user-btn .ua-ini{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--primary);color:#fff;font-weight:800;font-size:14px;letter-spacing:0;}
+  .user-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:30;background:var(--card);border-radius:var(--radius-md);box-shadow:var(--shadow-pop);padding:6px;min-width:220px;display:flex;flex-direction:column;}
+  .user-menu.hidden{display:none;}
+  .um-head{padding:8px 12px 10px;border-bottom:1px solid var(--bg);margin-bottom:4px;}
+  .um-head.hidden{display:none;}
+  .um-name{font-size:14px;font-weight:700;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .um-mail{font-size:12px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px;}
+  .user-menu button{border:none;background:transparent;text-align:left;padding:11px 12px;font-size:14px;font-weight:600;color:var(--ink);border-radius:var(--radius-sm);display:flex;align-items:center;gap:10px;}
+  .user-menu button:active{background:var(--bg);}
+  .user-menu button.hidden{display:none;}
+  .user-menu button.um-out{color:var(--danger);}
   .chat-screen{position:fixed;left:0;right:0;top:0;bottom:0;background:var(--bg);z-index:40;display:flex;justify-content:center;}
   body.chat-open .app{visibility:hidden;}
   body.chat-open{overflow:hidden;}
@@ -554,7 +568,7 @@
         </svg>
         <h1>MacroFit</h1>
       </div>
-      <div class="brand-actions"><button class="gear" id="btnProgress" title="Progreso corporal"></button><button class="gear" id="btnChat" title="Chat con IA"></button><button class="gear" id="btnSettings" title="Ajustes"></button></div>
+      <div class="brand-actions"><button class="gear" id="btnProgress" title="Progreso corporal"></button><button class="gear" id="btnChat" title="Chat con IA"></button><div class="user-wrap"><button class="gear user-btn" id="btnUser" type="button" title="Cuenta" aria-haspopup="menu" aria-expanded="false" aria-label="Cuenta"></button><div class="user-menu hidden" id="userMenu" role="menu"><div class="um-head" id="umHead"><div class="um-name" id="umName"></div><div class="um-mail" id="umMail"></div></div><button type="button" id="btnSettings" role="menuitem"></button><button type="button" id="btnUserSignOut" role="menuitem" class="um-out"></button></div></div></div>
     </div>
   </header>
 
@@ -6459,7 +6473,8 @@
   }
 
   /* ---------- Init ---------- */
-  document.getElementById('btnSettings').innerHTML = iconSvg('settings', 17);
+  document.getElementById('btnSettings').innerHTML = iconSvg('settings', 17) + '<span>Configuración</span>';
+  document.getElementById('btnUserSignOut').innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg><span>Cerrar sesión</span>';
   document.getElementById('cmPhotoBtn').innerHTML =
     '<span style="display:inline-flex;align-items:center;gap:6px;justify-content:center;width:100%;">'+iconSvg('camera', 16)+'<span>Añadir foto</span></span>';
   Array.prototype.forEach.call(document.querySelectorAll('.search-methods-bar button'), function(btn){
@@ -7426,7 +7441,7 @@
       cloud.auth.onAuthStateChanged(function(user){
         if(user){
           cloud.user = user; cloud.status = 'signedin';
-          try{ localStorage.setItem(LS_CLOUD_USER, JSON.stringify({ uid: user.uid, email: user.email || '' })); }catch(e){}
+          try{ localStorage.setItem(LS_CLOUD_USER, JSON.stringify({ uid: user.uid, email: user.email || '', name: user.displayName || '', photo: user.photoURL || '' })); }catch(e){}
           cloud.adapter = cloudMakeAdapter(cloud.db, user.uid);
           cloudHideGate(); cloudRenderStatus();
           cloudSync();
@@ -7455,7 +7470,59 @@
   }
 
   /* ---- Ajustes → Cuenta ---- */
+  /* ---- Icono de usuario (cabecera) + menú Configuración / Cerrar sesión ---- */
+  var userMenu = document.getElementById('userMenu'), userBtn = document.getElementById('btnUser');
+  function closeUserMenu(){ userMenu.classList.add('hidden'); userBtn.setAttribute('aria-expanded', 'false'); }
+  function cloudUserInfo(){
+    if(cloud.user) return { name: cloud.user.displayName || '', email: cloud.user.email || '', photo: cloud.user.photoURL || '', signedIn: cloud.status === 'signedin' };
+    var r = null;
+    try{ r = JSON.parse(localStorage.getItem(LS_CLOUD_USER) || 'null'); }catch(e){}
+    if(r && cloud.status !== 'signedout') return { name: r.name || '', email: r.email || '', photo: r.photo || '', signedIn: true };
+    return null;
+  }
+  function cloudUserInitials(u){
+    var src = (u.name || u.email || '?').trim();
+    var parts = src.split(/[\s@._-]+/).filter(Boolean);
+    var ini = (parts[0] ? parts[0].charAt(0) : '?') + (parts.length > 1 ? parts[1].charAt(0) : '');
+    return ini.toUpperCase();
+  }
+  function renderUserAvatar(){
+    var u = cloudUserInfo();
+    userBtn.innerHTML = '';
+    function fallback(){
+      userBtn.innerHTML = '';
+      if(u){
+        var sp = document.createElement('span'); sp.className = 'ua-ini'; sp.textContent = cloudUserInitials(u); userBtn.appendChild(sp);
+      } else {
+        userBtn.innerHTML = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"></path></svg>';
+      }
+    }
+    if(u && u.photo){
+      var img = document.createElement('img');
+      img.alt = ''; img.setAttribute('referrerpolicy', 'no-referrer');
+      img.onerror = fallback;
+      img.src = u.photo;
+      userBtn.appendChild(img);
+    } else fallback();
+    userBtn.title = u ? ((u.name ? u.name + ' · ' : '') + u.email) : 'Cuenta';
+    userBtn.setAttribute('aria-label', userBtn.title);
+    document.getElementById('umHead').classList.toggle('hidden', !u);
+    document.getElementById('umName').textContent = u ? (u.name || u.email) : '';
+    document.getElementById('umMail').textContent = u && u.name ? u.email : '';
+    document.getElementById('btnUserSignOut').classList.toggle('hidden', !(u && u.signedIn && cloud.status === 'signedin'));
+  }
+  userBtn.addEventListener('click', function(e){
+    e.stopPropagation();
+    var open = userMenu.classList.contains('hidden');
+    userMenu.classList.toggle('hidden', !open);
+    userBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  document.addEventListener('click', function(e){ if(!userMenu.classList.contains('hidden') && !userMenu.contains(e.target)) closeUserMenu(); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeUserMenu(); });
+  document.getElementById('btnSettings').addEventListener('click', closeUserMenu);
+
   function cloudRenderStatus(){
+    renderUserAvatar();
     var cfgBox = document.getElementById('cloudNoConfig'), okBox = document.getElementById('cloudConfigured');
     if(!cfgBox || !okBox) return;
     var has = !!getFirebaseConfig();
@@ -7496,7 +7563,7 @@
   });
   document.getElementById('btnGateRemoveCfg').addEventListener('click', cloudRemoveConfig);
   document.getElementById('btnCloudSync').addEventListener('click', function(){ cloudSync(); });
-  document.getElementById('btnCloudSignOut').addEventListener('click', function(){
+  function cloudConfirmSignOut(){
     customConfirm('Se cerrará la sesión y se borrarán los datos de ESTE dispositivo (siguen guardados en la nube). ¿Continuar?', function(){
       cloudSync().then(function(){
         if(cloud.error){ cloud.msg = 'No se cerró la sesión: la última sincronización falló, así que se conservan los datos locales.'; cloudRenderStatus(); return; }
@@ -7504,7 +7571,9 @@
         return cloud.auth.signOut();
       });
     });
-  });
+  }
+  document.getElementById('btnCloudSignOut').addEventListener('click', cloudConfirmSignOut);
+  document.getElementById('btnUserSignOut').addEventListener('click', function(){ closeUserMenu(); cloudConfirmSignOut(); });
   document.addEventListener('visibilitychange', function(){
     if(document.hidden || cloud.status !== 'signedin') return;
     if(Date.now() - cloud.lastSync > 30000) cloudSync();
