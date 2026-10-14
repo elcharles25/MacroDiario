@@ -422,6 +422,64 @@
   .user-menu button:active{background:var(--bg);}
   .user-menu button.hidden{display:none;}
   .user-menu button.um-out{color:var(--danger);}
+  /* Amigos */
+  .user-wrap .user-dot{position:absolute;top:-2px;right:-2px;width:12px;height:12px;border-radius:50%;background:var(--danger);border:2px solid var(--bg);pointer-events:none;}
+  .user-wrap .user-dot.hidden{display:none;}
+  .um-count{margin-left:auto;background:var(--danger);color:#fff;font-size:11px;font-weight:800;min-width:20px;height:20px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;padding:0 6px;}
+  .um-count.hidden{display:none;}
+  .user-menu button#btnFriends.hidden{display:none;}
+  .meal-head-actions{display:flex;align-items:center;gap:6px;}
+  .meal-share-btn{display:none;background:var(--card);border:none;border-radius:var(--radius-full);color:var(--ink-soft);width:28px;height:28px;align-items:center;justify-content:center;box-shadow:var(--shadow-card);flex:none;}
+  .is-cloud-in .meal-share-btn{display:inline-flex;}
+  .cm-share-btn{display:none;}
+  .is-cloud-in .cm-share-btn{display:block;}
+  .fr-msg{background:var(--primary-soft);color:var(--primary-dark);border-radius:var(--radius-md);padding:10px 12px;font-size:13px;font-weight:600;margin-bottom:10px;line-height:1.45;}
+  .fr-msg.err{background:#fde8ed;color:var(--danger);}
+  .fr-card{background:var(--card);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);padding:14px 16px;margin-bottom:10px;font-size:13px;color:var(--ink-soft);line-height:1.5;}
+  .fr-card b{color:var(--ink);}
+  .fr-card p{margin:6px 0 10px 0;}
+  .fr-note{color:var(--primary-dark);font-weight:600;}
+  .fr-empty{text-align:center;}
+  .fr-list{padding:4px 12px;}
+  .fr-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border-soft);}
+  .fr-row:last-child{border-bottom:none;}
+  .fr-name{flex:1;min-width:0;font-weight:700;font-size:14px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;}
+  .fr-sub{font-size:12px;font-weight:500;color:var(--ink-soft);}
+  .fr-av{position:relative;flex:none;width:36px;height:36px;border-radius:50%;overflow:hidden;display:inline-block;background:var(--primary);}
+  .fr-ini{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;}
+  .fr-av-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  .fr-btn{flex:none;border:none;border-radius:var(--radius-full);background:var(--primary);color:#fff;font-weight:700;font-size:12px;padding:8px 13px;}
+  .fr-btn:disabled{opacity:0.5;}
+  .fr-btn-ghost{background:var(--bg);color:var(--ink);box-shadow:inset 0 0 0 1px var(--border-soft);}
+  .fr-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .fr-code{font-family:'Poppins',sans-serif;font-weight:800;font-size:26px;letter-spacing:0.12em;color:var(--ink);text-align:center;padding:6px 0;}
+  .fr-card a{color:var(--primary-dark);font-weight:700;}
+  .fr-add{display:flex;gap:8px;}
+  .fr-add input,.fr-field input,.fr-field select{box-sizing:border-box;border:none;border-radius:var(--radius-sm);padding:11px;font-size:16px;background:var(--bg);color:var(--ink);outline:none;}
+  .fr-add input:focus,.fr-field input:focus,.fr-field select:focus{box-shadow:0 0 0 2px var(--primary);}
+  .fr-add input{flex:1;min-width:0;text-transform:uppercase;}
+  .fr-add input::placeholder{text-transform:none;}
+  .fr-foot{text-align:center;margin:18px 0 8px 0;font-size:12px;}
+  .fr-foot a{color:var(--ink-soft);text-decoration:underline;}
+  .fr-share-head{display:flex;align-items:center;gap:10px;}
+  .fr-items{list-style:none;margin:10px 0 6px 0;padding:0;font-size:13px;color:var(--ink);}
+  .fr-items li{display:flex;justify-content:space-between;gap:8px;padding:2px 0;}
+  .fr-items li span{color:var(--ink-soft);flex:none;}
+  .fr-tot{font-size:12px;font-weight:700;color:var(--ink-soft);}
+  .fr-field{margin-top:12px;}
+  .fr-field label{display:block;font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:5px;}
+  .fr-field input,.fr-field select{width:100%;}
+  .fr-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .fr-chip{border:none;border-radius:var(--radius-full);background:var(--card);box-shadow:var(--shadow-card);padding:8px 12px;font-weight:700;font-size:13px;color:var(--ink-soft);}
+  .fr-chip.on{background:var(--ink);color:#fff;}
+  .fr-chips .fr-factor{width:78px;flex:none;}
+  .fr-prev{margin-top:12px;}
+  .fr-picks{display:flex;flex-direction:column;gap:6px;margin-top:10px;}
+  .fr-pick{display:flex;align-items:center;gap:10px;border:none;background:var(--card);border-radius:var(--radius-md);box-shadow:var(--shadow-card);padding:9px 12px;text-align:left;color:var(--ink);}
+  .fr-pick .fr-tick{flex:none;color:var(--primary);display:inline-flex;}
+  .fr-pick:not(.on) .fr-tick{color:var(--ink-soft);}
+  .fr-sh-note{font-size:14px;line-height:1.5;margin:14px 0 6px 0;}
+  .fr-sh-body .primary-btn:disabled{opacity:0.5;box-shadow:none;}
   .chat-screen{position:fixed;left:0;right:0;top:0;bottom:0;background:var(--bg);z-index:40;display:flex;justify-content:center;}
   body.chat-open .app{visibility:hidden;}
   body.chat-open{overflow:hidden;}
@@ -568,7 +626,8 @@
         </svg>
         <h1>MacroFit</h1>
       </div>
-      <div class="brand-actions"><button class="gear" id="btnProgress" title="Progreso corporal"></button><button class="gear" id="btnChat" title="Chat con IA"></button><div class="user-wrap"><button class="gear user-btn" id="btnUser" type="button" title="Cuenta" aria-haspopup="menu" aria-expanded="false" aria-label="Cuenta"></button><div class="user-menu hidden" id="userMenu" role="menu"><div class="um-head" id="umHead"><div class="um-name" id="umName"></div><div class="um-mail" id="umMail"></div></div><button type="button" id="btnSettings" role="menuitem"></button><button type="button" id="btnUserSignOut" role="menuitem" class="um-out"></button></div></div></div>
+      <div class="brand-actions"><button class="gear" id="btnProgress" title="Progreso corporal"></button><button class="gear" id="btnChat" title="Chat con IA"></button><div class="user-wrap"><button class="gear user-btn" id="btnUser" type="button" title="Cuenta" aria-haspopup="menu" aria-expanded="false" aria-label="Cuenta"></button><span class="user-dot hidden" id="userDot"></span><div class="user-menu hidden" id="userMenu" role="menu"><div class="um-head" id="umHead"><div class="um-name" id="umName"></div><div class="um-mail" id="umMail"></div></div><button type="button" id="btnFriends" role="menuitem" class="hidden"></button>
+<button type="button" id="btnSettings" role="menuitem"></button><button type="button" id="btnUserSignOut" role="menuitem" class="um-out"></button></div></div></div>
     </div>
   </header>
 
@@ -622,6 +681,16 @@
     <div class="bp-tabs" id="bpTabs"><button type="button" data-t="cuerpo">Cuerpo</button><button type="button" data-t="entrenos">Entrenos</button></div>
     <div class="bp-ranges-bar" id="bpRangesBar"></div>
     <div class="progress-body" id="progressBody"></div>
+  </div>
+</div>
+<!-- AMIGOS -->
+<div class="progress-screen hidden" id="friendsScreen">
+  <div class="progress-inner">
+    <div class="chat-top">
+      <button type="button" class="chat-icon-btn" id="friendsClose" aria-label="Cerrar">‹</button>
+      <h2>Amigos</h2>
+    </div>
+    <div class="progress-body" id="friendsBody"></div>
   </div>
 </div>
 <input type="file" id="bodyFileInput" accept="image/*,application/pdf,.pdf,.csv,.tsv,.txt,.json" multiple hidden>
@@ -908,6 +977,7 @@
     <button class="primary-btn" id="btnLogCreatedMeal">Añadir a la comida</button>
     <button class="secondary-btn" id="btnSaveCreatedMeal">Guardar sin añadir hoy</button>
     <button class="secondary-btn hidden" id="btnPhotoToCreated">Guardar en Creados</button>
+    <button class="secondary-btn cm-share-btn" id="btnShareCreatedMeal" type="button">Compartir con un amigo</button>
   </div>
 </div>
 
@@ -1817,7 +1887,10 @@
       html += '<div class="meal-section">'+
         '<div class="meal-section-head">'+
           '<span class="mname">'+MEAL_EMOJI[mk]+' '+MEAL_LABELS[mk]+'</span>'+
-          '<button class="meal-add-btn" data-addmeal="'+mk+'">+ Añadir</button>'+
+          '<div class="meal-head-actions">'+
+            (group.length ? '<button type="button" class="meal-share-btn" data-sharemeal="'+mk+'" aria-label="Compartir con un amigo" title="Compartir con un amigo"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"></circle><circle cx="6" cy="12" r="2.6"></circle><circle cx="18" cy="19" r="2.6"></circle><line x1="8.3" y1="10.7" x2="15.7" y2="6.3"></line><line x1="8.3" y1="13.3" x2="15.7" y2="17.7"></line></svg></button>' : '')+
+            '<button class="meal-add-btn" data-addmeal="'+mk+'">+ Añadir</button>'+
+          '</div>'+
         '</div>'+
         '<div class="meal-macros">'+round(mealTotals.kcal)+' kcal · P '+round(mealTotals.protein)+'g · C '+round(mealTotals.carbs)+'g · G '+round(mealTotals.fat)+'g</div>';
       var prevB = (mk === 'desayuno' && group.length === 0 && !copyDismissed(iso)) ? previousBreakfast(iso) : [];
@@ -1861,6 +1934,9 @@
     });
     listEl.innerHTML = html;
 
+    Array.prototype.forEach.call(listEl.querySelectorAll('[data-sharemeal]'), function(btn){
+      btn.addEventListener('click', function(ev){ ev.stopPropagation(); frShareSlot(iso, btn.getAttribute('data-sharemeal')); });
+    });
     Array.prototype.forEach.call(listEl.querySelectorAll('[data-del]'), function(btn){
       btn.addEventListener('click', function(ev){
         ev.stopPropagation();
@@ -6474,6 +6550,7 @@
 
   /* ---------- Init ---------- */
   document.getElementById('btnSettings').innerHTML = iconSvg('settings', 17) + '<span>Configuración</span>';
+  document.getElementById('btnFriends').innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"></path><circle cx="17" cy="9" r="2.7"></circle><path d="M17 14.2c2.6 0 4.5 1.8 4.5 4.8"></path></svg><span>Amigos</span><span class="um-count hidden" id="umFriendsCount"></span>';
   document.getElementById('btnUserSignOut').innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg><span>Cerrar sesión</span>';
   document.getElementById('cmPhotoBtn').innerHTML =
     '<span style="display:inline-flex;align-items:center;gap:6px;justify-content:center;width:100%;">'+iconSvg('camera', 16)+'<span>Añadir foto</span></span>';
@@ -7445,9 +7522,11 @@
           cloud.adapter = cloudMakeAdapter(cloud.db, user.uid);
           cloudHideGate(); cloudRenderStatus();
           cloudSync();
+          frOnSignedIn();
         } else {
           cloud.user = null; cloud.adapter = null; cloud.status = 'signedout';
           try{ localStorage.removeItem(LS_CLOUD_USER); }catch(e){}
+          frReset();
           cloudShowGate('Inicia sesión para acceder a tus datos.'); cloudRenderStatus();
         }
       });
@@ -7488,6 +7567,9 @@
   }
   function renderUserAvatar(){
     var u = cloudUserInfo();
+    document.body.classList.toggle('is-cloud-in', cloud.status === 'signedin');
+    document.getElementById('btnFriends').classList.toggle('hidden', cloud.status !== 'signedin');
+    if(typeof frApplyBadge === 'function' && fr) frApplyBadge();
     userBtn.innerHTML = '';
     function fallback(){
       userBtn.innerHTML = '';
@@ -7520,6 +7602,7 @@
   document.addEventListener('click', function(e){ if(!userMenu.classList.contains('hidden') && !userMenu.contains(e.target)) closeUserMenu(); });
   document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeUserMenu(); });
   document.getElementById('btnSettings').addEventListener('click', closeUserMenu);
+  document.getElementById('btnFriends').addEventListener('click', closeUserMenu);
 
   function cloudRenderStatus(){
     renderUserAvatar();
@@ -7581,6 +7664,580 @@
   window.addEventListener('online', function(){
     if(cloud.status === 'error') cloudStart(); else if(cloud.status === 'signedin') cloudSync();
   });
+  /* ---------- Amigos: perfil público, solicitudes y comidas compartidas (Firestore) ----------
+     Colecciones (ver firestore.rules): friendCodes/{CODIGO}→{uid}, profiles/{uid},
+     friendships/{uidA_uidB}, shares/{id}. Los registros, peso y entrenos NO se publican nunca:
+     solo viaja lo que el usuario envía de forma explícita con "Compartir". */
+  var LS_FRIENDS_ON = 'md_friends_on_v1', LS_PENDING_ADD = 'md_pending_add_v1';
+  var FR_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  var fr = { profile: null, list: [], shares: [], found: null, msg: '', msgErr: false, loading: false, busy: false, pendingCode: '', lastRefresh: 0, loaded: false };
+  var friendsScreen = document.getElementById('friendsScreen');
+  var frMsgTimer = null;
+
+  function frReady(){ return !!(cloud.status === 'signedin' && cloud.user && cloud.db); }
+  function frUid(){ return cloud.user.uid; }
+  function frIsOn(){ try{ return !!cloud.user && localStorage.getItem(LS_FRIENDS_ON) === cloud.user.uid; }catch(e){ return false; } }
+  function frSetOn(v){ try{ if(v && cloud.user) localStorage.setItem(LS_FRIENDS_ON, cloud.user.uid); else localStorage.removeItem(LS_FRIENDS_ON); }catch(e){} }
+  function frMyName(){ var u = cloud.user || {}; return (((u.displayName || '').trim()) || String(u.email || '').split('@')[0] || 'Usuario').slice(0, 80); }
+  function frMyPhoto(){ var p = (cloud.user && cloud.user.photoURL) || ''; return p.length <= 600 ? p : ''; }
+  function frNewCode(){
+    var out = '', arr = null;
+    try{ arr = new Uint8Array(8); (window.crypto || window.msCrypto).getRandomValues(arr); }catch(e){ arr = null; }
+    for(var i = 0; i < 8; i++) out += FR_ALPHABET.charAt((arr ? arr[i] : Math.floor(Math.random() * 256)) % 32);
+    return out;
+  }
+  function frFmtCode(c){ return c ? c.slice(0, 4) + '-' + c.slice(4) : ''; }
+  function frParseCode(s){
+    s = String(s || '');
+    var m = s.match(/[?&#]add=([A-Za-z0-9-]+)/);
+    if(m) s = m[1];
+    s = s.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    return /^[A-Z0-9]{8}$/.test(s) ? s : '';
+  }
+  function frLink(code){ return location.origin + location.pathname + '?add=' + code; }
+  function frScreenOpen(){ return !friendsScreen.classList.contains('hidden'); }
+
+  function frErr(err){
+    var c = err && err.code;
+    if(c === 'fr/not-found') return 'No existe ningún usuario con ese código.';
+    if(c === 'fr/self') return 'Ese es tu propio código.';
+    if(c === 'permission-denied') return 'Firebase ha denegado la operación. Comprueba que has publicado las reglas de Firestore de Amigos (archivo firestore.rules).';
+    if(c === 'unavailable' || c === 'failed-precondition') return 'Sin conexión con Firebase. Inténtalo de nuevo en unos segundos.';
+    return 'Error: ' + ((err && err.message) ? err.message : String(err));
+  }
+  function frSetMsg(text, isErr){
+    fr.msg = text || ''; fr.msgErr = !!isErr;
+    clearTimeout(frMsgTimer);
+    if(text && !isErr) frMsgTimer = setTimeout(function(){ fr.msg = ''; if(frScreenOpen()) frRender(); }, 4000);
+    if(frScreenOpen()) frRender();
+  }
+
+  /* ---- Estado derivado ---- */
+  function frOther(f){
+    var me = frUid(), uid = (f.members || []).filter(function(m){ return m !== me; })[0] || '';
+    return { uid: uid, name: (f.names && f.names[uid]) || 'Amigo', photo: (f.photos && f.photos[uid]) || '' };
+  }
+  function frIncoming(){ return fr.list.filter(function(f){ return f.status === 'pending' && f.from !== frUid(); }); }
+  function frOutgoing(){ return fr.list.filter(function(f){ return f.status === 'pending' && f.from === frUid(); }); }
+  function frFriends(){ return fr.list.filter(function(f){ return f.status === 'accepted'; })
+    .sort(function(a, b){ return frOther(a).name.localeCompare(frOther(b).name, 'es', { sensitivity: 'base' }); }); }
+  function frBadgeCount(){ return (frReady() && frIsOn()) ? frIncoming().length + fr.shares.length : 0; }
+  function frApplyBadge(){
+    var n = frBadgeCount();
+    document.getElementById('userDot').classList.toggle('hidden', !n);
+    var c = document.getElementById('umFriendsCount');
+    c.textContent = n ? String(n) : '';
+    c.classList.toggle('hidden', !n);
+  }
+
+  /* ---- Acceso a Firestore ---- */
+  function frFetchProfile(){
+    return cloud.db.collection('profiles').doc(frUid()).get().then(function(d){
+      fr.profile = d.exists ? d.data() : null;
+      if(fr.profile) frSetOn(true);
+      return fr.profile;
+    });
+  }
+  function frRefresh(silent){
+    if(!frReady() || !frIsOn()) return Promise.resolve();
+    var uid = frUid(), db = cloud.db;
+    return Promise.all([
+      db.collection('friendships').where('members', 'array-contains', uid).get(),
+      db.collection('shares').where('to', '==', uid).get()
+    ]).then(function(r){
+      fr.list = []; r[0].forEach(function(d){ var v = d.data() || {}; v.id = d.id; fr.list.push(v); });
+      fr.shares = []; r[1].forEach(function(d){ var v = d.data() || {}; v.id = d.id; fr.shares.push(v); });
+      fr.shares.sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); });
+      fr.lastRefresh = Date.now(); fr.loaded = true;
+      frApplyBadge();
+      if(frScreenOpen()) frRender();
+    }).catch(function(err){ if(!silent) frSetMsg(frErr(err), true); });
+  }
+
+  function frClaimCode(){
+    var tries = 0;
+    function attempt(){
+      var code = frNewCode();
+      return cloud.db.collection('friendCodes').doc(code).set({ uid: frUid() }).then(function(){ return code; }, function(err){
+        if(err && err.code === 'permission-denied' && ++tries < 6) return attempt();
+        throw err;
+      });
+    }
+    return attempt();
+  }
+
+  function frActivate(){
+    if(!frReady() || fr.busy) return;
+    fr.busy = true; fr.msg = ''; frRender();
+    frClaimCode().then(function(code){
+      var prof = { name: frMyName(), photo: frMyPhoto(), code: code, createdAt: Date.now() };
+      return cloud.db.collection('profiles').doc(frUid()).set(prof).then(function(){ fr.profile = prof; frSetOn(true); });
+    }).then(function(){ return frRefresh(true); })
+      .catch(function(err){ frSetMsg(frErr(err), true); })
+      .then(function(){ fr.busy = false; frRender(); frAutoLookup(); });
+  }
+
+  function frRegen(){
+    customConfirm('Tu código actual dejará de funcionar para nuevas solicitudes (tus amigos actuales no se ven afectados). ¿Generar uno nuevo?', function(){
+      if(!frReady() || !fr.profile || fr.busy) return;
+      fr.busy = true; frRender();
+      var old = fr.profile.code;
+      frClaimCode().then(function(code){
+        var prof = { name: frMyName(), photo: frMyPhoto(), code: code, createdAt: fr.profile.createdAt || Date.now() };
+        return cloud.db.collection('profiles').doc(frUid()).set(prof).then(function(){
+          fr.profile = prof;
+          return cloud.db.collection('friendCodes').doc(old).delete().catch(function(){});
+        });
+      }).then(function(){ frSetMsg('Código nuevo generado ✓', false); })
+        .catch(function(err){ frSetMsg(frErr(err), true); })
+        .then(function(){ fr.busy = false; frRender(); });
+    });
+  }
+
+  function frDeactivate(){
+    customConfirm('Se borrarán tu perfil público, tu código, tus amistades y las comidas pendientes en la bandeja. Tus datos de comidas no se tocan. ¿Desactivar Amigos?', function(){
+      if(!frReady() || fr.busy) return;
+      fr.busy = true; frRender();
+      var uid = frUid(), db = cloud.db, code = fr.profile && fr.profile.code;
+      Promise.all([
+        db.collection('friendships').where('members', 'array-contains', uid).get(),
+        db.collection('shares').where('to', '==', uid).get(),
+        db.collection('shares').where('from', '==', uid).get()
+      ]).then(function(r){
+        var dels = [];
+        r.forEach(function(snap){ snap.forEach(function(d){ dels.push(d.ref.delete()); }); });
+        return Promise.all(dels);
+      }).then(function(){
+        var p = [db.collection('profiles').doc(uid).delete()];
+        if(code) p.push(db.collection('friendCodes').doc(code).delete());
+        return Promise.all(p);
+      }).then(function(){
+        fr.profile = null; fr.list = []; fr.shares = []; fr.found = null; fr.loaded = false;
+        frSetOn(false); frApplyBadge();
+        frSetMsg('Amigos desactivado.', false);
+      }).catch(function(err){ frSetMsg(frErr(err), true); })
+        .then(function(){ fr.busy = false; frRender(); });
+    });
+  }
+
+  function frLookup(raw){
+    var code = frParseCode(raw);
+    if(!code){ frSetMsg('Escribe un código de 8 letras o números (o pega el enlace que te han enviado).', true); return Promise.resolve(); }
+    if(fr.profile && fr.profile.code === code){ frSetMsg('Ese es tu propio código.', true); return Promise.resolve(); }
+    fr.busy = true; fr.msg = ''; fr.found = null; frRender();
+    return cloud.db.collection('friendCodes').doc(code).get().then(function(d){
+      if(!d.exists) throw { code: 'fr/not-found' };
+      var uid = d.data().uid;
+      if(uid === frUid()) throw { code: 'fr/self' };
+      return cloud.db.collection('profiles').doc(uid).get().then(function(p){
+        if(!p.exists) throw { code: 'fr/not-found' };
+        var pd = p.data() || {};
+        var existing = fr.list.filter(function(f){ return (f.members || []).indexOf(uid) !== -1; })[0];
+        var st = 'new';
+        if(existing) st = existing.status === 'accepted' ? 'friends' : (existing.from === frUid() ? 'pending-out' : 'pending-in');
+        fr.found = { uid: uid, name: pd.name || 'Usuario', photo: pd.photo || '', state: st, fid: existing ? existing.id : '' };
+      });
+    }).catch(function(err){ frSetMsg(frErr(err), true); })
+      .then(function(){ fr.busy = false; frRender(); });
+  }
+  function frAutoLookup(){
+    if(!fr.pendingCode || !fr.profile || !frReady()) return;
+    var code = fr.pendingCode; fr.pendingCode = '';
+    frLookup(code);
+  }
+
+  function frSendRequest(){
+    var f = fr.found;
+    if(!f || fr.busy) return;
+    if(f.state === 'pending-in') return frAccept(f.fid);
+    if(f.state !== 'new') return;
+    var me = frUid(), ids = [me, f.uid].sort(), names = {}, photos = {};
+    names[me] = frMyName(); names[f.uid] = f.name;
+    photos[me] = frMyPhoto(); photos[f.uid] = (f.photo || '').length <= 600 ? (f.photo || '') : '';
+    fr.busy = true; frRender();
+    cloud.db.collection('friendships').doc(ids.join('_')).set({ members: ids, from: me, status: 'pending', names: names, photos: photos, createdAt: Date.now() })
+      .then(function(){ fr.found = null; return frRefresh(true); })
+      .then(function(){ frSetMsg('Solicitud enviada a ' + f.name + ' ✓', false); })
+      .catch(function(err){ frSetMsg(frErr(err), true); })
+      .then(function(){ fr.busy = false; frRender(); });
+  }
+  function frAccept(id){
+    if(fr.busy) return;
+    fr.busy = true; frRender();
+    cloud.db.collection('friendships').doc(id).update({ status: 'accepted' })
+      .then(function(){ fr.found = null; return frRefresh(true); })
+      .then(function(){ frSetMsg('Solicitud aceptada ✓', false); })
+      .catch(function(err){ frSetMsg(frErr(err), true); })
+      .then(function(){ fr.busy = false; frRender(); });
+  }
+  function frRemove(id, okMsg){
+    if(fr.busy) return;
+    fr.busy = true; frRender();
+    cloud.db.collection('friendships').doc(id).delete()
+      .then(function(){ fr.found = null; return frRefresh(true); })
+      .then(function(){ frSetMsg(okMsg, false); })
+      .catch(function(err){ frSetMsg(frErr(err), true); })
+      .then(function(){ fr.busy = false; frRender(); });
+  }
+
+  /* ---- Pantalla ---- */
+  function frInitials(name){ return cloudUserInitials({ name: name || '', email: '' }); }
+  function frAv(name, photo){
+    var img = (typeof photo === 'string' && /^https:\/\//i.test(photo)) ? '<img class="fr-av-img" alt="" referrerpolicy="no-referrer" src="' + escapeHtml(photo) + '">' : '';
+    return '<span class="fr-av"><span class="fr-ini">' + escapeHtml(frInitials(name)) + '</span>' + img + '</span>';
+  }
+  function frItemsTotals(items, f){
+    f = f || 1;
+    var t = { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+    (items || []).forEach(function(it){ t.kcal += (Number(it.kcal) || 0) * f; t.protein += (Number(it.protein) || 0) * f; t.carbs += (Number(it.carbs) || 0) * f; t.fat += (Number(it.fat) || 0) * f; });
+    return t;
+  }
+  function frTotalsText(t){ return round(t.kcal) + ' kcal · P ' + round(t.protein) + 'g · C ' + round(t.carbs) + 'g · G ' + round(t.fat) + 'g'; }
+
+  function frRender(){
+    var box = document.getElementById('friendsBody');
+    if(!box) return;
+    var h = '';
+    if(fr.msg) h += '<div class="fr-msg' + (fr.msgErr ? ' err' : '') + '">' + escapeHtml(fr.msg) + '</div>';
+    if(!frReady()){
+      h += '<div class="fr-card"><b>Inicia sesión para usar Amigos.</b><p>Necesitas la sincronización con tu cuenta de Google activada (Ajustes → Cuenta).</p></div>';
+    } else if(fr.loading){
+      h += '<div class="fr-card">Cargando…</div>';
+    } else if(!fr.profile){
+      h += '<div class="fr-card"><b>Comparte comidas con tus amigos</b>' +
+        '<p>Al activar Amigos se publicará tu <b>nombre</b> (el de tu cuenta de Google), tu <b>foto</b> y un <b>código de amigo</b>. Solo los ve quien tenga tu código. Tus registros, peso y entrenos siguen siendo privados: solo se comparte lo que tú envíes.</p>' +
+        (fr.pendingCode ? '<p class="fr-note">Tienes una invitación pendiente (código ' + escapeHtml(frFmtCode(fr.pendingCode)) + '). Se abrirá al activar.</p>' : '') +
+        '<button type="button" class="primary-btn" data-fr="activate"' + (fr.busy ? ' disabled' : '') + '>' + (fr.busy ? 'Activando…' : 'Activar Amigos') + '</button></div>';
+    } else {
+      var dis = fr.busy ? ' disabled' : '';
+      var inc = frIncoming();
+      if(inc.length){
+        h += '<p class="section-label">Solicitudes recibidas</p><div class="fr-card fr-list">' + inc.map(function(f){
+          var o = frOther(f);
+          return '<div class="fr-row">' + frAv(o.name, o.photo) + '<div class="fr-name">' + escapeHtml(o.name) + '</div>' +
+            '<button type="button" class="fr-btn" data-fr="accept" data-id="' + escapeHtml(f.id) + '"' + dis + '>Aceptar</button>' +
+            '<button type="button" class="fr-btn fr-btn-ghost" data-fr="reject" data-id="' + escapeHtml(f.id) + '"' + dis + '>Rechazar</button></div>';
+        }).join('') + '</div>';
+      }
+      if(fr.shares.length){
+        h += '<p class="section-label">Comidas recibidas</p>' + fr.shares.map(function(s){
+          var items = s.items || [];
+          var names = items.slice(0, 6).map(function(it){ return '<li>' + escapeHtml(it.name) + ' <span>' + round(it.kcal) + ' kcal</span></li>'; }).join('') +
+            (items.length > 6 ? '<li>+' + (items.length - 6) + ' más</li>' : '');
+          return '<div class="fr-card fr-share">' +
+            '<div class="fr-share-head">' + frAv(s.fromName, s.fromPhoto) + '<div><div class="fr-name">' + escapeHtml(s.fromName || 'Un amigo') + ' te envía</div><div class="fr-sub">' + escapeHtml(s.title || 'Comida') + '</div></div></div>' +
+            '<ul class="fr-items">' + names + '</ul>' +
+            '<div class="fr-tot">' + frTotalsText(frItemsTotals(items)) + '</div>' +
+            '<div class="fr-actions">' +
+              '<button type="button" class="fr-btn" data-fr="import" data-id="' + escapeHtml(s.id) + '">Añadir a mi día</button>' +
+              '<button type="button" class="fr-btn fr-btn-ghost" data-fr="save" data-id="' + escapeHtml(s.id) + '">Guardar en Creados</button>' +
+              '<button type="button" class="fr-btn fr-btn-ghost" data-fr="discard" data-id="' + escapeHtml(s.id) + '">Descartar</button>' +
+            '</div></div>';
+        }).join('');
+      }
+      if(fr.found){
+        var fd = fr.found, stTxt = '', btn = '';
+        if(fd.state === 'new') btn = '<button type="button" class="fr-btn" data-fr="send"' + dis + '>Enviar solicitud</button>';
+        else if(fd.state === 'pending-in') btn = '<button type="button" class="fr-btn" data-fr="send"' + dis + '>Aceptar solicitud</button>';
+        else if(fd.state === 'friends') stTxt = 'Ya sois amigos.';
+        else stTxt = 'Ya le has enviado una solicitud.';
+        h += '<div class="fr-card fr-found"><div class="fr-row">' + frAv(fd.name, fd.photo) + '<div class="fr-name">' + escapeHtml(fd.name) + (stTxt ? '<div class="fr-sub">' + stTxt + '</div>' : '') + '</div>' + btn +
+          '<button type="button" class="fr-btn fr-btn-ghost" data-fr="clear-found">Cerrar</button></div></div>';
+      }
+      h += '<p class="section-label">Tu código de amigo</p><div class="fr-card">' +
+        '<div class="fr-code">' + escapeHtml(frFmtCode(fr.profile.code)) + '</div>' +
+        '<div class="fr-actions"><button type="button" class="fr-btn" data-fr="share-link">Compartir enlace</button>' +
+        '<button type="button" class="fr-btn fr-btn-ghost" data-fr="copy-link">Copiar enlace</button></div>' +
+        '<div class="fr-sub" style="margin-top:8px;">Quien abra el enlace (o escriba el código) podrá enviarte una solicitud. <a href="#" data-fr="regen">Generar código nuevo</a></div></div>';
+      h += '<p class="section-label">Añadir un amigo</p><div class="fr-card"><div class="fr-add">' +
+        '<input type="text" id="frCodeInput" placeholder="Código o enlace de tu amigo" autocomplete="off" autocapitalize="characters" spellcheck="false">' +
+        '<button type="button" class="fr-btn" data-fr="lookup"' + dis + '>Buscar</button></div></div>';
+      var fl = frFriends();
+      h += '<p class="section-label">Amigos' + (fl.length ? ' (' + fl.length + ')' : '') + '</p>';
+      if(fl.length){
+        h += '<div class="fr-card fr-list">' + fl.map(function(f){
+          var o = frOther(f);
+          return '<div class="fr-row">' + frAv(o.name, o.photo) + '<div class="fr-name">' + escapeHtml(o.name) + '</div>' +
+            '<button type="button" class="fr-btn fr-btn-ghost" data-fr="unfriend" data-id="' + escapeHtml(f.id) + '" data-name="' + escapeHtml(o.name) + '"' + dis + '>Eliminar</button></div>';
+        }).join('') + '</div>';
+      } else {
+        h += '<div class="fr-card fr-empty">Aún no tienes amigos. Comparte tu enlace o escribe el código de un amigo para empezar.</div>';
+      }
+      var out = frOutgoing();
+      if(out.length){
+        h += '<p class="section-label">Solicitudes enviadas</p><div class="fr-card fr-list">' + out.map(function(f){
+          var o = frOther(f);
+          return '<div class="fr-row">' + frAv(o.name, o.photo) + '<div class="fr-name">' + escapeHtml(o.name) + '<div class="fr-sub">Pendiente de aceptar</div></div>' +
+            '<button type="button" class="fr-btn fr-btn-ghost" data-fr="cancel" data-id="' + escapeHtml(f.id) + '"' + dis + '>Cancelar</button></div>';
+        }).join('') + '</div>';
+      }
+      h += '<div class="fr-foot"><a href="#" data-fr="deactivate">Desactivar Amigos y borrar mi perfil público</a></div>';
+    }
+    var keepVal = (document.getElementById('frCodeInput') || {}).value || '';
+    box.innerHTML = h;
+    var inp = document.getElementById('frCodeInput');
+    if(inp){
+      inp.value = keepVal;
+      inp.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); frLookup(inp.value); } });
+    }
+    Array.prototype.forEach.call(box.querySelectorAll('img.fr-av-img'), function(im){ im.addEventListener('error', function(){ if(im.parentNode) im.parentNode.removeChild(im); }); });
+  }
+
+  function frCopy(text){
+    function done(){ frSetMsg('Enlace copiado ✓', false); }
+    function fallback(){
+      try{
+        var ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+      }catch(e){ frSetMsg('No se pudo copiar. Tu código: ' + frFmtCode(fr.profile && fr.profile.code), true); }
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
+  }
+
+  document.getElementById('friendsBody').addEventListener('click', function(e){
+    var t = e.target.closest ? e.target.closest('[data-fr]') : null;
+    if(!t) return;
+    var act = t.getAttribute('data-fr'), id = t.getAttribute('data-id');
+    if(act === 'regen' || act === 'deactivate') e.preventDefault();
+    if(t.disabled) return;
+    if(act === 'activate') frActivate();
+    else if(act === 'lookup') frLookup((document.getElementById('frCodeInput') || {}).value || '');
+    else if(act === 'clear-found'){ fr.found = null; frRender(); }
+    else if(act === 'send') frSendRequest();
+    else if(act === 'accept') frAccept(id);
+    else if(act === 'reject') frRemove(id, 'Solicitud rechazada.');
+    else if(act === 'cancel') frRemove(id, 'Solicitud cancelada.');
+    else if(act === 'unfriend'){
+      customConfirm('¿Eliminar a ' + (t.getAttribute('data-name') || 'este amigo') + ' de tus amigos? Dejaréis de poder enviaros comidas.', function(){ frRemove(id, 'Amigo eliminado.'); });
+    }
+    else if(act === 'copy-link') frCopy(frLink(fr.profile.code));
+    else if(act === 'share-link'){
+      var url = frLink(fr.profile.code);
+      if(navigator.share) navigator.share({ title: 'MacroFit', text: 'Añádeme en MacroFit. Mi código de amigo: ' + frFmtCode(fr.profile.code), url: url }).catch(function(){});
+      else frCopy(url);
+    }
+    else if(act === 'regen') frRegen();
+    else if(act === 'deactivate') frDeactivate();
+    else if(act === 'import') frOpenImport(frShareById(id));
+    else if(act === 'save') frSaveAsCreated(frShareById(id));
+    else if(act === 'discard') customConfirm('¿Descartar esta comida recibida?', function(){ frDeleteShare(id); });
+  });
+
+  function frOpen(){
+    closeUserMenu();
+    friendsScreen.classList.remove('hidden');
+    fr.msg = ''; fr.found = null;
+    if(!frReady()){ frRender(); return; }
+    fr.loading = true; frRender();
+    frFetchProfile().then(function(p){ return p ? frRefresh() : null; })
+      .catch(function(err){ fr.msg = frErr(err); fr.msgErr = true; })
+      .then(function(){ fr.loading = false; frRender(); frAutoLookup(); });
+  }
+  function frClose(){ friendsScreen.classList.add('hidden'); }
+  document.getElementById('friendsClose').addEventListener('click', frClose);
+  document.getElementById('btnFriends').addEventListener('click', frOpen);
+
+  function frReset(){
+    fr.profile = null; fr.list = []; fr.shares = []; fr.found = null; fr.msg = ''; fr.loaded = false; fr.busy = false; fr.loading = false;
+    frClose(); frApplyBadge();
+  }
+  function frOnSignedIn(){
+    var m = null;
+    try{ m = localStorage.getItem(LS_PENDING_ADD); if(m) localStorage.removeItem(LS_PENDING_ADD); }catch(e){}
+    if(m) fr.pendingCode = frParseCode(m);
+    if(fr.pendingCode){ frOpen(); return; }
+    if(frIsOn()) frRefresh(true);
+  }
+  // Enlace de invitación: ?add=CODIGO. Se guarda hasta que haya sesión iniciada.
+  (function(){
+    try{
+      var m = location.search.match(/[?&]add=([A-Za-z0-9-]+)/);
+      if(m){
+        var c = frParseCode(m[1]);
+        if(c) localStorage.setItem(LS_PENDING_ADD, c);
+        if(window.history && history.replaceState) history.replaceState(null, '', location.pathname + location.hash);
+      }
+    }catch(e){}
+  })();
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden || !frReady() || !frIsOn()) return;
+    if(Date.now() - fr.lastRefresh > 60000) frRefresh(true);
+  });
+
+  /* ---- Bandeja: recibir ---- */
+  function frShareById(id){ return fr.shares.filter(function(s){ return s.id === id; })[0]; }
+  function frDeleteShare(id){
+    fr.shares = fr.shares.filter(function(s){ return s.id !== id; });
+    frApplyBadge(); if(frScreenOpen()) frRender();
+    cloud.db.collection('shares').doc(id).delete().catch(function(err){ frSetMsg(frErr(err), true); });
+  }
+  function frScaledLabel(pl, f){
+    if(!pl) return '';
+    if(f === 1) return pl;
+    var m = String(pl).match(/^\s*(\d+(?:[.,]\d+)?)\s*(g|ml)\s*$/i);
+    if(m) return Math.round(parseFloat(m[1].replace(',', '.')) * f) + ' ' + m[2];
+    return pl + ' ×' + round2(f);
+  }
+  function frEntryFromItem(it, f, meal, from){
+    function s(n){ return (Number(n) || 0) * f; }
+    var e = { name: it.name, kcal: s(it.kcal), protein: s(it.protein), carbs: s(it.carbs), fat: s(it.fat), meal: meal, source: it.source || 'compartido', sharedBy: from || '' };
+    if(it.ingredients && it.ingredients.length){
+      e.ingredients = it.ingredients.map(function(i){
+        var o = { name: i.name, kcal: s(i.kcal), protein: s(i.protein), carbs: s(i.carbs), fat: s(i.fat), per100: i.per100 || null };
+        if(i.grams != null) o.grams = Math.round(Number(i.grams) * f * 10) / 10;
+        return o;
+      });
+      var g = e.ingredients.reduce(function(a, i){ return a + (Number(i.grams) || 0); }, 0);
+      e.portionLabel = g ? (Math.round(g) + ' g') : frScaledLabel(it.portionLabel, f);
+    } else if(it.per100 && it.grams != null){
+      e.per100 = it.per100; e.grams = Math.round(Number(it.grams) * f * 10) / 10; e.portionLabel = Math.round(e.grams) + ' g';
+    } else {
+      e.portionLabel = frScaledLabel(it.portionLabel, f);
+    }
+    return e;
+  }
+  function frSaveAsCreated(s){
+    if(!s) return;
+    var ings = [];
+    (s.items || []).forEach(function(it){
+      if(it.ingredients && it.ingredients.length){
+        it.ingredients.forEach(function(i){ ings.push({ name: i.name, grams: i.grams, kcal: i.kcal, protein: i.protein, carbs: i.carbs, fat: i.fat, per100: i.per100 || null }); });
+      } else {
+        var o = { name: it.name, kcal: it.kcal, protein: it.protein, carbs: it.carbs, fat: it.fat, per100: it.per100 || null };
+        if(it.per100 && it.grams != null) o.grams = it.grams;
+        ings.push(o);
+      }
+    });
+    if(!ings.length) return;
+    addCreatedMeal({ name: (s.items.length === 1 ? s.items[0].name : s.title) || 'Comida recibida', photo: null, ingredients: ings });
+    renderCreatedMealsList();
+    frDeleteShare(s.id);
+    frSetMsg('Guardada en Creados ✓', false);
+  }
+
+  function frOpenImport(s){
+    if(!s) return;
+    var ov = document.createElement('div');
+    ov.className = 'overlay dialog-top';
+    var meal = MEAL_KEYS.indexOf(s.meal) !== -1 ? s.meal : guessMeal();
+    ov.innerHTML = '<div class="sheet" style="max-height:88vh;"><button class="close-x" type="button" aria-label="Cerrar">×</button>' +
+      '<h2 style="margin-top:0">Añadir a mi día</h2>' +
+      '<div class="hint">' + escapeHtml(s.title || 'Comida') + ' · de ' + escapeHtml(s.fromName || 'un amigo') + '</div>' +
+      '<div class="fr-field"><label>Día</label><input type="date" class="fr-date" value="' + escapeHtml(viewIso()) + '"></div>' +
+      '<div class="fr-field"><label>Comida</label><select class="fr-meal">' + MEAL_KEYS.map(function(k){ return '<option value="' + k + '"' + (k === meal ? ' selected' : '') + '>' + MEAL_LABELS[k] + '</option>'; }).join('') + '</select></div>' +
+      '<div class="fr-field"><label>Cantidad (respecto a lo que comió tu amigo)</label>' +
+        '<div class="fr-chips">' + [['0.5', '½'], ['0.75', '¾'], ['1', '×1'], ['1.5', '1½'], ['2', '×2']].map(function(c){ return '<button type="button" class="fr-chip' + (c[0] === '1' ? ' on' : '') + '" data-f="' + c[0] + '">' + c[1] + '</button>'; }).join('') +
+        '<input type="number" class="fr-factor" min="0.1" max="10" step="0.05" value="1" inputmode="decimal"></div></div>' +
+      '<div class="cm-totals fr-prev"></div>' +
+      '<div class="fr-sh-msg hint" style="color:var(--fat)"></div>' +
+      '<button type="button" class="primary-btn fr-go">Añadir</button>' +
+      '<button type="button" class="secondary-btn fr-cancel">Cancelar</button></div>';
+    document.body.appendChild(ov);
+    var fIn = ov.querySelector('.fr-factor');
+    function close(){ if(ov.parentNode) ov.parentNode.removeChild(ov); }
+    function factor(){ var v = parseFloat(String(fIn.value).replace(',', '.')); return (isFinite(v) && v > 0 && v <= 10) ? v : 0; }
+    function prev(){
+      var f = factor(), box = ov.querySelector('.fr-prev');
+      box.textContent = f ? ('Total: ' + frTotalsText(frItemsTotals(s.items, f))) : 'Cantidad no válida';
+      Array.prototype.forEach.call(ov.querySelectorAll('.fr-chip'), function(c){ c.classList.toggle('on', parseFloat(c.getAttribute('data-f')) === f); });
+    }
+    ov.addEventListener('click', function(e){ if(e.target === ov) close(); });
+    ov.querySelector('.close-x').addEventListener('click', close);
+    ov.querySelector('.fr-cancel').addEventListener('click', close);
+    Array.prototype.forEach.call(ov.querySelectorAll('.fr-chip'), function(c){ c.addEventListener('click', function(){ fIn.value = c.getAttribute('data-f'); prev(); }); });
+    fIn.addEventListener('input', prev);
+    prev();
+    ov.querySelector('.fr-go').addEventListener('click', function(){
+      var f = factor(), dateIso = ov.querySelector('.fr-date').value, mk = ov.querySelector('.fr-meal').value;
+      var msgEl = ov.querySelector('.fr-sh-msg');
+      if(!f){ msgEl.textContent = 'Indica una cantidad válida.'; return; }
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(dateIso)){ msgEl.textContent = 'Elige un día.'; return; }
+      (s.items || []).forEach(function(it){ addEntry(dateIso, frEntryFromItem(it, f, mk, s.fromName)); });
+      close();
+      frDeleteShare(s.id);
+      renderDay(); refreshAllDayChipStatuses();
+      frSetMsg('Añadida a tu día ✓', false);
+    });
+  }
+
+  /* ---- Enviar ---- */
+  function frR(n){ return Math.round((Number(n) || 0) * 100) / 100; }
+  function frPer100(p){ return (p && typeof p === 'object') ? { kcal: frR(p.kcal), protein: frR(p.protein), carbs: frR(p.carbs), fat: frR(p.fat) } : null; }
+  function frCleanItem(e){
+    var it = { name: String(e.name || 'Alimento').slice(0, 120), kcal: frR(e.kcal), protein: frR(e.protein), carbs: frR(e.carbs), fat: frR(e.fat) };
+    if(e.portionLabel) it.portionLabel = String(e.portionLabel).slice(0, 60);
+    if(e.source) it.source = String(e.source).slice(0, 30);
+    var p = frPer100(e.per100); if(p){ it.per100 = p; if(e.grams != null && isFinite(Number(e.grams))) it.grams = frR(e.grams); }
+    if(e.ingredients && e.ingredients.length){
+      it.ingredients = e.ingredients.slice(0, 40).map(function(i){
+        var o = { name: String(i.name || 'Ingrediente').slice(0, 120), kcal: frR(i.kcal), protein: frR(i.protein), carbs: frR(i.carbs), fat: frR(i.fat) };
+        if(i.grams != null && isFinite(Number(i.grams))) o.grams = frR(i.grams);
+        var ip = frPer100(i.per100); if(ip) o.per100 = ip;
+        return o;
+      });
+    }
+    return it;
+  }
+  function frShareSlot(iso, mk){
+    var entries = (logs[iso] || []).filter(function(e){ return e.meal === mk; });
+    if(!entries.length) return;
+    frOpenShareSheet({ title: MEAL_LABELS[mk] + ' · ' + fmtShort(parseIso(iso)), meal: mk, dateIso: iso, items: entries.slice(0, 40).map(frCleanItem) });
+  }
+  function frShareFromModal(){
+    var name = document.getElementById('cmName').value.trim() || 'Comida';
+    if(!cmIngredients.length){ document.getElementById('cmMsg').style.color = 'var(--fat)'; document.getElementById('cmMsg').textContent = 'Añade al menos un ingrediente para compartir.'; return; }
+    var t = cmIngredients.reduce(function(s, ing){ s.kcal += Number(ing.kcal) || 0; s.protein += Number(ing.protein) || 0; s.carbs += Number(ing.carbs) || 0; s.fat += Number(ing.fat) || 0; s.grams += Number(ing.grams) || 0; return s; }, { kcal: 0, protein: 0, carbs: 0, fat: 0, grams: 0 });
+    var item = frCleanItem({ name: name, kcal: t.kcal, protein: t.protein, carbs: t.carbs, fat: t.fat, portionLabel: t.grams ? (round(t.grams) + ' g') : '', source: 'creado', ingredients: cmIngredients });
+    frOpenShareSheet({ title: name, meal: guessMeal(), dateIso: viewIso(), items: [item] });
+  }
+  document.getElementById('btnShareCreatedMeal').addEventListener('click', frShareFromModal);
+
+  function frOpenShareSheet(payload){
+    var ov = document.createElement('div');
+    ov.className = 'overlay dialog-top';
+    ov.innerHTML = '<div class="sheet" style="max-height:80vh;"><button class="close-x" type="button" aria-label="Cerrar">×</button>' +
+      '<h2 style="margin-top:0">Compartir con un amigo</h2><div class="hint">' + escapeHtml(payload.title) + ' · ' + frTotalsText(frItemsTotals(payload.items)) + '</div><div class="fr-sh-body"></div></div>';
+    document.body.appendChild(ov);
+    var body = ov.querySelector('.fr-sh-body'), selected = {}, sending = false;
+    function close(){ if(ov.parentNode) ov.parentNode.removeChild(ov); }
+    ov.addEventListener('click', function(e){ if(e.target === ov) close(); });
+    ov.querySelector('.close-x').addEventListener('click', close);
+    function note(html, btnLabel, onBtn){
+      body.innerHTML = '<p class="fr-sh-note">' + html + '</p>' + (btnLabel ? '<button type="button" class="primary-btn fr-sh-act">' + btnLabel + '</button>' : '');
+      var b = body.querySelector('.fr-sh-act'); if(b) b.addEventListener('click', onBtn);
+    }
+    function draw(msg){
+      if(!frReady()) return note('Inicia sesión para compartir comidas.');
+      if(!frIsOn()) return note('Para compartir comidas primero tienes que activar Amigos.', 'Ir a Amigos', function(){ close(); frOpen(); });
+      if(!fr.loaded){ note('Cargando tus amigos…'); frRefresh(true).then(function(){ if(!fr.loaded) note('No se pudo cargar tu lista de amigos. Inténtalo de nuevo.'); else draw(); }); return; }
+      var fl = frFriends();
+      if(!fl.length) return note('Todavía no tienes amigos añadidos.', 'Añadir amigos', function(){ close(); frOpen(); });
+      var n = Object.keys(selected).filter(function(k){ return selected[k]; }).length;
+      body.innerHTML = '<div class="fr-picks">' + fl.map(function(f){
+        var o = frOther(f);
+        return '<button type="button" class="fr-pick' + (selected[o.uid] ? ' on' : '') + '" data-uid="' + escapeHtml(o.uid) + '">' + frAv(o.name, o.photo) + '<span class="fr-name">' + escapeHtml(o.name) + '</span><span class="fr-tick">' + selectIconSvg(!!selected[o.uid]) + '</span></button>';
+      }).join('') + '</div><div class="fr-sh-msg hint" style="color:var(--fat)">' + escapeHtml(msg || '') + '</div>' +
+        '<button type="button" class="primary-btn fr-sh-send"' + (n ? '' : ' disabled') + '>' + (n ? 'Enviar a ' + n + (n === 1 ? ' amigo' : ' amigos') : 'Elige a quién enviar') + '</button>';
+      Array.prototype.forEach.call(body.querySelectorAll('.fr-pick'), function(b){
+        b.addEventListener('click', function(){ var u = b.getAttribute('data-uid'); selected[u] = !selected[u]; draw(); });
+        var im = b.querySelector('img.fr-av-img'); if(im) im.addEventListener('error', function(){ if(im.parentNode) im.parentNode.removeChild(im); });
+      });
+      body.querySelector('.fr-sh-send').addEventListener('click', send);
+    }
+    function send(){
+      if(sending) return;
+      var uids = Object.keys(selected).filter(function(k){ return selected[k]; });
+      if(!uids.length) return;
+      sending = true;
+      var btn = body.querySelector('.fr-sh-send'); btn.disabled = true; btn.textContent = 'Enviando…';
+      var base = { from: frUid(), fromName: frMyName(), fromPhoto: frMyPhoto(), title: String(payload.title).slice(0, 120), meal: payload.meal, dateIso: payload.dateIso, items: JSON.parse(JSON.stringify(payload.items)), createdAt: Date.now() };
+      Promise.all(uids.map(function(u){ var d = JSON.parse(JSON.stringify(base)); d.to = u; return cloud.db.collection('shares').add(d); })).then(function(){
+        note('✓ Enviado a ' + uids.length + (uids.length === 1 ? ' amigo' : ' amigos') + '. Lo verá en su bandeja de Amigos al abrir la app.', 'Cerrar', close);
+      }).catch(function(err){ sending = false; draw(frErr(err)); });
+    }
+    draw();
+  }
+
   cloudStart();
 
 })();
