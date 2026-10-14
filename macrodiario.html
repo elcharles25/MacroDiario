@@ -286,7 +286,6 @@
   .pd-image-wrap .pd-noimg{font-size:34px;opacity:0.35;}
   .pd-name{font-size:17px;font-weight:800;font-family:'Poppins',sans-serif;line-height:1.25;margin-bottom:2px;}
   .pd-brand{font-size:12px;color:var(--ink-soft);margin-bottom:4px;}
-  .pd-delete-fav{display:block;width:100%;margin-top:10px;padding:12px;background:none;border:none;color:var(--fat);font-weight:600;font-size:13px;}
   .pd-name-row{display:flex;align-items:center;gap:8px;margin-bottom:2px;}
   .pd-name-row .pd-name{margin-bottom:0;}
   .pd-rename-btn{background:var(--bg);border:none;border-radius:var(--radius-sm);width:28px;height:28px;flex:none;font-size:14px;color:var(--ink-soft);}
@@ -302,14 +301,14 @@
   .pd-serving-hint:active{opacity:0.7;}
   .pd-custom-serving-actions{display:flex;gap:8px;flex-wrap:wrap;}
   .pd-custom-serving-actions .pd-serving-hint{margin-right:0;}
-  .pd-serving-hint-danger{color:var(--fat);border-color:var(--fat);}
+  .pd-serving-hint-danger{color:#fff;background:var(--fat);border-color:var(--fat);margin-left:auto;display:inline-flex;align-items:center;padding:5px 10px;}
   .pd-qty-row{display:flex;gap:8px;align-items:stretch;}
   .pd-qty-row input{flex:1;min-width:0;}
   .pd-unit-select{flex:none;max-width:52%;border:none;border-radius:var(--radius-sm);padding:0 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--ink);background:var(--bg);box-shadow:inset 0 0 0 1px var(--border-soft);}
   .pd-new-serving{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;background:var(--bg);border-radius:var(--radius-sm);padding:10px;}
   .pd-new-serving input{flex:1 1 100px;min-width:0;border:none;border-radius:var(--radius-sm);padding:8px 10px;font-size:13px;background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1px var(--border-soft);}
   .pd-new-serving button{border:none;border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;}
-  .pd-new-serving button#pdNewServingSave{flex:none;background:var(--primary);color:#fff;}
+  .pd-new-serving button#pdNewServingSave,.pd-new-serving button#cmNewServingSave{flex:none;background:var(--primary);color:#fff;display:inline-flex;align-items:center;gap:6px;}
   .pd-new-serving button#pdNewServingCancel{flex:none;background:transparent;color:var(--ink-soft);}
   .recent-row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--border-soft);cursor:pointer;}
   .recent-row .fn{flex:1;font-size:13px;font-weight:600;min-width:0;}
@@ -339,6 +338,21 @@
   .secondary-btn{width:100%;background:var(--card);border:none;border-radius:var(--radius-md);color:var(--ink);padding:12px;font-weight:600;font-size:13px;margin-top:6px;box-shadow:var(--shadow-card);}
   .close-x{position:absolute;top:16px;right:14px;background:var(--card);border:none;border-radius:var(--radius-full);width:30px;height:30px;font-size:16px;color:var(--ink-soft);box-shadow:var(--shadow-card);}
   .fav-x{right:52px;color:var(--fat);display:flex;align-items:center;justify-content:center;}
+  /* Estética común de acciones: guardar (icono, abajo a la izquierda), eliminar (papelera roja, abajo a la derecha), compartir (persona, junto al corazón) */
+  .share-x{right:90px;display:none;align-items:center;justify-content:center;color:var(--primary-dark);}
+  .is-cloud-in .share-x{display:flex;}
+  #createMealOverlay .share-x{right:52px;}
+  .btn-save{display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn-save .ic,.btn-trash .ic,.share-x .ic{flex:none;display:block;}
+  .act-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;flex-wrap:wrap;}
+  .act-bar > .primary-btn,.act-bar > .secondary-btn{width:auto;margin-top:0;padding:12px 18px;}
+  .act-bar > .btn-save{display:inline-flex;}
+  .act-bar-left{justify-content:flex-start;}
+  .act-bar-fill{flex-wrap:nowrap;}
+  .act-bar-fill > .primary-btn{flex:1;justify-content:center;}
+  .act-bar > .hint{margin:0;flex:1;min-width:140px;}
+  .btn-trash{flex:none;width:46px;height:46px;border:none;border-radius:var(--radius-md);background:var(--fat);color:#fff;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 8px 20px -8px rgba(244,67,108,0.55);margin-left:auto;}
+  .btn-trash:active{opacity:0.85;}
   .sheet-wrap{position:relative;}
   .result-row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--border-soft);font-size:13px;cursor:pointer;}
   .result-row .rn{flex:1;padding-right:8px;}
@@ -428,8 +442,6 @@
   .um-count{margin-left:auto;background:var(--danger);color:#fff;font-size:11px;font-weight:800;min-width:20px;height:20px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;padding:0 6px;}
   .um-count.hidden{display:none;}
   .user-menu button#btnFriends.hidden{display:none;}
-  .cm-share-btn{display:none;}
-  .is-cloud-in .cm-share-btn{display:block;}
   .share-pending{display:flex;align-items:center;gap:10px;margin:8px 0 2px 0;padding:9px 10px;border-radius:var(--radius-md);background:var(--primary-soft);border:1.5px dashed var(--primary);}
   .sp-icon{flex:none;width:34px;text-align:center;font-size:22px;}
   .sp-body{flex:1;min-width:0;}
@@ -459,6 +471,7 @@
   .fr-av-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
   .fr-btn{flex:none;border:none;border-radius:var(--radius-full);background:var(--primary);color:#fff;font-weight:700;font-size:12px;padding:8px 13px;}
   .fr-btn:disabled{opacity:0.5;}
+  .fr-btn-trash{background:var(--fat);color:#fff;padding:8px 10px;display:inline-flex;align-items:center;}
   .fr-btn-ghost{background:var(--bg);color:var(--ink);box-shadow:inset 0 0 0 1px var(--border-soft);}
   .fr-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
   .fr-code{font-family:'Poppins',sans-serif;font-weight:800;font-size:26px;letter-spacing:0.12em;color:var(--ink);text-align:center;padding:6px 0;}
@@ -713,8 +726,10 @@
     <div class="hint" id="bodyReviewHint"></div>
     <div id="bodyReviewList"></div>
     <div id="bodyReviewMsg" class="hint" style="color:var(--fat)"></div>
-    <button class="primary-btn" id="bodyReviewSave">Guardar</button>
-    <button class="secondary-btn hidden" id="bodyReviewDelete" style="color:var(--fat)">Eliminar medición</button>
+    <div class="act-bar">
+      <button class="primary-btn btn-save" id="bodyReviewSave">Guardar</button>
+      <button class="btn-trash hidden" id="bodyReviewDelete" type="button" title="Eliminar medición" aria-label="Eliminar medición"></button>
+    </div>
   </div>
 </div>
 
@@ -775,7 +790,7 @@
         <button id="btnCopyMon">Copiar lunes a todos los días</button>
       </div>
       <div id="targetsForm"></div>
-      <button class="secondary-btn" id="btnSaveTargets" style="width:100%;margin-top:8px;">Guardar objetivos</button>
+      <div class="act-bar act-bar-left"><button class="secondary-btn btn-save" id="btnSaveTargets">Guardar objetivos</button></div>
     </div>
 
     <div class="st-panel" id="stpanel-cuenta">
@@ -785,7 +800,7 @@
           <textarea id="fbConfigInput" rows="7" placeholder='{ "apiKey": "…", "authDomain": "…", "projectId": "…", "appId": "…" }'></textarea>
         </div>
         <div class="msg err" id="fbConfigErr" style="display:none;margin-bottom:10px;"></div>
-        <button class="primary-btn" id="btnSaveFbConfig">Guardar y activar</button>
+        <div class="act-bar act-bar-left"><button class="primary-btn btn-save" id="btnSaveFbConfig">Guardar y activar</button></div>
       </div>
       <div id="cloudConfigured" class="hidden">
         <div class="field-block"><label>Estado</label><p class="hint" id="cloudStatusLine" style="margin:0;"></p></div>
@@ -807,11 +822,11 @@
         <input type="text" id="proxyUrlInput" placeholder="https://tu-proxy.workers.dev">
         <p class="hint">Solo rellénalo si "Buscar" te da error de conexión. Es la URL de un pequeño Cloudflare Worker propio que reenvía la búsqueda a Open Food Facts añadiendo cabeceras CORS. Déjalo vacío para llamar directamente.</p>
       </div>
-      <button class="primary-btn" id="btnSaveSettings">Guardar</button>
+      <div class="act-bar act-bar-left"><button class="primary-btn btn-save" id="btnSaveSettings">Guardar</button></div>
       <p class="section-label">Zona de pruebas</p>
       <button class="secondary-btn" id="btnSeedFake" style="width:100%;margin-bottom:10px;">Cargar datos de ejemplo</button>
       <p class="hint" style="margin-top:-4px;margin-bottom:14px;">Rellena objetivos, favoritos y varios días de comidas con datos inventados (sin llamar a Open Food Facts), para poder probar la app.</p>
-      <button class="secondary-btn" id="btnClearData">Borrar todos los datos guardados</button>
+      <div class="act-bar"><p class="hint">Borra todos los datos guardados en este dispositivo.</p><button class="btn-trash" id="btnClearData" type="button" title="Borrar todos los datos guardados" aria-label="Borrar todos los datos guardados"></button></div>
     </div>
   </div>
 </div>
@@ -821,6 +836,7 @@
   <div class="sheet sheet-wrap">
     <button class="close-x" id="closeEdit">×</button>
     <button class="close-x fav-x" id="btnFavFromEdit" title="Guardar como favorito"></button>
+    <button class="close-x share-x" id="btnShareEntry" type="button" title="Compartir con un amigo" aria-label="Compartir con un amigo"></button>
     <h2>Editar alimento</h2>
     <div class="m-field"><label>Nombre</label><input type="text" id="editName"></div>
     <div id="editGramsBlock" class="hidden">
@@ -831,9 +847,10 @@
       <p class="hint" id="editDirectMacros"></p>
       <div class="m-field"><label>Porción (texto libre)</label><input type="text" id="editPortionLabel"></div>
     </div>
-    <button class="primary-btn" id="btnSaveEdit">Guardar cambios</button>
-    <button class="secondary-btn cm-share-btn" id="btnShareEntry" type="button">Compartir con un amigo</button>
-    <button class="secondary-btn" id="btnDeleteFromEdit">Eliminar este alimento</button>
+    <div class="act-bar">
+      <button class="primary-btn btn-save" id="btnSaveEdit">Guardar cambios</button>
+      <button class="btn-trash" id="btnDeleteFromEdit" type="button" title="Eliminar este alimento" aria-label="Eliminar este alimento"></button>
+    </div>
   </div>
 </div>
 
@@ -943,6 +960,7 @@
 <div class="overlay hidden" id="createMealOverlay">
   <div class="sheet sheet-wrap">
     <button class="close-x" id="closeCreateMeal">×</button>
+    <button class="close-x share-x" id="btnShareCreatedMeal" type="button" title="Compartir con un amigo" aria-label="Compartir con un amigo"></button>
     <h2 id="cmTitle">Nueva comida</h2>
 
     <img class="cm-photo-hero hidden" id="cmPhotoHero" alt="Foto del plato">
@@ -977,7 +995,7 @@
         </div>
         <div class="pd-custom-serving-actions hidden" id="cmServingActions">
           <button type="button" class="pd-serving-hint" id="cmEditServingBtn">Editar ración</button>
-          <button type="button" class="pd-serving-hint pd-serving-hint-danger" id="cmDeleteServingBtn">Eliminar ración</button>
+          <button type="button" class="pd-serving-hint pd-serving-hint-danger" id="cmDeleteServingBtn" title="Eliminar ración" aria-label="Eliminar ración"></button>
         </div>
         <div class="cm-totals" id="cmLogQtyPreview"></div>
       </div>
@@ -985,9 +1003,10 @@
 
     <div id="cmMsg" class="hint" style="color:var(--fat)"></div>
     <button class="primary-btn" id="btnLogCreatedMeal">Añadir a la comida</button>
-    <button class="secondary-btn" id="btnSaveCreatedMeal">Guardar sin añadir hoy</button>
-    <button class="secondary-btn hidden" id="btnPhotoToCreated">Guardar en Creados</button>
-    <button class="secondary-btn cm-share-btn" id="btnShareCreatedMeal" type="button">Compartir con un amigo</button>
+    <div class="act-bar act-bar-left">
+      <button class="secondary-btn btn-save" id="btnSaveCreatedMeal">Guardar sin añadir hoy</button>
+      <button class="secondary-btn btn-save hidden" id="btnPhotoToCreated">Guardar en Creados</button>
+    </div>
   </div>
 </div>
 
@@ -1277,6 +1296,19 @@
       body = '';
     }
     return '<svg viewBox="0 0 24 24" width="'+size+'" height="'+size+'" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+body+'</svg>';
+  }
+
+  var BTN_ICONS = {
+    save: '<svg class="ic" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>',
+    check: '<svg class="ic" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"></path></svg>',
+    trash: '<svg class="ic" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>',
+    person: '<svg class="ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"></path></svg>'
+  };
+  // Rellena un botón con icono (+ texto opcional). Los botones de solo icono llevan title/aria-label.
+  function setBtn(el, text, icon){
+    if(typeof el === 'string') el = document.getElementById(el);
+    if(!el) return;
+    el.innerHTML = (icon ? BTN_ICONS[icon] : '') + (text ? '<span class="bl">' + escapeHtml(text) + '</span>' : '');
   }
 
   function guessMeal(){
@@ -2174,9 +2206,8 @@
     saveTargets(targets);
     renderDay();
     var btn = document.getElementById('btnSaveTargets');
-    var original = btn.textContent;
-    btn.textContent = 'Guardado ✓';
-    setTimeout(function(){ btn.textContent = original; }, 1400);
+    setBtn(btn, 'Guardado', 'check');
+    setTimeout(function(){ setBtn(btn, 'Guardar objetivos', 'save'); }, 1400);
   });
 
   /* ---------- Settings modal ---------- */
@@ -2235,9 +2266,9 @@
       '<p style="font-size:14px;font-weight:700;margin:14px 0 8px 0;">'+escapeHtml(title)+'</p>'+
       '<input type="text" class="cp-input" maxlength="80" style="width:100%;" value="'+escapeHtml(initialValue || '')+'">'+
       '<div class="msg err cp-err" style="display:none;margin-top:8px;"></div>'+
-      '<div style="display:flex;gap:10px;margin-top:16px;">'+
-        '<button class="secondary-btn cp-cancel" style="flex:1;">Cancelar</button>'+
-        '<button class="primary-btn cp-ok" style="flex:1;">Guardar</button>'+
+      '<div class="act-bar act-bar-left" style="margin-top:16px;">'+
+        '<button class="primary-btn btn-save cp-ok">'+BTN_ICONS.save+'<span class="bl">Guardar</span></button>'+
+        '<button class="secondary-btn cp-cancel">Cancelar</button>'+
       '</div>'+
     '</div>';
     document.body.appendChild(ov);
@@ -3546,22 +3577,22 @@
             '<div class="pd-new-serving hidden" id="pdNewServingForm">'+
               '<input type="text" id="pdNewServingLabel" placeholder="Nombre (p.ej. Vaso, Puñado)">'+
               '<input type="number" id="pdNewServingGrams" placeholder="'+(info.servingUnit === 'ml' ? 'ml' : 'g')+'" inputmode="decimal">'+
-              '<button type="button" id="pdNewServingSave">Guardar ración</button>'+
+              '<button type="button" id="pdNewServingSave">'+BTN_ICONS.save+'<span class="bl">Guardar ración</span></button>'+
               '<button type="button" id="pdNewServingCancel">Cancelar</button>'+
             '</div>'+
             // Solo visibles cuando la unidad elegida es una ración creada a mano por el
             // usuario (no las de Open Food Facts, que no se pueden editar/borrar aquí).
             '<div class="pd-custom-serving-actions hidden" id="pdCustomServingActions">'+
               '<button type="button" class="pd-serving-hint" id="pdEditServingBtn">Editar ración</button>'+
-              '<button type="button" class="pd-serving-hint pd-serving-hint-danger" id="pdDeleteServingBtn">Eliminar ración</button>'+
+              '<button type="button" class="pd-serving-hint pd-serving-hint-danger" id="pdDeleteServingBtn" title="Eliminar ración" aria-label="Eliminar ración">'+BTN_ICONS.trash+'</button>'+
             '</div>'+
             (info.servingHint ? '<button type="button" class="pd-serving-hint" id="pdServingHint">Ración típica: '+escapeHtml(info.servingHint)+'</button>' : '')+
             '</div>'
           : '<div class="m-field"><label>Cantidad (raciones)</label><input type="number" id="pdQty" value="'+(info.initialQty != null ? info.initialQty : 1)+'" step="0.5" min="0" inputmode="decimal"></div>';
       })()+
       '<div class="pd-preview" id="pdPreview"></div>'+
-      '<button class="primary-btn" id="pdAddBtn">'+(info.addLabel || 'Añadir a la comida')+'</button>'+
-      (info.favoriteId ? '<button type="button" class="pd-delete-fav" id="pdDeleteFavBtn">Eliminar de favoritos</button>' : '');
+      '<div class="act-bar act-bar-fill"><button class="primary-btn" id="pdAddBtn">'+(info.addLabel || 'Añadir a la comida')+'</button>'+
+      (info.favoriteId ? '<button type="button" class="btn-trash" id="pdDeleteFavBtn" title="Eliminar de favoritos" aria-label="Eliminar de favoritos">'+BTN_ICONS.trash+'</button>' : '')+'</div>';
 
     // pdUnitOptions/pdSelectedUnitId se rellenan en el IIFE de arriba (necesitan existir ya
     // al construir el HTML, para marcar la opción seleccionada por defecto en el desplegable).
@@ -3635,7 +3666,7 @@
       document.getElementById('pdNewServingLabel').value = '';
       document.getElementById('pdNewServingGrams').value = '';
       pdEditingServingId = null;
-      if(newServingSaveBtn) newServingSaveBtn.textContent = 'Guardar ración';
+      if(newServingSaveBtn) setBtn(newServingSaveBtn, 'Guardar ración', 'save');
     }
 
     if(unitSelect){
@@ -3648,7 +3679,7 @@
           pdEditingServingId = null;
           document.getElementById('pdNewServingLabel').value = '';
           document.getElementById('pdNewServingGrams').value = '';
-          if(newServingSaveBtn) newServingSaveBtn.textContent = 'Guardar ración';
+          if(newServingSaveBtn) setBtn(newServingSaveBtn, 'Guardar ración', 'save');
           newServingForm.classList.remove('hidden');
           document.getElementById('pdNewServingLabel').focus();
           return;
@@ -3707,7 +3738,7 @@
         pdEditingServingId = rawId;
         document.getElementById('pdNewServingLabel').value = unitEntry.label.replace(/\s*\([^)]*\)\s*$/, '');
         document.getElementById('pdNewServingGrams').value = unitEntry.gramsPerUnit;
-        if(newServingSaveBtn) newServingSaveBtn.textContent = 'Guardar cambios';
+        if(newServingSaveBtn) setBtn(newServingSaveBtn, 'Guardar cambios', 'save');
         newServingForm.classList.remove('hidden');
         document.getElementById('pdNewServingLabel').focus();
       });
@@ -4584,7 +4615,7 @@
     document.getElementById('cmName').value = dishName;
     document.getElementById('cmMsg').style.color = 'var(--fat)'; document.getElementById('cmMsg').textContent = '';
     document.getElementById('btnLogCreatedMeal').classList.add('hidden');
-    document.getElementById('btnSaveCreatedMeal').textContent = '✓ Añadir a Hoy';
+    setBtn('btnSaveCreatedMeal', 'Añadir a Hoy', 'check');
     document.getElementById('cmLogQtyField').classList.add('hidden');
     document.getElementById('btnPhotoToCreated').classList.remove('hidden');
     cmServKeyName = '';
@@ -5261,7 +5292,7 @@
     document.getElementById('cmNewServingForm').classList.add('hidden');
     document.getElementById('cmNewServingLabel').value = '';
     document.getElementById('cmNewServingGrams').value = '';
-    document.getElementById('cmNewServingSave').textContent = 'Guardar ración';
+    setBtn('cmNewServingSave', 'Guardar ración', 'save');
     cmEditingServingId = null;
     var sel = document.getElementById('cmLogUnit'); if(sel) sel.value = cmUnitId;
   }
@@ -5279,7 +5310,7 @@
     }
     document.getElementById('cmNewServingLabel').value = label;
     document.getElementById('cmNewServingGrams').value = grams;
-    document.getElementById('cmNewServingSave').textContent = editing ? 'Guardar cambios' : 'Guardar ración';
+    setBtn('cmNewServingSave', editing ? 'Guardar cambios' : 'Guardar ración', 'save');
     document.getElementById('cmNewServingForm').classList.remove('hidden');
     document.getElementById('cmNewServingLabel').focus();
   }
@@ -5388,7 +5419,7 @@
     document.getElementById('cmName').value = existingMeal ? existingMeal.name : '';
     document.getElementById('cmMsg').style.color = 'var(--fat)'; document.getElementById('cmMsg').textContent = '';
     document.getElementById('btnLogCreatedMeal').classList.remove('hidden');
-    document.getElementById('btnSaveCreatedMeal').textContent = 'Guardar sin añadir hoy';
+    setBtn('btnSaveCreatedMeal', 'Guardar sin añadir hoy', 'save');
     document.getElementById('cmLogQtyField').classList.remove('hidden');
     // Por defecto se propone el peso total de la receta tal como está compuesta; el
     // usuario puede cambiarlo a los gramos que realmente vaya a comer hoy.
@@ -5418,7 +5449,7 @@
     document.getElementById('cmName').value = e.name || '';
     document.getElementById('cmMsg').style.color = 'var(--fat)'; document.getElementById('cmMsg').textContent = '';
     document.getElementById('btnLogCreatedMeal').classList.add('hidden');
-    document.getElementById('btnSaveCreatedMeal').textContent = 'Guardar cambios';
+    setBtn('btnSaveCreatedMeal', 'Guardar cambios', 'save');
     document.getElementById('cmLogQtyField').classList.add('hidden');
     document.getElementById('btnPhotoToCreated').classList.add('hidden');
     cmRenderPhotoPreview();
@@ -5573,7 +5604,7 @@
     cmIsAiPhotoSource = false;
     document.getElementById('cmTitle').textContent = 'Editar comida';
     document.getElementById('btnLogCreatedMeal').classList.remove('hidden');
-    document.getElementById('btnSaveCreatedMeal').textContent = 'Guardar sin añadir hoy';
+    setBtn('btnSaveCreatedMeal', 'Guardar sin añadir hoy', 'save');
     document.getElementById('btnPhotoToCreated').classList.add('hidden');
     document.getElementById('cmLogQtyField').classList.remove('hidden');
     cmInitLogQty();
@@ -5974,7 +6005,7 @@
     var edit = mode === 'edit';
     document.getElementById('bodyReviewTitle').textContent = edit ? 'Editar medición' : (items[0] && items[0].manual ? 'Nueva medición' : 'Revisa las mediciones');
     document.getElementById('bodyReviewHint').textContent = edit ? '' : (items[0] && items[0].manual ? 'Rellena los datos que quieras registrar.' : 'La IA puede equivocarse al leer: comprueba fechas y valores antes de guardar. Si ya hay una medición del mismo día se combinan.');
-    document.getElementById('bodyReviewSave').textContent = edit ? 'Guardar cambios' : 'Guardar';
+    setBtn('bodyReviewSave', edit ? 'Guardar cambios' : 'Guardar', 'save');
     document.getElementById('bodyReviewDelete').classList.toggle('hidden', !edit);
     document.getElementById('bodyReviewMsg').textContent = '';
     renderBodyReview();
@@ -6571,6 +6602,12 @@
   /* ---------- Init ---------- */
   document.getElementById('btnSettings').innerHTML = iconSvg('settings', 17) + '<span>Configuración</span>';
   document.getElementById('btnFriends').innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"></path><circle cx="17" cy="9" r="2.7"></circle><path d="M17 14.2c2.6 0 4.5 1.8 4.5 4.8"></path></svg><span>Amigos</span><span class="um-count hidden" id="umFriendsCount"></span>';
+  setBtn('btnSaveEdit', 'Guardar cambios', 'save'); setBtn('btnDeleteFromEdit', '', 'trash'); setBtn('btnShareEntry', '', 'person');
+  setBtn('btnShareCreatedMeal', '', 'person');
+  setBtn('btnSaveCreatedMeal', 'Guardar sin añadir hoy', 'save'); setBtn('btnPhotoToCreated', 'Guardar en Creados', 'save');
+  setBtn('bodyReviewSave', 'Guardar', 'save'); setBtn('bodyReviewDelete', '', 'trash');
+  setBtn('btnSaveSettings', 'Guardar', 'save'); setBtn('btnSaveTargets', 'Guardar objetivos', 'save'); setBtn('btnSaveFbConfig', 'Guardar y activar', 'save');
+  setBtn('btnClearData', '', 'trash'); setBtn('cmNewServingSave', 'Guardar ración', 'save'); setBtn('cmDeleteServingBtn', '', 'trash');
   document.getElementById('btnUserSignOut').innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg><span>Cerrar sesión</span>';
   document.getElementById('cmPhotoBtn').innerHTML =
     '<span style="display:inline-flex;align-items:center;gap:6px;justify-content:center;width:100%;">'+iconSvg('camera', 16)+'<span>Añadir foto</span></span>';
@@ -7036,8 +7073,8 @@
     ov.innerHTML = '<div class="sheet" style="max-height:none;">' +
       '<p style="font-size:14px;font-weight:700;margin:12px 0 10px 0;">' + escapeHtml(chat.title) + '</p>' +
       '<button class="secondary-btn ca-rename">Renombrar</button>' +
-      '<button class="secondary-btn ca-delete" style="color:var(--danger);">Eliminar</button>' +
-      '<button class="secondary-btn ca-cancel">Cancelar</button></div>';
+      '<div class="act-bar"><button class="secondary-btn ca-cancel">Cancelar</button>' +
+      '<button type="button" class="btn-trash ca-delete" title="Eliminar chat" aria-label="Eliminar chat">' + BTN_ICONS.trash + '</button></div></div>';
     document.body.appendChild(ov);
     function close(){ if(ov.parentNode) document.body.removeChild(ov); }
     ov.addEventListener('click', function(e){ if(e.target === ov) close(); });
@@ -7964,7 +8001,7 @@
         h += '<div class="fr-card fr-list">' + fl.map(function(f){
           var o = frOther(f);
           return '<div class="fr-row">' + frAv(o.name, o.photo) + '<div class="fr-name">' + escapeHtml(o.name) + '</div>' +
-            '<button type="button" class="fr-btn fr-btn-ghost" data-fr="unfriend" data-id="' + escapeHtml(f.id) + '" data-name="' + escapeHtml(o.name) + '"' + dis + '>Eliminar</button></div>';
+            '<button type="button" class="fr-btn fr-btn-trash" data-fr="unfriend" data-id="' + escapeHtml(f.id) + '" data-name="' + escapeHtml(o.name) + '" title="Eliminar amigo" aria-label="Eliminar amigo"' + dis + '>' + BTN_ICONS.trash + '</button></div>';
         }).join('') + '</div>';
       } else {
         h += '<div class="fr-card fr-empty">Aún no tienes amigos. Comparte tu enlace o escribe el código de un amigo para empezar.</div>';
@@ -8205,7 +8242,7 @@
         var o = frOther(f);
         return '<button type="button" class="fr-pick' + (selected[o.uid] ? ' on' : '') + '" data-uid="' + escapeHtml(o.uid) + '">' + frAv(o.name, o.photo) + '<span class="fr-name">' + escapeHtml(o.name) + '</span><span class="fr-tick">' + selectIconSvg(!!selected[o.uid]) + '</span></button>';
       }).join('') + '</div><div class="fr-sh-msg hint" style="color:var(--fat)">' + escapeHtml(msg || '') + '</div>' +
-        '<button type="button" class="primary-btn fr-sh-send"' + (n ? '' : ' disabled') + '>' + (n ? 'Enviar a ' + n + (n === 1 ? ' amigo' : ' amigos') : 'Elige a quién enviar') + '</button>';
+        '<button type="button" class="primary-btn btn-save fr-sh-send"' + (n ? '' : ' disabled') + '>' + BTN_ICONS.person + '<span class="bl">' + (n ? 'Enviar a ' + n + (n === 1 ? ' amigo' : ' amigos') : 'Elige a quién enviar') + '</span></button>';
       Array.prototype.forEach.call(body.querySelectorAll('.fr-pick'), function(b){
         b.addEventListener('click', function(){ var u = b.getAttribute('data-uid'); selected[u] = !selected[u]; draw(); });
         var im = b.querySelector('img.fr-av-img'); if(im) im.addEventListener('error', function(){ if(im.parentNode) im.parentNode.removeChild(im); });
@@ -8217,7 +8254,7 @@
       var uids = Object.keys(selected).filter(function(k){ return selected[k]; });
       if(!uids.length) return;
       sending = true;
-      var btn = body.querySelector('.fr-sh-send'); btn.disabled = true; btn.textContent = 'Enviando…';
+      var btn = body.querySelector('.fr-sh-send'); btn.disabled = true; setBtn(btn, 'Enviando…', 'person');
       var base = { from: frUid(), fromName: frMyName(), fromPhoto: frMyPhoto(), title: String(payload.title).slice(0, 120), meal: payload.meal, dateIso: payload.dateIso, items: JSON.parse(JSON.stringify(payload.items)), createdAt: Date.now() };
       Promise.all(uids.map(function(u){ var d = JSON.parse(JSON.stringify(base)); d.to = u; return cloud.db.collection('shares').add(d); })).then(function(){
         note('✓ Enviado a ' + uids.length + (uids.length === 1 ? ' amigo' : ' amigos') + '. Lo verá en su bandeja de Amigos al abrir la app.', 'Cerrar', close);
