@@ -451,6 +451,8 @@
   .sp-from{font-size:11px;font-weight:700;color:var(--primary-dark);}
   .sp-name{font-size:14px;font-weight:700;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .sp-macros{font-size:11px;color:var(--ink-soft);}
+  .sp-qty{display:flex;align-items:center;gap:6px;margin-top:5px;font-size:12px;color:var(--ink-soft);}
+  .sp-qty input{width:84px;border:none;border-radius:var(--radius-sm);padding:6px 8px;font-size:14px;font-weight:600;background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1px var(--border-soft);}
   .sp-actions{display:flex;gap:6px;flex:none;}
   .sp-btn{width:36px;height:36px;border:none;border-radius:50%;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;}
   .sp-yes{background:var(--primary);color:#fff;}
@@ -1988,6 +1990,17 @@
 
     Array.prototype.forEach.call(listEl.querySelectorAll('[data-spaccept]'), function(btn){
       btn.addEventListener('click', function(ev){ ev.stopPropagation(); frAcceptShare(btn.getAttribute('data-spaccept')); });
+    });
+    Array.prototype.forEach.call(listEl.querySelectorAll('[data-spqty]'), function(inp){
+      inp.addEventListener('click', function(ev){ ev.stopPropagation(); });
+      inp.addEventListener('input', function(){
+        var id = inp.getAttribute('data-spqty');
+        var sh = fr.shares.filter(function(x){ return x.id === id; })[0]; if(!sh) return;
+        fr.qty = fr.qty || {}; fr.qty[id] = inp.value;
+        var b = frShareBase(sh), v = Number(String(inp.value).replace(',', '.'));
+        var row = inp.closest('.share-pending'), m = row && row.querySelector('.sp-macros');
+        if(m && b) m.textContent = frPendingMacros(sh, v > 0 ? v / b.g : 0);
+      });
     });
     Array.prototype.forEach.call(listEl.querySelectorAll('[data-spreject]'), function(btn){
       btn.addEventListener('click', function(ev){ ev.stopPropagation(); frRejectShare(btn.getAttribute('data-spreject')); });
@@ -8168,15 +8181,47 @@
     if(typeof fr === 'undefined' || !fr || typeof cloud === 'undefined' || !cloud || !frReady() || !frIsOn()) return [];
     return fr.shares.filter(function(s){ return s.dateIso !== iso && /^\d{4}-\d{2}-\d{2}$/.test(s.dateIso || ''); });
   }
+  // Cantidad base (g o ml) de lo compartido, para que el receptor elija cuánto se añade.
+  function frShareBase(sh){
+    var items = sh.items || [], g = 0, unit = 'g', ok = items.length > 0;
+    items.forEach(function(it){
+      var v = 0;
+      if(it.ingredients && it.ingredients.length){
+        v = it.ingredients.reduce(function(a, i){ return a + (Number(i.grams) || 0); }, 0);
+      } else if(it.per100 && it.grams != null){
+        v = Number(it.grams) || 0;
+      } else {
+        var m = String(it.portionLabel || '').match(/^\s*(\d+(?:[.,]\d+)?)\s*(g|ml)\s*$/i);
+        if(m){ v = parseFloat(m[1].replace(',', '.')); unit = m[2].toLowerCase(); }
+      }
+      if(!(v > 0)) ok = false;
+      g += v;
+    });
+    return ok ? { g: g, unit: unit } : null;
+  }
+  function frPendingQty(sh){
+    var b = frShareBase(sh); if(!b) return null;
+    fr.qty = fr.qty || {};
+    var v = fr.qty[sh.id];
+    return { base: b, value: (v === undefined) ? round2(b.g) : v };
+  }
+  function frPendingMacros(sh, f){
+    var t = frItemsTotals(sh.items || []);
+    return round(t.kcal * f) + ' kcal · P ' + round(t.protein * f) + 'g · C ' + round(t.carbs * f) + 'g · G ' + round(t.fat * f) + 'g';
+  }
   function frPendingHtml(sh){
     var items = sh.items || [], t = frItemsTotals(items);
+    var q = frPendingQty(sh), f0 = 1;
+    if(q){ var qv = Number(String(q.value).replace(',', '.')); f0 = qv > 0 ? qv / q.base.g : 0; }
     var name = items.length === 1 ? items[0].name : (sh.title || 'Comida');
     var pl = items.length === 1 && items[0].portionLabel ? ' · ' + items[0].portionLabel : '';
     return '<div class="share-pending" data-shareid="' + escapeHtml(sh.id) + '">' +
       '<div class="sp-icon">' + foodEmoji(name) + '</div>' +
       '<div class="sp-body"><div class="sp-from">' + escapeHtml(sh.fromName || 'Un amigo') + ' te ha compartido</div>' +
         '<div class="sp-name">' + escapeHtml(name) + '</div>' +
-        '<div class="sp-macros">' + round(t.kcal) + ' kcal · P ' + round(t.protein) + 'g · C ' + round(t.carbs) + 'g · G ' + round(t.fat) + 'g' + escapeHtml(pl) + '</div></div>' +
+        '<div class="sp-macros">' + (q ? frPendingMacros(sh, f0) : (round(t.kcal) + ' kcal · P ' + round(t.protein) + 'g · C ' + round(t.carbs) + 'g · G ' + round(t.fat) + 'g' + escapeHtml(pl))) + '</div>' +
+        (q ? '<div class="sp-qty"><input type="number" inputmode="decimal" step="any" min="0" data-spqty="' + escapeHtml(sh.id) + '" value="' + escapeHtml(String(q.value)) + '" aria-label="Cantidad a añadir"><span>' + q.base.unit + '</span></div>' : '') +
+      '</div>' +
       '<div class="sp-actions"><button type="button" class="sp-btn sp-no" data-spreject="' + escapeHtml(sh.id) + '" aria-label="Rechazar" title="Rechazar">✕</button>' +
       '<button type="button" class="sp-btn sp-yes" data-spaccept="' + escapeHtml(sh.id) + '" aria-label="Aceptar" title="Aceptar">✓</button></div></div>';
   }
@@ -8184,7 +8229,16 @@
     var sh = fr.shares.filter(function(x){ return x.id === id; })[0];
     if(!sh) return;
     var mk = MEAL_KEYS.indexOf(sh.meal) !== -1 ? sh.meal : guessMeal();
-    (sh.items || []).forEach(function(it){ addEntry(sh.dateIso, frEntryFromItem(it, 1, mk, sh.fromName)); });
+    var f = 1, q = frPendingQty(sh);
+    if(q){
+      var qv = Number(String(q.value).replace(',', '.'));
+      if(!(qv > 0)){
+        var inp = document.querySelector('[data-spqty="' + id + '"]'); if(inp) inp.focus();
+        return;
+      }
+      f = qv / q.base.g;
+    }
+    (sh.items || []).forEach(function(it){ addEntry(sh.dateIso, frEntryFromItem(it, f, mk, sh.fromName)); });
     frDeleteShare(id);
     renderDay(); refreshAllDayChipStatuses();
   }
