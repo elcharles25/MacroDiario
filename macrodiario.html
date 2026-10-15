@@ -1004,8 +1004,9 @@
     <div id="cmMsg" class="hint" style="color:var(--fat)"></div>
     <button class="primary-btn" id="btnLogCreatedMeal">Añadir a la comida</button>
     <div class="act-bar act-bar-left">
-      <button class="secondary-btn btn-save" id="btnSaveCreatedMeal">Guardar sin añadir hoy</button>
-      <button class="secondary-btn btn-save hidden" id="btnPhotoToCreated">Guardar en Creados</button>
+      <button class="primary-btn btn-save" id="btnSaveCreatedMeal">Guardar sin añadir hoy</button>
+      <button class="primary-btn btn-save hidden" id="btnPhotoToCreated">Guardar en Creados</button>
+      <button class="btn-trash hidden" id="btnDeleteLogEntry" type="button" title="Eliminar esta comida" aria-label="Eliminar esta comida"></button>
     </div>
   </div>
 </div>
@@ -5419,6 +5420,7 @@
     document.getElementById('cmName').value = existingMeal ? existingMeal.name : '';
     document.getElementById('cmMsg').style.color = 'var(--fat)'; document.getElementById('cmMsg').textContent = '';
     document.getElementById('btnLogCreatedMeal').classList.remove('hidden');
+    document.getElementById('btnDeleteLogEntry').classList.add('hidden');
     setBtn('btnSaveCreatedMeal', 'Guardar sin añadir hoy', 'save');
     document.getElementById('cmLogQtyField').classList.remove('hidden');
     // Por defecto se propone el peso total de la receta tal como está compuesta; el
@@ -5450,6 +5452,7 @@
     document.getElementById('cmMsg').style.color = 'var(--fat)'; document.getElementById('cmMsg').textContent = '';
     document.getElementById('btnLogCreatedMeal').classList.add('hidden');
     setBtn('btnSaveCreatedMeal', 'Guardar cambios', 'save');
+    document.getElementById('btnDeleteLogEntry').classList.remove('hidden');
     document.getElementById('cmLogQtyField').classList.add('hidden');
     document.getElementById('btnPhotoToCreated').classList.add('hidden');
     cmRenderPhotoPreview();
@@ -5458,6 +5461,7 @@
   }
 
   function closeCreateMealModal(){
+    document.getElementById('btnDeleteLogEntry').classList.add('hidden');
     createMealOverlay.classList.add('hidden');
     cmMode = 'recipe';
     cmLogEditContext = null;
@@ -5467,6 +5471,12 @@
     openCreateMealModal(null);
   });
   document.getElementById('closeCreateMeal').addEventListener('click', closeCreateMealModal);
+  document.getElementById('btnDeleteLogEntry').addEventListener('click', function(){
+    if(cmMode !== 'logEntry' || !cmLogEditContext) return;
+    deleteEntry(cmLogEditContext.dateIso, cmLogEditContext.id);
+    closeCreateMealModal();
+    renderDay();
+  });
 
   document.getElementById('cmPhotoBtn').addEventListener('click', function(){
     document.getElementById('cmPhotoInput').click();
@@ -6607,7 +6617,7 @@
   setBtn('btnSaveCreatedMeal', 'Guardar sin añadir hoy', 'save'); setBtn('btnPhotoToCreated', 'Guardar en Creados', 'save');
   setBtn('bodyReviewSave', 'Guardar', 'save'); setBtn('bodyReviewDelete', '', 'trash');
   setBtn('btnSaveSettings', 'Guardar', 'save'); setBtn('btnSaveTargets', 'Guardar objetivos', 'save'); setBtn('btnSaveFbConfig', 'Guardar y activar', 'save');
-  setBtn('btnClearData', '', 'trash'); setBtn('cmNewServingSave', 'Guardar ración', 'save'); setBtn('cmDeleteServingBtn', '', 'trash');
+  setBtn('btnClearData', '', 'trash'); setBtn('btnDeleteLogEntry', '', 'trash'); setBtn('cmNewServingSave', 'Guardar ración', 'save'); setBtn('cmDeleteServingBtn', '', 'trash');
   document.getElementById('btnUserSignOut').innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg><span>Cerrar sesión</span>';
   document.getElementById('cmPhotoBtn').innerHTML =
     '<span style="display:inline-flex;align-items:center;gap:6px;justify-content:center;width:100%;">'+iconSvg('camera', 16)+'<span>Añadir foto</span></span>';
