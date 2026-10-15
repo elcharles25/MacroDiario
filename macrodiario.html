@@ -3959,8 +3959,16 @@
       var data;
       try{ data = JSON.parse(text); }
       catch(e){ throw new Error('Respuesta no-JSON de Open Food Facts (probable bloqueo o página de error)'); }
-      return (data.products || []).filter(function(p){ return p.product_name; });
+      return (data.products || []).filter(function(p){ return p.product_name && offDataLooksValid(p); });
     });
+  }
+  // Open Food Facts tiene fichas mal rellenadas: sin calorías o con todas las macros a 0.
+  // Se descartan de la búsqueda (no del escaneo de código de barras, que es un producto concreto).
+  function offDataLooksValid(p){
+    var n = p.nutriments || {};
+    var kcal = Number(n['energy-kcal_100g']) || 0;
+    var macros = (Number(n['proteins_100g']) || 0) + (Number(n['carbohydrates_100g']) || 0) + (Number(n['fat_100g']) || 0);
+    return kcal > 0 && macros > 0;
   }
 
   function productByBarcode(code){
