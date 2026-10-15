@@ -309,6 +309,7 @@
   .pd-new-serving input{flex:1 1 100px;min-width:0;border:none;border-radius:var(--radius-sm);padding:8px 10px;font-size:13px;background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1px var(--border-soft);}
   .pd-new-serving button{border:none;border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;}
   .pd-new-serving button#pdNewServingSave,.pd-new-serving button#cmNewServingSave{flex:none;background:var(--primary);color:#fff;display:inline-flex;align-items:center;gap:6px;}
+  .pd-new-serving button#pdDeleteServingBtn,.pd-new-serving button#cmDeleteServingBtn{flex:none;background:transparent;color:var(--fat);border:1px solid var(--fat);margin-left:auto;}
   .pd-new-serving button#pdNewServingCancel{flex:none;background:transparent;color:var(--ink-soft);}
   .recent-row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--border-soft);cursor:pointer;}
   .recent-row .fn{flex:1;font-size:13px;font-weight:600;min-width:0;}
@@ -992,10 +993,10 @@
           <input type="number" id="cmNewServingGrams" placeholder="g" inputmode="decimal">
           <button type="button" id="cmNewServingSave">Guardar ración</button>
           <button type="button" id="cmNewServingCancel">Cancelar</button>
+          <button type="button" class="hidden" id="cmDeleteServingBtn">Eliminar ración</button>
         </div>
         <div class="pd-custom-serving-actions hidden" id="cmServingActions">
           <button type="button" class="pd-serving-hint" id="cmEditServingBtn">Editar ración</button>
-          <button type="button" class="pd-serving-hint pd-serving-hint-danger" id="cmDeleteServingBtn" title="Eliminar ración" aria-label="Eliminar ración"></button>
         </div>
         <div class="cm-totals" id="cmLogQtyPreview"></div>
       </div>
@@ -1004,8 +1005,8 @@
     <div id="cmMsg" class="hint" style="color:var(--fat)"></div>
     <button class="primary-btn" id="btnLogCreatedMeal">Añadir a la comida</button>
     <div class="act-bar act-bar-left">
-      <button class="primary-btn btn-save" id="btnSaveCreatedMeal">Guardar sin añadir hoy</button>
-      <button class="primary-btn btn-save hidden" id="btnPhotoToCreated">Guardar en Creados</button>
+      <button class="secondary-btn btn-save" id="btnSaveCreatedMeal">Guardar sin añadir hoy</button>
+      <button class="secondary-btn btn-save hidden" id="btnPhotoToCreated">Guardar en Creados</button>
       <button class="btn-trash hidden" id="btnDeleteLogEntry" type="button" title="Eliminar esta comida" aria-label="Eliminar esta comida"></button>
     </div>
   </div>
@@ -3580,12 +3581,12 @@
               '<input type="number" id="pdNewServingGrams" placeholder="'+(info.servingUnit === 'ml' ? 'ml' : 'g')+'" inputmode="decimal">'+
               '<button type="button" id="pdNewServingSave">'+BTN_ICONS.save+'<span class="bl">Guardar ración</span></button>'+
               '<button type="button" id="pdNewServingCancel">Cancelar</button>'+
+              '<button type="button" class="hidden" id="pdDeleteServingBtn">Eliminar ración</button>'+
             '</div>'+
             // Solo visibles cuando la unidad elegida es una ración creada a mano por el
             // usuario (no las de Open Food Facts, que no se pueden editar/borrar aquí).
             '<div class="pd-custom-serving-actions hidden" id="pdCustomServingActions">'+
               '<button type="button" class="pd-serving-hint" id="pdEditServingBtn">Editar ración</button>'+
-              '<button type="button" class="pd-serving-hint pd-serving-hint-danger" id="pdDeleteServingBtn" title="Eliminar ración" aria-label="Eliminar ración">'+BTN_ICONS.trash+'</button>'+
             '</div>'+
             (info.servingHint ? '<button type="button" class="pd-serving-hint" id="pdServingHint">Ración típica: '+escapeHtml(info.servingHint)+'</button>' : '')+
             '</div>'
@@ -3667,6 +3668,7 @@
       document.getElementById('pdNewServingLabel').value = '';
       document.getElementById('pdNewServingGrams').value = '';
       pdEditingServingId = null;
+      var dsb = document.getElementById('pdDeleteServingBtn'); if(dsb) dsb.classList.add('hidden');
       if(newServingSaveBtn) setBtn(newServingSaveBtn, 'Guardar ración', 'save');
     }
 
@@ -3678,6 +3680,7 @@
           // (la nueva opción "+ Crear ración nueva…" es una acción, no una unidad en sí).
           unitSelect.value = pdSelectedUnitId;
           pdEditingServingId = null;
+          document.getElementById('pdDeleteServingBtn').classList.add('hidden');
           document.getElementById('pdNewServingLabel').value = '';
           document.getElementById('pdNewServingGrams').value = '';
           if(newServingSaveBtn) setBtn(newServingSaveBtn, 'Guardar ración', 'save');
@@ -3740,6 +3743,7 @@
         document.getElementById('pdNewServingLabel').value = unitEntry.label.replace(/\s*\([^)]*\)\s*$/, '');
         document.getElementById('pdNewServingGrams').value = unitEntry.gramsPerUnit;
         if(newServingSaveBtn) setBtn(newServingSaveBtn, 'Guardar cambios', 'save');
+        document.getElementById('pdDeleteServingBtn').classList.remove('hidden');
         newServingForm.classList.remove('hidden');
         document.getElementById('pdNewServingLabel').focus();
       });
@@ -3762,6 +3766,7 @@
           pdSelectedUnitId = fallback.id;
           unitSelect.value = fallback.id;
           document.getElementById('pdGrams').value = round2(grams / fallback.gramsPerUnit);
+          closeNewServingForm();
           refreshCustomServingActions();
           updatePreview();
         });
@@ -4616,6 +4621,8 @@
     document.getElementById('cmName').value = dishName;
     document.getElementById('cmMsg').style.color = 'var(--fat)'; document.getElementById('cmMsg').textContent = '';
     document.getElementById('btnLogCreatedMeal').classList.add('hidden');
+    cmSaveStyle(false);
+    cmSetDeleteBtn(false);
     setBtn('btnSaveCreatedMeal', 'Añadir a Hoy', 'check');
     document.getElementById('cmLogQtyField').classList.add('hidden');
     document.getElementById('btnPhotoToCreated').classList.remove('hidden');
@@ -5110,7 +5117,6 @@
       var sub = round(t.kcal)+' kcal · P '+round(t.protein)+'g · C '+round(t.carbs)+'g · G '+round(t.fat)+'g';
       return '<div class="fav-row created-meal-row" data-cmid="'+m.id+'">'+
         '<div><div class="fn">'+escapeHtml(m.name)+'</div><div class="fmacros">'+sub+'</div></div>'+
-        '<div class="factions"><button class="del">✕</button></div>'+
       '</div>';
     }).join('');
     Array.prototype.forEach.call(box.querySelectorAll('.created-meal-row'), function(row){
@@ -5137,13 +5143,6 @@
           return;
         }
         openCreateMealModal(m);
-      });
-      row.querySelector('.del').addEventListener('click', function(ev){
-        ev.stopPropagation();
-        customConfirm('¿Eliminar la comida "'+m.name+'"?', function(){
-          removeCreatedMeal(id);
-          renderCreatedMealsList();
-        });
       });
     });
   }
@@ -5294,6 +5293,7 @@
     document.getElementById('cmNewServingLabel').value = '';
     document.getElementById('cmNewServingGrams').value = '';
     setBtn('cmNewServingSave', 'Guardar ración', 'save');
+    document.getElementById('cmDeleteServingBtn').classList.add('hidden');
     cmEditingServingId = null;
     var sel = document.getElementById('cmLogUnit'); if(sel) sel.value = cmUnitId;
   }
@@ -5312,6 +5312,7 @@
     document.getElementById('cmNewServingLabel').value = label;
     document.getElementById('cmNewServingGrams').value = grams;
     setBtn('cmNewServingSave', editing ? 'Guardar cambios' : 'Guardar ración', 'save');
+    document.getElementById('cmDeleteServingBtn').classList.toggle('hidden', !editing);
     document.getElementById('cmNewServingForm').classList.remove('hidden');
     document.getElementById('cmNewServingLabel').focus();
   }
@@ -5357,6 +5358,7 @@
       deleteCustomServing(cmServKeyName || cmServName(), id);
       cmBuildUnits('g');
       document.getElementById('cmLogGrams').value = round(g) || 100;
+      cmCloseServingForm();
       cmUpdateLogQtyPreview();
     });
   });
@@ -5407,6 +5409,20 @@
     if(showSub) subEl.textContent = '📷 Identificado a partir de una foto';
   }
 
+  // "Guardar" es blanco (secondary) en la receta; verde al editar una comida registrada.
+  function cmSaveStyle(green){
+    ['btnSaveCreatedMeal','btnPhotoToCreated'].forEach(function(id){
+      var b = document.getElementById(id);
+      b.classList.toggle('primary-btn', !!green);
+      b.classList.toggle('secondary-btn', !green);
+    });
+  }
+  function cmSetDeleteBtn(show, title){
+    var b = document.getElementById('btnDeleteLogEntry');
+    b.classList.toggle('hidden', !show);
+    if(title){ b.title = title; b.setAttribute('aria-label', title); }
+  }
+
   function openCreateMealModal(existingMeal){
     cmMode = 'recipe';
     cmLogEditContext = null;
@@ -5420,7 +5436,8 @@
     document.getElementById('cmName').value = existingMeal ? existingMeal.name : '';
     document.getElementById('cmMsg').style.color = 'var(--fat)'; document.getElementById('cmMsg').textContent = '';
     document.getElementById('btnLogCreatedMeal').classList.remove('hidden');
-    document.getElementById('btnDeleteLogEntry').classList.add('hidden');
+    cmSaveStyle(false);
+    cmSetDeleteBtn(!!existingMeal, 'Eliminar comida');
     setBtn('btnSaveCreatedMeal', 'Guardar sin añadir hoy', 'save');
     document.getElementById('cmLogQtyField').classList.remove('hidden');
     // Por defecto se propone el peso total de la receta tal como está compuesta; el
@@ -5452,7 +5469,8 @@
     document.getElementById('cmMsg').style.color = 'var(--fat)'; document.getElementById('cmMsg').textContent = '';
     document.getElementById('btnLogCreatedMeal').classList.add('hidden');
     setBtn('btnSaveCreatedMeal', 'Guardar cambios', 'save');
-    document.getElementById('btnDeleteLogEntry').classList.remove('hidden');
+    cmSaveStyle(true);
+    cmSetDeleteBtn(true, 'Eliminar esta comida');
     document.getElementById('cmLogQtyField').classList.add('hidden');
     document.getElementById('btnPhotoToCreated').classList.add('hidden');
     cmRenderPhotoPreview();
@@ -5472,10 +5490,20 @@
   });
   document.getElementById('closeCreateMeal').addEventListener('click', closeCreateMealModal);
   document.getElementById('btnDeleteLogEntry').addEventListener('click', function(){
-    if(cmMode !== 'logEntry' || !cmLogEditContext) return;
-    deleteEntry(cmLogEditContext.dateIso, cmLogEditContext.id);
-    closeCreateMealModal();
-    renderDay();
+    if(cmMode === 'logEntry' && cmLogEditContext){
+      deleteEntry(cmLogEditContext.dateIso, cmLogEditContext.id);
+      closeCreateMealModal();
+      renderDay();
+      return;
+    }
+    if(cmMode === 'recipe' && cmEditingId){
+      var delId = cmEditingId;
+      customConfirm('¿Eliminar esta comida?', function(){
+        removeCreatedMeal(delId);
+        closeCreateMealModal();
+        renderCreatedMealsList();
+      });
+    }
   });
 
   document.getElementById('cmPhotoBtn').addEventListener('click', function(){
@@ -5612,6 +5640,7 @@
     if(!cmValidateAndSave()) return;
     cmMode = 'recipe';
     cmIsAiPhotoSource = false;
+    cmSetDeleteBtn(true, 'Eliminar comida');
     document.getElementById('cmTitle').textContent = 'Editar comida';
     document.getElementById('btnLogCreatedMeal').classList.remove('hidden');
     setBtn('btnSaveCreatedMeal', 'Guardar sin añadir hoy', 'save');
@@ -6617,7 +6646,7 @@
   setBtn('btnSaveCreatedMeal', 'Guardar sin añadir hoy', 'save'); setBtn('btnPhotoToCreated', 'Guardar en Creados', 'save');
   setBtn('bodyReviewSave', 'Guardar', 'save'); setBtn('bodyReviewDelete', '', 'trash');
   setBtn('btnSaveSettings', 'Guardar', 'save'); setBtn('btnSaveTargets', 'Guardar objetivos', 'save'); setBtn('btnSaveFbConfig', 'Guardar y activar', 'save');
-  setBtn('btnClearData', '', 'trash'); setBtn('btnDeleteLogEntry', '', 'trash'); setBtn('cmNewServingSave', 'Guardar ración', 'save'); setBtn('cmDeleteServingBtn', '', 'trash');
+  setBtn('btnClearData', '', 'trash'); setBtn('btnDeleteLogEntry', '', 'trash'); setBtn('cmNewServingSave', 'Guardar ración', 'save');
   document.getElementById('btnUserSignOut').innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg><span>Cerrar sesión</span>';
   document.getElementById('cmPhotoBtn').innerHTML =
     '<span style="display:inline-flex;align-items:center;gap:6px;justify-content:center;width:100%;">'+iconSvg('camera', 16)+'<span>Añadir foto</span></span>';
