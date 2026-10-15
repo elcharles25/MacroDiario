@@ -309,6 +309,8 @@
   .pd-new-serving input{flex:1 1 100px;min-width:0;border:none;border-radius:var(--radius-sm);padding:8px 10px;font-size:13px;background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1px var(--border-soft);}
   .pd-new-serving button{border:none;border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;}
   .pd-new-serving button#pdNewServingSave,.pd-new-serving button#cmNewServingSave{flex:none;background:var(--primary);color:#fff;display:inline-flex;align-items:center;gap:6px;}
+  .pd-new-serving .ns-btns{flex:1 0 100%;display:flex;flex-wrap:nowrap;gap:6px;align-items:center;}
+  .pd-new-serving .ns-btns button{flex:0 1 auto;min-width:0;white-space:nowrap;padding:8px 9px;}
   .pd-new-serving button#pdDeleteServingBtn,.pd-new-serving button#cmDeleteServingBtn{flex:none;background:transparent;color:var(--fat);border:1px solid var(--fat);margin-left:auto;}
   .pd-new-serving button#pdNewServingCancel{flex:none;background:transparent;color:var(--ink-soft);}
   .recent-row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--border-soft);cursor:pointer;}
@@ -991,9 +993,11 @@
         <div class="pd-new-serving hidden" id="cmNewServingForm">
           <input type="text" id="cmNewServingLabel" placeholder="Nombre (p.ej. Ración, Plato)">
           <input type="number" id="cmNewServingGrams" placeholder="g" inputmode="decimal">
-          <button type="button" id="cmNewServingSave">Guardar ración</button>
-          <button type="button" id="cmNewServingCancel">Cancelar</button>
-          <button type="button" class="hidden" id="cmDeleteServingBtn">Eliminar ración</button>
+          <div class="ns-btns">
+            <button type="button" id="cmNewServingSave">Guardar ración</button>
+            <button type="button" id="cmNewServingCancel">Cancelar</button>
+            <button type="button" class="hidden" id="cmDeleteServingBtn">Eliminar ración</button>
+          </div>
         </div>
         <div class="pd-custom-serving-actions hidden" id="cmServingActions">
           <button type="button" class="pd-serving-hint" id="cmEditServingBtn">Editar ración</button>
@@ -3579,9 +3583,11 @@
             '<div class="pd-new-serving hidden" id="pdNewServingForm">'+
               '<input type="text" id="pdNewServingLabel" placeholder="Nombre (p.ej. Vaso, Puñado)">'+
               '<input type="number" id="pdNewServingGrams" placeholder="'+(info.servingUnit === 'ml' ? 'ml' : 'g')+'" inputmode="decimal">'+
-              '<button type="button" id="pdNewServingSave">'+BTN_ICONS.save+'<span class="bl">Guardar ración</span></button>'+
+              '<div class="ns-btns">'+
+              '<button type="button" id="pdNewServingSave"><span class="bl">Guardar ración</span></button>'+
               '<button type="button" id="pdNewServingCancel">Cancelar</button>'+
               '<button type="button" class="hidden" id="pdDeleteServingBtn">Eliminar ración</button>'+
+              '</div>'+
             '</div>'+
             // Solo visibles cuando la unidad elegida es una ración creada a mano por el
             // usuario (no las de Open Food Facts, que no se pueden editar/borrar aquí).
@@ -3669,7 +3675,8 @@
       document.getElementById('pdNewServingGrams').value = '';
       pdEditingServingId = null;
       var dsb = document.getElementById('pdDeleteServingBtn'); if(dsb) dsb.classList.add('hidden');
-      if(newServingSaveBtn) setBtn(newServingSaveBtn, 'Guardar ración', 'save');
+      refreshCustomServingActions();
+      if(newServingSaveBtn) setBtn(newServingSaveBtn, 'Guardar ración');
     }
 
     if(unitSelect){
@@ -3683,7 +3690,7 @@
           document.getElementById('pdDeleteServingBtn').classList.add('hidden');
           document.getElementById('pdNewServingLabel').value = '';
           document.getElementById('pdNewServingGrams').value = '';
-          if(newServingSaveBtn) setBtn(newServingSaveBtn, 'Guardar ración', 'save');
+          if(newServingSaveBtn) setBtn(newServingSaveBtn, 'Guardar ración');
           newServingForm.classList.remove('hidden');
           document.getElementById('pdNewServingLabel').focus();
           return;
@@ -3742,8 +3749,9 @@
         pdEditingServingId = rawId;
         document.getElementById('pdNewServingLabel').value = unitEntry.label.replace(/\s*\([^)]*\)\s*$/, '');
         document.getElementById('pdNewServingGrams').value = unitEntry.gramsPerUnit;
-        if(newServingSaveBtn) setBtn(newServingSaveBtn, 'Guardar cambios', 'save');
+        if(newServingSaveBtn) setBtn(newServingSaveBtn, 'Guardar cambios');
         document.getElementById('pdDeleteServingBtn').classList.remove('hidden');
+        customActionsRow.classList.add('hidden');
         newServingForm.classList.remove('hidden');
         document.getElementById('pdNewServingLabel').focus();
       });
@@ -5292,8 +5300,9 @@
     document.getElementById('cmNewServingForm').classList.add('hidden');
     document.getElementById('cmNewServingLabel').value = '';
     document.getElementById('cmNewServingGrams').value = '';
-    setBtn('cmNewServingSave', 'Guardar ración', 'save');
+    setBtn('cmNewServingSave', 'Guardar ración');
     document.getElementById('cmDeleteServingBtn').classList.add('hidden');
+    document.getElementById('cmServingActions').classList.toggle('hidden', cmUnitId.indexOf('custom:') !== 0);
     cmEditingServingId = null;
     var sel = document.getElementById('cmLogUnit'); if(sel) sel.value = cmUnitId;
   }
@@ -5311,8 +5320,9 @@
     }
     document.getElementById('cmNewServingLabel').value = label;
     document.getElementById('cmNewServingGrams').value = grams;
-    setBtn('cmNewServingSave', editing ? 'Guardar cambios' : 'Guardar ración', 'save');
+    setBtn('cmNewServingSave', editing ? 'Guardar cambios' : 'Guardar ración');
     document.getElementById('cmDeleteServingBtn').classList.toggle('hidden', !editing);
+    if(editing) document.getElementById('cmServingActions').classList.add('hidden');
     document.getElementById('cmNewServingForm').classList.remove('hidden');
     document.getElementById('cmNewServingLabel').focus();
   }
@@ -6646,7 +6656,7 @@
   setBtn('btnSaveCreatedMeal', 'Guardar sin añadir hoy', 'save'); setBtn('btnPhotoToCreated', 'Guardar en Creados', 'save');
   setBtn('bodyReviewSave', 'Guardar', 'save'); setBtn('bodyReviewDelete', '', 'trash');
   setBtn('btnSaveSettings', 'Guardar', 'save'); setBtn('btnSaveTargets', 'Guardar objetivos', 'save'); setBtn('btnSaveFbConfig', 'Guardar y activar', 'save');
-  setBtn('btnClearData', '', 'trash'); setBtn('btnDeleteLogEntry', '', 'trash'); setBtn('cmNewServingSave', 'Guardar ración', 'save');
+  setBtn('btnClearData', '', 'trash'); setBtn('btnDeleteLogEntry', '', 'trash'); setBtn('cmNewServingSave', 'Guardar ración');
   document.getElementById('btnUserSignOut').innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg><span>Cerrar sesión</span>';
   document.getElementById('cmPhotoBtn').innerHTML =
     '<span style="display:inline-flex;align-items:center;gap:6px;justify-content:center;width:100%;">'+iconSvg('camera', 16)+'<span>Añadir foto</span></span>';
