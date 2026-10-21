@@ -1117,7 +1117,122 @@
       return JSON.parse(raw);
     }catch(e){ return {}; }
   }
-  function saveLogs(l){ localStorage.setItem(LS_LOGS, JSON.stringify(l)); cloudMarkDirty(); }
+  /* ---------- Fotos en IndexedDB ----------
+     localStorage da ~5 MB y las fotos de las comidas lo llenaban. Las fotos (de los
+     registros del diario y de las comidas creadas) se guardan ahora en IndexedDB, que tiene
+     cientos de MB, y en localStorage solo queda el resto de datos. En memoria cada entrada
+     sigue teniendo su campo "photo", así que el resto de la app (y la sincronización con la
+     nube) no cambia. Una foto solo se quita de localStorage cuando ya está confirmada en
+     IndexedDB; si IndexedDB no está disponible, todo sigue como antes (foto en línea). */
+  var photoDbPromise = null, photoStored = {}, photoHydrated = false, photoResaveTimers = {};
+  function photoDb(){
+    if(photoDbPromise) return photoDbPromise;
+    photoDbPromise = new Promise(function(res){
+      try{
+        if(!window.indexedDB){ res(null); return; }
+        var rq = indexedDB.open('macrofit_photos', 1);
+        rq.onupgradeneeded = function(){ try{ rq.result.createObjectStore('p'); }catch(e){} };
+        rq.onsuccess = function(){ res(rq.result); };
+        rq.onerror = rq.onblocked = function(){ res(null); };
+      }catch(e){ res(null); }
+    });
+    return photoDbPromise;
+  }
+  function photoIdbPut(key, val){
+    return photoDb().then(function(db){
+      if(!db) return false;
+      return new Promise(function(res){
+        try{
+          var tx = db.transaction('p', 'readwrite');
+          tx.objectStore('p').put(val, key);
+          tx.oncomplete = function(){ res(true); };
+          tx.onerror = tx.onabort = function(){ res(false); };
+        }catch(e){ res(false); }
+      });
+    });
+  }
+  function photoIdbDelete(key){
+    return photoDb().then(function(db){
+      if(!db) return;
+      try{ db.transaction('p', 'readwrite').objectStore('p').delete(key); }catch(e){}
+    });
+  }
+  function photoIdbAll(){
+    return photoDb().then(function(db){
+      if(!db) return null;
+      return new Promise(function(res){
+        try{
+          var out = {}, rq = db.transaction('p', 'readonly').objectStore('p').openCursor();
+          rq.onsuccess = function(){
+            var c = rq.result;
+            if(c){ out[c.key] = c.value; c.continue(); } else res(out);
+          };
+          rq.onerror = function(){ res(null); };
+        }catch(e){ res(null); }
+      });
+    });
+  }
+  function isPhotoStr(v){ return typeof v === 'string' && v.length > 1000; }
+  // JSON sin las fotos que ya están a salvo en IndexedDB.
+  function photoStringify(data, prefix){
+    return JSON.stringify(data, function(k, v){
+      if(k === 'photo' && isPhotoStr(v) && this && this.id && photoStored[prefix + this.id] === v) return undefined;
+      return v;
+    });
+  }
+  // Sube a IndexedDB las fotos nuevas y borra las de elementos que ya no existen.
+  function photoSync(items, prefix, rewrite){
+    var present = {};
+    items.forEach(function(it){
+      if(!it || !it.id || !isPhotoStr(it.photo)) return;
+      var key = prefix + it.id;
+      present[key] = true;
+      if(photoStored[key] === it.photo) return;
+      var val = it.photo;
+      photoIdbPut(key, val).then(function(ok){
+        if(!ok) return;
+        photoStored[key] = val;
+        clearTimeout(photoResaveTimers[prefix]);
+        photoResaveTimers[prefix] = setTimeout(rewrite, 50); // ya confirmada: se quita de localStorage
+      });
+    });
+    if(photoHydrated){
+      Object.keys(photoStored).forEach(function(key){
+        if(key.indexOf(prefix) === 0 && !present[key]){ delete photoStored[key]; photoIdbDelete(key); }
+      });
+    }
+  }
+  function logsWrite(l){
+    var tries = 0;
+    for(;;){
+      try{
+        localStorage.setItem(LS_LOGS, photoStringify(l, 'log:'));
+        return true;
+      }catch(e){
+        // Último recurso (p. ej. sin IndexedDB): liberar fotos antiguas hasta que quepa.
+        var withPhoto = [];
+        Object.keys(l).sort().forEach(function(d){
+          (l[d] || []).forEach(function(en){ if(en && en.photo) withPhoto.push(en); });
+        });
+        if(!withPhoto.length || tries++ > 60){
+          try{ alert('No se pudo guardar: el almacenamiento del navegador está lleno. Borra datos antiguos o exporta una copia desde Ajustes.'); }catch(_){}
+          return false;
+        }
+        withPhoto.slice(0, 3).forEach(function(en){ delete en.photo; });
+      }
+    }
+  }
+  function logsPhotoSync(l){
+    var all = [];
+    Object.keys(l).forEach(function(d){ (l[d] || []).forEach(function(en){ all.push(en); }); });
+    photoSync(all, 'log:', function(){ logsWrite(logs); });
+  }
+  function saveLogs(l){
+    if(!logsWrite(l)) return false;
+    logsPhotoSync(l);
+    cloudMarkDirty();
+    return true;
+  }
 
   function getGeminiKey(){ return localStorage.getItem(LS_GEMINI) || ''; }
   function setGeminiKey(k){ localStorage.setItem(LS_GEMINI, k); }
@@ -1243,7 +1358,18 @@
       return JSON.parse(raw);
     }catch(e){ return []; }
   }
-  function saveCreatedMeals(list){ localStorage.setItem(LS_CREATED_MEALS, JSON.stringify(list)); cloudMarkDirty(); }
+  function createdMealsWrite(list){ localStorage.setItem(LS_CREATED_MEALS, photoStringify(list, 'meal:')); }
+  function saveCreatedMeals(list){
+    try{ createdMealsWrite(list); }
+    catch(e){
+      // Sin sitio: se quitan las fotos aún no confirmadas en IndexedDB (no se pueden guardar).
+      try{ list.forEach(function(m){ if(m && photoStored['meal:' + m.id] !== m.photo) delete m.photo; }); createdMealsWrite(list); }
+      catch(e2){ try{ alert('No se pudo guardar: el almacenamiento del navegador está lleno.'); }catch(_){} return false; }
+    }
+    photoSync(list, 'meal:', function(){ try{ createdMealsWrite(createdMeals); }catch(e){} });
+    cloudMarkDirty();
+    return true;
+  }
   var createdMeals = loadCreatedMeals();
 
   function createdMealTotals(meal){
@@ -7556,7 +7682,7 @@
     if(cloud.status !== 'signedin' || !cloud.adapter) return Promise.resolve();
     if(cloud.busy){ cloud.again = true; return cloud.busyPromise; }
     cloud.busy = true; cloud.msg = 'Sincronizando…'; cloudRenderStatus();
-    cloud.busyPromise = cloud.adapter.listAll().then(cloudReconcile).then(function(res){
+    cloud.busyPromise = (photosReady || Promise.resolve()).then(function(){ return cloud.adapter.listAll(); }).then(cloudReconcile).then(function(res){
       cloud.lastSync = Date.now();
       cloud.msg = res.guard || (res.skipped ? res.skipped + ' elemento(s) demasiado grandes no se subieron.' : '');
       cloud.error = false;
@@ -8374,7 +8500,31 @@
     draw();
   }
 
-  cloudStart();
+    // Al arrancar: las fotos guardadas en IndexedDB se devuelven a sus entradas en memoria
+  // (y las que aún iban en localStorage se migran). La sincronización con la nube espera a
+  // que esto termine para no subir entradas sin foto.
+  var photosReady = (function(){
+    var done = photoDb().then(function(){ return photoIdbAll(); }).then(function(map){
+      if(map){
+        Object.keys(logs).forEach(function(d){
+          (logs[d] || []).forEach(function(en){
+            if(!en || !en.id) return;
+            var key = 'log:' + en.id;
+            if(!isPhotoStr(en.photo) && isPhotoStr(map[key])) en.photo = map[key];
+          });
+        });
+        createdMeals.forEach(function(m){
+          if(m && m.id && !isPhotoStr(m.photo) && isPhotoStr(map['meal:' + m.id])) m.photo = map['meal:' + m.id];
+        });
+        Object.keys(map).forEach(function(k){ photoStored[k] = map[k]; });
+        photoHydrated = true;
+        try{ logsPhotoSync(logs); photoSync(createdMeals, 'meal:', function(){ try{ createdMealsWrite(createdMeals); }catch(e){} }); }catch(e){}
+        try{ renderDay(); }catch(e){}
+      }
+    }).catch(function(){});
+    return Promise.race([done, new Promise(function(res){ setTimeout(res, 8000); })]);
+  })();
+cloudStart();
 
 })();
 </script>
