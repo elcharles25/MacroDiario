@@ -348,6 +348,10 @@
   .ai-sel{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid var(--border-soft);border-radius:var(--radius-md);background:var(--card);color:var(--ink);font:inherit;font-size:14px;}
   .ai-model-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
   .ai-model-row span{flex:none;width:52px;font-size:12px;font-weight:700;color:var(--ink-soft);}
+  .ai-pick-btn{flex:none;width:40px;height:40px;border:none;border-radius:var(--radius-sm);background:var(--card);color:var(--ink);font-size:16px;box-shadow:var(--shadow-card);}
+  .ai-pick-row{padding:10px 4px;border-bottom:1px solid var(--border-soft);cursor:pointer;}
+  .ai-pick-row b{display:block;font-size:13px;color:var(--ink);word-break:break-all;}
+  .ai-pick-row span{font-size:11px;color:var(--ink-soft);}
   .ai-model-row input,#orKeyInput,#geminiKeyInput{flex:1;min-width:0;box-shadow:inset 0 0 0 1px var(--border-soft);}
   .ai-use-row{font-size:12px;color:var(--ink-soft);line-height:1.45;padding:6px 0;border-bottom:1px solid var(--border-soft);}
   .ai-use-row b{color:var(--ink);word-break:break-all;}
@@ -843,12 +847,10 @@
       </div>
       <div class="field-block">
         <label>Modelo por tarea</label>
-        <div class="ai-model-row"><span>Visión</span><input type="text" id="aiModelVision" list="aiListVision" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
-        <div class="ai-model-row"><span>Chat</span><input type="text" id="aiModelChat" list="aiListChat" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
-        <div class="ai-model-row"><span>Barato</span><input type="text" id="aiModelCheap" list="aiListCheap" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
-        <datalist id="aiListVision"></datalist><datalist id="aiListChat"></datalist><datalist id="aiListCheap"></datalist>
-        <p class="hint"><b>Visión</b>: foto del plato, mediciones y entrenos (y el chat cuando adjuntas imágenes o PDF); necesita un modelo que acepte imágenes. <b>Chat</b>: conversaciones. <b>Barato</b>: títulos de chats y «¿Qué como?». En OpenRouter el modelo se escribe como <i>proveedor/modelo</i>.</p>
-        <button type="button" class="secondary-btn hidden" id="btnAiLoadModels">Cargar lista de modelos de OpenRouter</button>
+        <div class="ai-model-row"><span>Visión</span><input type="text" id="aiModelVision" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="button" class="ai-pick-btn hidden" data-pick="aiModelVision" aria-label="Elegir modelo de la lista">▾</button></div>
+        <div class="ai-model-row"><span>Chat</span><input type="text" id="aiModelChat" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="button" class="ai-pick-btn hidden" data-pick="aiModelChat" aria-label="Elegir modelo de la lista">▾</button></div>
+        <div class="ai-model-row"><span>Barato</span><input type="text" id="aiModelCheap" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="button" class="ai-pick-btn hidden" data-pick="aiModelCheap" aria-label="Elegir modelo de la lista">▾</button></div>
+        <p class="hint"><b>Visión</b>: foto del plato, mediciones y entrenos (y el chat cuando adjuntas imágenes o PDF); necesita un modelo que acepte imágenes. <b>Chat</b>: conversaciones. <b>Barato</b>: títulos de chats y «¿Qué como?». En OpenRouter el modelo se escribe como <i>proveedor/modelo</i>, o pulsa ▾ para elegirlo de la lista (con precio, de más barato a más caro).</p>
         <button type="button" class="secondary-btn" id="btnAiTest" style="margin-top:8px;">Guardar y probar modelos</button>
         <p class="hint" id="aiTestOut" style="margin-top:8px;"></p>
         <div id="aiUsage"></div>
@@ -2560,24 +2562,14 @@
     });
     document.getElementById('aiGeminiBlock').classList.toggle('hidden', aiShown !== 'gemini');
     document.getElementById('aiOrBlock').classList.toggle('hidden', aiShown !== 'openrouter');
-    document.getElementById('btnAiLoadModels').classList.toggle('hidden', aiShown !== 'openrouter');
-  }
-  function aiFillDatalists(){
-    var lists = { vision: 'aiListVision', chat: 'aiListChat', cheap: 'aiListCheap' };
-    AI_TASKS.forEach(function(t){
-      var dl = document.getElementById(lists[t]);
-      if(!aiCatalog || aiShown !== 'openrouter'){ dl.innerHTML = ''; return; }
-      dl.innerHTML = aiCatalog.filter(function(m){ return t !== 'vision' || m.vision; }).map(function(m){
-        return '<option value="' + escapeHtml(m.id) + '">' + escapeHtml('$' + round2(m.pin) + ' / $' + round2(m.pout) + ' por M' + (m.vision ? ' · imagen' : '')) + '</option>';
-      }).join('');
-    });
+    Array.prototype.forEach.call(document.querySelectorAll('.ai-pick-btn'), function(b){ b.classList.toggle('hidden', aiShown !== 'openrouter'); });
   }
   function aiOpenSettings(){
     aiForm = aiLoadCfg();
     aiShown = aiForm.provider;
     document.getElementById('aiProviderSel').value = aiShown;
     document.getElementById('orKeyInput').value = getOrKey();
-    aiFormWrite(); aiFillDatalists();
+    aiFormWrite();
     document.getElementById('aiTestOut').innerHTML = '';
     aiRenderUsage();
   }
@@ -2591,23 +2583,60 @@
   document.getElementById('aiProviderSel').addEventListener('change', function(){
     aiFormRead();
     aiShown = this.value === 'openrouter' ? 'openrouter' : 'gemini';
-    aiFormWrite(); aiFillDatalists();
+    aiFormWrite();
   });
-  document.getElementById('btnAiLoadModels').addEventListener('click', function(){
-    var out = document.getElementById('aiTestOut');
-    out.innerHTML = 'Cargando modelos de OpenRouter…';
-    fetch('https://openrouter.ai/api/v1/models').then(function(r){ return r.json(); }).then(function(d){
+  // Lista de modelos de OpenRouter (pública, sin clave).
+  function aiLoadCatalog(){
+    if(aiCatalog) return Promise.resolve(aiCatalog);
+    return fetch('https://openrouter.ai/api/v1/models').then(function(r){ return r.json(); }).then(function(d){
       var arr = (d && d.data) || [];
       aiCatalog = arr.map(function(m){
         var pr = m.pricing || {}, inp = (m.architecture && m.architecture.input_modalities) || [];
         return { id: m.id, vision: inp.indexOf('image') !== -1,
           pin: (Number(pr.prompt) || 0) * 1e6, pout: (Number(pr.completion) || 0) * 1e6 };
       }).filter(function(m){ return m.id; }).sort(function(a, b){ return (a.pin + a.pout) - (b.pin + b.pout); });
-      aiFillDatalists();
-      out.innerHTML = aiCatalog.length + ' modelos cargados (ordenados de más barato a más caro). Haz clic en un campo de modelo y elige de la lista o escribe para filtrar. «Visión» solo muestra los que aceptan imágenes.';
-    }).catch(function(e){
-      out.innerHTML = '<span style="color:var(--danger)">No se pudo cargar la lista (' + escapeHtml(e && e.message ? e.message : e) + '). Puedes escribir el modelo a mano.</span>';
+      if(!aiCatalog.length){ aiCatalog = null; throw new Error('la lista llegó vacía'); }
+      return aiCatalog;
     });
+  }
+  // Selector propio (el datalist del navegador casi no funciona en iPhone).
+  function aiOpenPicker(fieldId){
+    var task = fieldId === 'aiModelVision' ? 'vision' : (fieldId === 'aiModelChat' ? 'chat' : 'cheap');
+    var ov = document.createElement('div');
+    ov.className = 'overlay dialog-top';
+    ov.innerHTML = '<div class="sheet" style="max-height:80vh;display:flex;flex-direction:column;">' +
+      '<button class="close-x" type="button" aria-label="Cerrar">×</button>' +
+      '<p style="font-size:15px;font-weight:700;margin:12px 0 8px 0;">Modelo para «' + AI_TASK_LABEL[task] + '»</p>' +
+      '<input type="text" class="ai-pick-q" placeholder="Buscar (p. ej. gemini, gpt, qwen)" autocomplete="off" autocapitalize="off" spellcheck="false" style="width:100%;box-sizing:border-box;margin-bottom:8px;">' +
+      '<div class="ai-pick-info hint" style="margin:0 0 6px 0;"></div>' +
+      '<div class="ai-pick-list" style="overflow:auto;flex:1;min-height:120px;"></div></div>';
+    document.body.appendChild(ov);
+    function close(){ if(ov.parentNode) document.body.removeChild(ov); }
+    ov.addEventListener('click', function(e){ if(e.target === ov) close(); });
+    ov.querySelector('.close-x').addEventListener('click', close);
+    var q = ov.querySelector('.ai-pick-q'), info = ov.querySelector('.ai-pick-info'), list = ov.querySelector('.ai-pick-list');
+    function render(){
+      var term = q.value.trim().toLowerCase();
+      var rows = aiCatalog.filter(function(m){ return (task !== 'vision' || m.vision) && (!term || m.id.toLowerCase().indexOf(term) !== -1); });
+      info.textContent = rows.length + ' modelos' + (task === 'vision' ? ' con entrada de imagen' : '') + ' · precio por millón de tokens (entrada / salida)' + (rows.length > 80 ? ' · mostrando los 80 más baratos, escribe para filtrar' : '');
+      list.innerHTML = rows.slice(0, 80).map(function(m){
+        return '<div class="ai-pick-row" data-id="' + escapeHtml(m.id) + '"><b>' + escapeHtml(m.id) + '</b><span>$' + round2(m.pin) + ' / $' + round2(m.pout) + (m.vision ? ' · imagen' : '') + '</span></div>';
+      }).join('') || '<p class="hint">Ningún modelo coincide.</p>';
+    }
+    list.addEventListener('click', function(e){
+      var row = e.target.closest ? e.target.closest('.ai-pick-row') : null;
+      if(!row) return;
+      document.getElementById(fieldId).value = row.getAttribute('data-id');
+      close();
+    });
+    q.addEventListener('input', function(){ if(aiCatalog) render(); });
+    info.textContent = 'Cargando la lista de OpenRouter…';
+    aiLoadCatalog().then(function(){ render(); }).catch(function(e){
+      info.innerHTML = '<span style="color:var(--danger)">No se pudo cargar la lista (' + escapeHtml(e && e.message ? e.message : e) + '). Escribe el modelo a mano.</span>';
+    });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.ai-pick-btn'), function(b){
+    b.addEventListener('click', function(){ aiOpenPicker(b.getAttribute('data-pick')); });
   });
   // Una imagen mínima (1×1) para comprobar si el modelo admite imágenes.
   var AI_TEST_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
