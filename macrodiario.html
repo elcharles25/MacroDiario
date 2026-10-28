@@ -345,6 +345,12 @@
   .share-x{right:90px;display:none;align-items:center;justify-content:center;color:var(--primary-dark);}
   .is-cloud-in .share-x{display:flex;}
   #createMealOverlay .share-x{right:52px;}
+  .ai-sel{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid var(--border-soft);border-radius:var(--radius-md);background:var(--card);color:var(--ink);font:inherit;font-size:14px;}
+  .ai-model-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .ai-model-row span{flex:none;width:52px;font-size:12px;font-weight:700;color:var(--ink-soft);}
+  .ai-model-row input,#orKeyInput,#geminiKeyInput{flex:1;min-width:0;box-shadow:inset 0 0 0 1px var(--border-soft);}
+  .ai-use-row{font-size:12px;color:var(--ink-soft);line-height:1.45;padding:6px 0;border-bottom:1px solid var(--border-soft);}
+  .ai-use-row b{color:var(--ink);word-break:break-all;}
   .btn-save{display:flex;align-items:center;justify-content:center;gap:8px;}
   .btn-save .ic,.btn-trash .ic,.share-x .ic{flex:none;display:block;}
   .act-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;flex-wrap:wrap;}
@@ -812,15 +818,40 @@
         <button class="primary-btn" id="btnCloudSync">Sincronizar ahora</button>
         <button class="secondary-btn" id="btnCloudSignOut">Cerrar sesión</button>
         <button class="secondary-btn" id="btnCloudRemoveCfg">Quitar configuración de Firebase</button>
-        <p class="hint">Se sincronizan objetivos, comidas, favoritos, comidas creadas, raciones propias y chats. La API key de Gemini y el proxy se quedan solo en este dispositivo.</p>
+        <p class="hint">Se sincronizan objetivos, comidas, favoritos, comidas creadas, raciones propias y chats. Las API keys y el proxy se quedan solo en este dispositivo.</p>
       </div>
     </div>
 
     <div class="st-panel" id="stpanel-apis">
       <div class="field-block">
-        <label>API key de Gemini (opcional)</label>
+        <label>Proveedor de IA</label>
+        <select id="aiProviderSel" class="ai-sel">
+          <option value="gemini">Gemini (API de Google, directo)</option>
+          <option value="openrouter">OpenRouter (muchos modelos)</option>
+        </select>
+        <p class="hint">Se usa para analizar fotos de platos, leer mediciones y entrenos, «¿Qué como?» y el chat.</p>
+      </div>
+      <div class="field-block" id="aiGeminiBlock">
+        <label>API key de Gemini</label>
         <input type="password" id="geminiKeyInput" placeholder="AIza...">
-        <p class="hint">Solo se necesita para identificar alimentos a partir de una foto del plato. Se guarda únicamente en este navegador y se envía directamente a Google, nunca a otro servidor. Consíguela en <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>.</p>
+        <p class="hint">Se guarda únicamente en este navegador y se envía directamente a Google, nunca a otro servidor. Consíguela en <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>.</p>
+      </div>
+      <div class="field-block hidden" id="aiOrBlock">
+        <label>API key de OpenRouter</label>
+        <input type="password" id="orKeyInput" placeholder="sk-or-...">
+        <p class="hint">Se guarda únicamente en este navegador y se envía directamente a OpenRouter. Créala en <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a> y ponle un límite de gasto.</p>
+      </div>
+      <div class="field-block">
+        <label>Modelo por tarea</label>
+        <div class="ai-model-row"><span>Visión</span><input type="text" id="aiModelVision" list="aiListVision" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+        <div class="ai-model-row"><span>Chat</span><input type="text" id="aiModelChat" list="aiListChat" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+        <div class="ai-model-row"><span>Barato</span><input type="text" id="aiModelCheap" list="aiListCheap" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+        <datalist id="aiListVision"></datalist><datalist id="aiListChat"></datalist><datalist id="aiListCheap"></datalist>
+        <p class="hint"><b>Visión</b>: foto del plato, mediciones y entrenos (y el chat cuando adjuntas imágenes o PDF); necesita un modelo que acepte imágenes. <b>Chat</b>: conversaciones. <b>Barato</b>: títulos de chats y «¿Qué como?». En OpenRouter el modelo se escribe como <i>proveedor/modelo</i>.</p>
+        <button type="button" class="secondary-btn hidden" id="btnAiLoadModels">Cargar lista de modelos de OpenRouter</button>
+        <button type="button" class="secondary-btn" id="btnAiTest" style="margin-top:8px;">Guardar y probar modelos</button>
+        <p class="hint" id="aiTestOut" style="margin-top:8px;"></p>
+        <div id="aiUsage"></div>
       </div>
       <div class="field-block">
         <label>Proxy CORS para Open Food Facts / BEDCA (opcional)</label>
@@ -1239,6 +1270,163 @@
 
   function getProxyUrl(){ return localStorage.getItem(LS_PROXY) || ''; }
   function setProxyUrl(u){ localStorage.setItem(LS_PROXY, u); }
+
+  /* ---------- Proveedor de IA (Gemini directo u OpenRouter) ----------
+     Todas las funciones con IA llaman a aiGenerate(): reciben texto (y, si hace falta,
+     imágenes/PDF en formato neutro) y no conocen el formato de ningún proveedor. Los modelos
+     se eligen por tarea: «vision» (foto del plato, mediciones, entrenos, chat con adjuntos),
+     «chat» y «cheap» (títulos y «¿Qué como?»). */
+  var LS_AI_CFG = 'md_ai_cfg_v1', LS_OR_KEY = 'md_openrouter_key_v1', LS_AI_LOG = 'md_ai_log_v1';
+  var AI_GEMINI_DEFAULT = 'gemini-3.6-flash';
+  var AI_TASKS = ['vision', 'chat', 'cheap'];
+  var AI_TASK_LABEL = { vision: 'Visión', chat: 'Chat', cheap: 'Barato' };
+  function getOrKey(){ return localStorage.getItem(LS_OR_KEY) || ''; }
+  function setOrKey(k){ localStorage.setItem(LS_OR_KEY, k); }
+  function aiLoadCfg(){
+    var c = {};
+    try{ c = JSON.parse(localStorage.getItem(LS_AI_CFG) || '{}') || {}; }catch(e){ c = {}; }
+    var cfg = { provider: c.provider === 'openrouter' ? 'openrouter' : 'gemini', models: { gemini: {}, openrouter: {} } };
+    ['gemini', 'openrouter'].forEach(function(p){
+      AI_TASKS.forEach(function(t){
+        var v = c.models && c.models[p] && c.models[p][t];
+        cfg.models[p][t] = (typeof v === 'string' && v.trim()) ? v.trim() : (p === 'gemini' ? AI_GEMINI_DEFAULT : '');
+      });
+    });
+    return cfg;
+  }
+  function aiSaveCfg(cfg){ try{ localStorage.setItem(LS_AI_CFG, JSON.stringify(cfg)); }catch(e){} }
+  function aiProvider(){ return aiLoadCfg().provider; }
+  function aiProviderName(){ return aiProvider() === 'openrouter' ? 'OpenRouter' : 'Gemini'; }
+  function aiReady(){ return aiProvider() === 'openrouter' ? !!getOrKey() : !!getGeminiKey(); }
+  function aiKeyMsg(what){ return 'Añade tu API key de ' + aiProviderName() + ' en Ajustes (⚙) ' + what; }
+  function aiError(msg, code){ var e = new Error(msg); e.ai = true; e.code = code || ''; return e; }
+
+  function aiParseJson(text){
+    var t = String(text || '').trim().replace(/^```(?:json)?\s*|\s*```$/g, '');
+    try{ return JSON.parse(t); }catch(e){}
+    var a = t.search(/[\[{]/);
+    if(a >= 0){
+      var close = t.charAt(a) === '[' ? ']' : '}', b = t.lastIndexOf(close);
+      if(b > a){ try{ return JSON.parse(t.slice(a, b + 1)); }catch(e2){} }
+    }
+    throw aiError('No se pudo interpretar la respuesta de la IA: ' + t.slice(0, 160), 'parse');
+  }
+
+  function aiLog(e){
+    try{
+      var arr = JSON.parse(localStorage.getItem(LS_AI_LOG) || '[]');
+      arr.push(e);
+      if(arr.length > 300) arr = arr.slice(arr.length - 300);
+      localStorage.setItem(LS_AI_LOG, JSON.stringify(arr));
+    }catch(err){}
+  }
+  function aiLogRead(){ try{ return JSON.parse(localStorage.getItem(LS_AI_LOG) || '[]') || []; }catch(e){ return []; } }
+
+  function aiCallGemini(model, o){
+    var body = {
+      contents: o.turns.map(function(t){
+        return { role: t.role, parts: t.parts.map(function(p){
+          if(p.image) return { inline_data: { mime_type: p.image.mime, data: p.image.data } };
+          if(p.pdf) return { inline_data: { mime_type: 'application/pdf', data: p.pdf.data } };
+          return { text: p.text };
+        }) };
+      }),
+      generationConfig: {}
+    };
+    if(o.system) body.systemInstruction = { parts: [{ text: o.system }] };
+    if(o.json) body.generationConfig.response_mime_type = 'application/json';
+    if(o.maxTokens) body.generationConfig.maxOutputTokens = o.maxTokens;
+    if(o.temperature != null) body.generationConfig.temperature = o.temperature;
+    return fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent?key=' + encodeURIComponent(getGeminiKey()), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    }).then(function(r){ return r.json(); }).then(function(data){
+      if(data && data.error) throw aiError('Error de Gemini: ' + (data.error.message || data.error.status || JSON.stringify(data.error)), 'api');
+      var cand = data && data.candidates && data.candidates[0];
+      var finish = cand && cand.finishReason;
+      var parts = (cand && cand.content && cand.content.parts) || [];
+      var text = parts.filter(function(p){ return p && p.text && !p.thought; }).map(function(p){ return p.text; }).join('').trim();
+      if(finish && finish !== 'STOP' && finish !== 'MAX_TOKENS') throw aiError('Gemini no completó la respuesta (motivo: ' + finish + ').', 'incomplete');
+      if(!text) throw aiError('Gemini no devolvió texto utilizable.', 'empty');
+      var um = (data && data.usageMetadata) || {};
+      return { text: text, truncated: finish === 'MAX_TOKENS',
+        usage: { inT: um.promptTokenCount || 0, outT: (um.candidatesTokenCount || 0) + (um.thoughtsTokenCount || 0) } };
+    });
+  }
+
+  function aiCallOpenRouter(model, o, noJson){
+    var key = getOrKey();
+    var msgs = [];
+    if(o.system) msgs.push({ role: 'system', content: o.system });
+    o.turns.forEach(function(t){
+      var role = t.role === 'model' ? 'assistant' : 'user';
+      var media = t.parts.some(function(p){ return p.image || p.pdf; });
+      if(role === 'assistant' || !media){
+        msgs.push({ role: role, content: t.parts.map(function(p){ return p.text || ''; }).join('\n\n') });
+        return;
+      }
+      msgs.push({ role: 'user', content: t.parts.map(function(p){
+        if(p.image) return { type: 'image_url', image_url: { url: 'data:' + p.image.mime + ';base64,' + p.image.data } };
+        if(p.pdf) return { type: 'file', file: { filename: p.pdf.name || 'documento.pdf', file_data: 'data:application/pdf;base64,' + p.pdf.data } };
+        return { type: 'text', text: p.text };
+      }) });
+    });
+    var body = { model: model, messages: msgs, usage: { include: true } };
+    if(o.maxTokens) body.max_tokens = o.maxTokens;
+    if(o.temperature != null) body.temperature = o.temperature;
+    if(o.json && !noJson) body.response_format = { type: 'json_object' };
+    var headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key, 'X-Title': 'MacroFit' };
+    try{ if(/^https?:/.test(location.origin)) headers['HTTP-Referer'] = location.origin; }catch(e){}
+    return fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: headers, body: JSON.stringify(body) })
+      .then(function(r){
+        return r.text().then(function(t){
+          var d; try{ d = JSON.parse(t); }catch(e){ throw aiError('Respuesta no válida de OpenRouter (HTTP ' + r.status + ').', 'api'); }
+          return d;
+        });
+      }).then(function(data){
+        if(data && data.error){
+          var m = data.error.message || data.error.code || JSON.stringify(data.error);
+          if(o.json && !noJson && /response_format|json_object|json mode|structured/i.test(String(m))) return aiCallOpenRouter(model, o, true);
+          throw aiError('Error de OpenRouter: ' + m, 'api');
+        }
+        var ch = data && data.choices && data.choices[0];
+        var c = ch && ch.message && ch.message.content;
+        var text = Array.isArray(c) ? c.map(function(x){ return (x && x.text) || ''; }).join('') : (c || '');
+        var finish = ch && (ch.finish_reason || ch.native_finish_reason);
+        if(finish && !/^(stop|length|end_turn|STOP|MAX_TOKENS)$/.test(finish)) throw aiError('OpenRouter no completó la respuesta (motivo: ' + finish + ').', 'incomplete');
+        if(!String(text).trim()) throw aiError('OpenRouter no devolvió texto utilizable' + (finish === 'length' ? ' (el modelo agotó los tokens razonando; prueba otro modelo)' : '') + '.', 'empty');
+        var u = (data && data.usage) || {};
+        return { text: String(text).trim(), truncated: finish === 'length' || finish === 'MAX_TOKENS',
+          usage: { inT: u.prompt_tokens || 0, outT: u.completion_tokens || 0, cost: typeof u.cost === 'number' ? u.cost : null } };
+      });
+  }
+
+  // o: { task, system, turns:[{role:'user'|'model', parts:[{text}|{image:{mime,data}}|{pdf:{data,name}}]}],
+  //      json, maxTokens, temperature }  →  Promise<{ text, truncated, usage }>
+  function aiGenerate(o){
+    var cfg = aiLoadCfg(), prov = cfg.provider, task = o.task || 'chat';
+    var hasMedia = o.turns.some(function(t){ return t.parts.some(function(p){ return p.image || p.pdf; }); });
+    if(task === 'chat' && hasMedia) task = 'vision';
+    var model = cfg.models[prov][task];
+    if(!aiReady()) return Promise.reject(aiError('Falta la API key de ' + aiProviderName() + ' en Ajustes (⚙).', 'nokey'));
+    if(!model) return Promise.reject(aiError('Elige un modelo para «' + AI_TASK_LABEL[task] + '» en Ajustes (⚙).', 'nomodel'));
+    var t0 = Date.now();
+    var p;
+    try{ p = prov === 'openrouter' ? aiCallOpenRouter(model, o) : aiCallGemini(model, o); }
+    catch(err){ p = Promise.reject(err); }
+    return p.then(function(r){
+      aiLog({ t: Date.now(), p: prov, m: model, k: task, ms: Date.now() - t0, ok: true, i: r.usage.inT, o: r.usage.outT, c: r.usage.cost == null ? null : r.usage.cost });
+      if(r.truncated && o.json) throw aiError('La respuesta de la IA se cortó por ser demasiado larga.', 'truncated');
+      return r;
+    }, function(err){
+      aiLog({ t: Date.now(), p: prov, m: model, k: task, ms: Date.now() - t0, ok: false });
+      if(!err || !err.ai){
+        var e2 = aiError('No se pudo conectar con ' + aiProviderName() + '. (' + (err && err.message ? err.message : err) + ')', 'network');
+        throw e2;
+      }
+      throw err;
+    });
+  }
+
   function viaProxy(directUrl){
     var proxy = getProxyUrl();
     if(!proxy) return directUrl;
@@ -2356,8 +2544,125 @@
   });
 
   /* ---------- Settings modal ---------- */
+  /* ---------- Ajustes de IA: proveedor, modelos, lista de OpenRouter, prueba e historial ---------- */
+  var aiForm = null;        // copia editable de la configuración mientras Ajustes está abierto
+  var aiShown = 'gemini';   // proveedor cuyos modelos se muestran ahora
+  var aiCatalog = null;     // modelos de OpenRouter [{id, vision, pin, pout}]
+  var AI_FIELD = { vision: 'aiModelVision', chat: 'aiModelChat', cheap: 'aiModelCheap' };
+  function aiFormRead(){
+    AI_TASKS.forEach(function(t){ aiForm.models[aiShown][t] = document.getElementById(AI_FIELD[t]).value.trim(); });
+  }
+  function aiFormWrite(){
+    AI_TASKS.forEach(function(t){
+      var inp = document.getElementById(AI_FIELD[t]);
+      inp.value = aiForm.models[aiShown][t] || '';
+      inp.placeholder = aiShown === 'openrouter' ? 'proveedor/modelo' : AI_GEMINI_DEFAULT;
+    });
+    document.getElementById('aiGeminiBlock').classList.toggle('hidden', aiShown !== 'gemini');
+    document.getElementById('aiOrBlock').classList.toggle('hidden', aiShown !== 'openrouter');
+    document.getElementById('btnAiLoadModels').classList.toggle('hidden', aiShown !== 'openrouter');
+  }
+  function aiFillDatalists(){
+    var lists = { vision: 'aiListVision', chat: 'aiListChat', cheap: 'aiListCheap' };
+    AI_TASKS.forEach(function(t){
+      var dl = document.getElementById(lists[t]);
+      if(!aiCatalog || aiShown !== 'openrouter'){ dl.innerHTML = ''; return; }
+      dl.innerHTML = aiCatalog.filter(function(m){ return t !== 'vision' || m.vision; }).map(function(m){
+        return '<option value="' + escapeHtml(m.id) + '">' + escapeHtml('$' + round2(m.pin) + ' / $' + round2(m.pout) + ' por M' + (m.vision ? ' · imagen' : '')) + '</option>';
+      }).join('');
+    });
+  }
+  function aiOpenSettings(){
+    aiForm = aiLoadCfg();
+    aiShown = aiForm.provider;
+    document.getElementById('aiProviderSel').value = aiShown;
+    document.getElementById('orKeyInput').value = getOrKey();
+    aiFormWrite(); aiFillDatalists();
+    document.getElementById('aiTestOut').innerHTML = '';
+    aiRenderUsage();
+  }
+  function aiSaveSettings(){
+    if(!aiForm) return;
+    aiFormRead();
+    aiForm.provider = document.getElementById('aiProviderSel').value === 'openrouter' ? 'openrouter' : 'gemini';
+    aiSaveCfg(aiForm);
+    setOrKey(document.getElementById('orKeyInput').value.trim());
+  }
+  document.getElementById('aiProviderSel').addEventListener('change', function(){
+    aiFormRead();
+    aiShown = this.value === 'openrouter' ? 'openrouter' : 'gemini';
+    aiFormWrite(); aiFillDatalists();
+  });
+  document.getElementById('btnAiLoadModels').addEventListener('click', function(){
+    var out = document.getElementById('aiTestOut');
+    out.innerHTML = 'Cargando modelos de OpenRouter…';
+    fetch('https://openrouter.ai/api/v1/models').then(function(r){ return r.json(); }).then(function(d){
+      var arr = (d && d.data) || [];
+      aiCatalog = arr.map(function(m){
+        var pr = m.pricing || {}, inp = (m.architecture && m.architecture.input_modalities) || [];
+        return { id: m.id, vision: inp.indexOf('image') !== -1,
+          pin: (Number(pr.prompt) || 0) * 1e6, pout: (Number(pr.completion) || 0) * 1e6 };
+      }).filter(function(m){ return m.id; }).sort(function(a, b){ return (a.pin + a.pout) - (b.pin + b.pout); });
+      aiFillDatalists();
+      out.innerHTML = aiCatalog.length + ' modelos cargados (ordenados de más barato a más caro). Haz clic en un campo de modelo y elige de la lista o escribe para filtrar. «Visión» solo muestra los que aceptan imágenes.';
+    }).catch(function(e){
+      out.innerHTML = '<span style="color:var(--danger)">No se pudo cargar la lista (' + escapeHtml(e && e.message ? e.message : e) + '). Puedes escribir el modelo a mano.</span>';
+    });
+  });
+  // Una imagen mínima (1×1) para comprobar si el modelo admite imágenes.
+  var AI_TEST_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  document.getElementById('btnAiTest').addEventListener('click', function(){
+    aiSaveSettings();
+    var out = document.getElementById('aiTestOut');
+    if(!aiReady()){ out.innerHTML = '<span style="color:var(--danger)">Falta la API key de ' + aiProviderName() + '.</span>'; return; }
+    var cfg = aiLoadCfg(), lines = [];
+    var tests = [
+      { task: 'vision', turns: [{ role: 'user', parts: [{ text: 'Responde solo con la palabra OK.' }, { image: { mime: 'image/png', data: AI_TEST_PNG } }] }] },
+      { task: 'chat', turns: [{ role: 'user', parts: [{ text: 'Responde solo con la palabra OK.' }] }] },
+      { task: 'cheap', turns: [{ role: 'user', parts: [{ text: 'Responde solo con la palabra OK.' }] }] }
+    ];
+    var i = 0;
+    out.innerHTML = 'Probando…';
+    function next(){
+      if(i >= tests.length){ out.innerHTML = lines.join('<br>'); aiRenderUsage(); return Promise.resolve(); }
+      var t = tests[i++], t0 = Date.now(), model = cfg.models[cfg.provider][t.task];
+      return aiGenerate({ task: t.task, turns: t.turns, maxTokens: 64, temperature: 0 }).then(function(r){
+        var cost = r.usage && r.usage.cost != null ? ' · $' + r.usage.cost.toFixed(5) : '';
+        lines.push('✓ ' + AI_TASK_LABEL[t.task] + ' (' + escapeHtml(model) + '): responde en ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s' + cost);
+      }, function(e){
+        lines.push('<span style="color:var(--danger)">✕ ' + AI_TASK_LABEL[t.task] + ' (' + escapeHtml(model || '—') + '): ' + escapeHtml(e && e.message ? e.message : e) + '</span>');
+      }).then(next);
+    }
+    next();
+  });
+  function aiRenderUsage(){
+    var box = document.getElementById('aiUsage');
+    if(!box) return;
+    var log = aiLogRead();
+    if(!log.length){ box.innerHTML = '<p class="hint">Aún no hay llamadas registradas. Aquí verás, por modelo, cuántas llamadas, cuánto tarda y cuánto cuesta de media (el coste solo lo informa OpenRouter).</p>'; return; }
+    var g = {};
+    log.forEach(function(e){
+      var k = e.p + '|' + e.m;
+      var s = g[k] = g[k] || { p: e.p, m: e.m, n: 0, ok: 0, ms: 0, cost: 0, nCost: 0, inT: 0, outT: 0 };
+      s.n++; if(e.ok){ s.ok++; s.ms += e.ms || 0; s.inT += e.i || 0; s.outT += e.o || 0; if(e.c != null){ s.cost += e.c; s.nCost++; } }
+    });
+    var rows = Object.keys(g).map(function(k){ return g[k]; }).sort(function(a, b){ return b.n - a.n; }).map(function(s){
+      var avgMs = s.ok ? (s.ms / s.ok / 1000).toFixed(1) + ' s' : '—';
+      var cost = s.nCost ? ' · ' + (s.cost / s.nCost >= 0.0001 ? '$' + (s.cost / s.nCost).toFixed(4) : '<$0.0001') + '/llamada' : '';
+      return '<div class="ai-use-row"><b>' + escapeHtml(s.m) + '</b> <span>(' + (s.p === 'openrouter' ? 'OpenRouter' : 'Gemini') + ')</span><br>' +
+        s.n + (s.n === 1 ? ' llamada, ' : ' llamadas, ') + s.ok + (s.ok === 1 ? ' correcta' : ' correctas') + ' · ' + avgMs + ' de media' + cost + ' · ' + Math.round((s.inT + s.outT) / Math.max(1, s.ok)) + ' tokens/llamada</div>';
+    }).join('');
+    box.innerHTML = '<p class="section-label" style="margin-top:14px;">Historial por modelo</p>' + rows +
+      '<button type="button" class="secondary-btn" id="btnAiLogClear" style="margin-top:8px;">Borrar historial</button>';
+    document.getElementById('btnAiLogClear').addEventListener('click', function(){
+      try{ localStorage.removeItem(LS_AI_LOG); }catch(e){}
+      aiRenderUsage();
+    });
+  }
+
   var settingsOverlay = document.getElementById('settingsOverlay');
   document.getElementById('btnSettings').addEventListener('click', function(){
+    aiOpenSettings();
     document.getElementById('geminiKeyInput').value = getGeminiKey();
     document.getElementById('proxyUrlInput').value = getProxyUrl();
     renderTargetsForm();
@@ -2378,6 +2683,7 @@
 
   document.getElementById('btnSaveSettings').addEventListener('click', function(){
     setGeminiKey(document.getElementById('geminiKeyInput').value.trim());
+    aiSaveSettings();
     setProxyUrl(document.getElementById('proxyUrlInput').value.trim());
     settingsOverlay.classList.add('hidden');
   });
@@ -2438,6 +2744,9 @@
       localStorage.removeItem(LS_TARGETS);
       localStorage.removeItem(LS_LOGS);
       localStorage.removeItem(LS_GEMINI);
+      localStorage.removeItem(LS_OR_KEY);
+      localStorage.removeItem(LS_AI_CFG);
+      localStorage.removeItem(LS_AI_LOG);
       localStorage.removeItem(LS_PROXY);
       localStorage.removeItem(LS_FAVORITES);
       localStorage.removeItem(LS_BODY);
@@ -4580,12 +4889,11 @@
   }
 
   function analyzeAndAutoAddPhoto(file){
-    var key = getGeminiKey();
     var status = document.getElementById('photoStatus');
     var resultsBox = document.getElementById('photoResults');
     resultsBox.innerHTML = '';
-    if(!key){
-      status.innerHTML = '<div class="msg err">Añade tu API key de Gemini en Ajustes (⚙) para usar esta función.</div>';
+    if(!aiReady()){
+      status.innerHTML = '<div class="msg err">' + escapeHtml(aiKeyMsg('para usar esta función.')) + '</div>';
       return;
     }
     showPhotoScanning(status, file);
@@ -4603,38 +4911,14 @@
     var photoDataUrlPromise = promiseTimeout(resizeImageToDataUrl(file, 640, 0.72).catch(function(){ return null; }), 4000, null);
 
     fileToBase64(file).then(function(b64){
-      var body = {
-        contents: [{ parts: [
-          { text: promptText },
-          { inline_data: { mime_type: file.type || 'image/jpeg', data: b64 } }
-        ]}],
-        generationConfig: { response_mime_type: 'application/json' }
-      };
-      return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=' + encodeURIComponent(key), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-    }).then(function(r){ return r.json(); }).then(function(data){
-      if(data && data.error){
-        status.innerHTML = '<div class="msg err">Error de Gemini: '+escapeHtml(data.error.message || data.error.status || JSON.stringify(data.error))+'</div>';
-        return;
-      }
-      var candidate = data && data.candidates && data.candidates[0];
-      if(candidate && candidate.finishReason && candidate.finishReason !== 'STOP'){
-        status.innerHTML = '<div class="msg err">Gemini no completó la respuesta (motivo: '+escapeHtml(candidate.finishReason)+'). Prueba con otra foto o mejor luz.</div>';
-        return;
-      }
-      var text = candidate && candidate.content &&
-        candidate.content.parts && candidate.content.parts[0] &&
-        candidate.content.parts[0].text;
-      if(!text){
-        status.innerHTML = '<div class="msg err">Gemini no devolvió texto utilizable. Respuesta cruda: '+escapeHtml(JSON.stringify(data).slice(0,300))+'</div>';
-        return;
-      }
+      return aiGenerate({ task: 'vision', json: true, turns: [{ role: 'user', parts: [
+        { text: promptText },
+        { image: { mime: file.type || 'image/jpeg', data: b64 } }
+      ] }] });
+    }).then(function(res){
       var parsed;
-      try{ parsed = JSON.parse(text); }
-      catch(e){ status.innerHTML = '<div class="msg err">No se pudo interpretar la respuesta de Gemini: '+escapeHtml(text.slice(0,200))+'</div>'; return; }
+      try{ parsed = aiParseJson(res.text); }
+      catch(e){ status.innerHTML = '<div class="msg err">' + escapeHtml(e.message) + '</div>'; return; }
 
       var items = (parsed.ingredientes || []);
       if(items.length === 0){
@@ -4675,7 +4959,9 @@
         openPhotoLogReview(dishName || 'Plato detectado', reviewItems, photoDataUrl);
       });
     }).catch(function(err){
-      status.innerHTML = '<div class="msg err">Error al conectar con la API de Gemini. ('+escapeHtml(err && err.message ? err.message : err)+')</div>';
+      var em = err && err.message ? err.message : String(err);
+      if(err && err.code === 'incomplete') em += ' Prueba con otra foto o mejor luz.';
+      status.innerHTML = '<div class="msg err">' + escapeHtml(em) + '</div>';
     });
   }
 
@@ -4955,8 +5241,8 @@
       });
       // Al abrir la hoja NO se genera nada ni se muestra la animación: solo cuando el usuario
       // pulsa "Generar plato". Sin clave de Gemini se avisa y se ofrece la lista de favoritos.
-      if(!getGeminiKey()){
-        document.getElementById('wteAi').innerHTML = '<div class="msg">Añade tu API key de Gemini en Ajustes (⚙) para que la IA te proponga un plato con tus favoritos.</div>';
+      if(!aiReady()){
+        document.getElementById('wteAi').innerHTML = '<div class="msg">' + escapeHtml(aiKeyMsg('para que la IA te proponga un plato con tus favoritos.')) + '</div>';
         renderWteFallback(remaining);
       } else {
         document.getElementById('wteAi').innerHTML = '<div class="wte-idle">Pulsa «Generar plato» y la IA te propondrá un plato con tus favoritos que complete tu día. Si quieres que incluya algo en concreto, indícalo arriba con su cantidad.</div>';
@@ -5077,28 +5363,8 @@
   // son favoritos se RECALCULAN con sus datos (no se fía de los números del modelo); solo los
   // alimentos pedidos por el usuario que no son favoritos usan la estimación del modelo.
   function fetchWhatToEatFromGemini(remaining, avoidName, forced){
-    var key = getGeminiKey();
-    var body = {
-      contents: [{ parts: [{ text: buildWhatToEatPrompt(remaining, avoidName, forced) }] }],
-      generationConfig: { response_mime_type: 'application/json' }
-    };
-    return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=' + encodeURIComponent(key), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    }).then(function(r){ return r.json(); }).then(function(data){
-      if(data && data.error){
-        throw new Error('Error de Gemini: ' + (data.error.message || data.error.status || JSON.stringify(data.error)));
-      }
-      var candidate = data && data.candidates && data.candidates[0];
-      if(candidate && candidate.finishReason && candidate.finishReason !== 'STOP'){
-        throw new Error('Gemini no completó la respuesta (motivo: ' + candidate.finishReason + ').');
-      }
-      var text = candidate && candidate.content && candidate.content.parts && candidate.content.parts[0] && candidate.content.parts[0].text;
-      if(!text) throw new Error('Gemini no devolvió texto utilizable.');
-      var parsed;
-      try{ parsed = JSON.parse(text); }
-      catch(e){ throw new Error('No se pudo interpretar la respuesta de Gemini.'); }
+    return aiGenerate({ task: 'cheap', json: true, turns: [{ role: 'user', parts: [{ text: buildWhatToEatPrompt(remaining, avoidName, forced) }] }] }).then(function(res){
+      var parsed = aiParseJson(res.text);
       var few = remaining.kcal < WTE_FEW_KCAL && !forced;
       var seen = {};
       var items = [];
@@ -5154,8 +5420,8 @@
   function runWhatToEatAi(remaining, avoidName){
     var box = document.getElementById('wteAi');
     if(!box) return;
-    if(!getGeminiKey()){
-      box.innerHTML = '<div class="msg">Añade tu API key de Gemini en Ajustes (⚙) para que la IA te proponga un plato con tus favoritos.</div>';
+    if(!aiReady()){
+      box.innerHTML = '<div class="msg">' + escapeHtml(aiKeyMsg('para que la IA te proponga un plato con tus favoritos.')) + '</div>';
       renderWteFallback(remaining);
       return;
     }
@@ -6111,12 +6377,12 @@
     var type = file.type || '', name = file.name || 'archivo';
     if(/^image\//.test(type)){
       return resizeImageToDataUrl(file, 1600, 0.85).then(function(url){
-        return { inline_data: { mime_type: 'image/jpeg', data: url.split(',')[1] } };
+        return { image: { mime: 'image/jpeg', data: url.split(',')[1] } };
       });
     }
     if(type === 'application/pdf' || /\.pdf$/i.test(name)){
       if(file.size > 14 * 1024 * 1024) return Promise.reject(new Error('El PDF "' + name + '" es demasiado grande (máx. 14 MB).'));
-      return fileToBase64(file).then(function(b64){ return { inline_data: { mime_type: 'application/pdf', data: b64 } }; });
+      return fileToBase64(file).then(function(b64){ return { pdf: { data: b64, name: name } }; });
     }
     if(/\.(csv|tsv|txt|json)$/i.test(name) || /^text\//.test(type) || type === 'application/json'){
       return new Promise(function(resolve, reject){
@@ -6133,34 +6399,20 @@
     return Promise.reject(new Error('Formato no admitido: "' + name + '". Usa imagen, PDF, CSV o TXT (si es Excel, expórtalo a CSV).'));
   }
   function bodyExtractOne(file){
-    var key = getGeminiKey();
     return bodyFilePart(file).then(function(part){
-      var body = {
-        contents: [{ parts: [{ text: bodyPrompt() }, part] }],
-        generationConfig: { response_mime_type: 'application/json', maxOutputTokens: 24000 }
-      };
-      return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=' + encodeURIComponent(key), {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
-      });
-    }).then(function(r){ return r.json(); }).then(function(data){
-      if(data && data.error) throw new Error('Gemini: ' + (data.error.message || data.error.status || 'error'));
-      var cand = data && data.candidates && data.candidates[0];
-      if(cand && cand.finishReason && cand.finishReason !== 'STOP'){
-        throw new Error(cand.finishReason === 'MAX_TOKENS' ? 'El archivo tiene demasiadas mediciones para una sola pasada; divídelo en partes.' : 'Gemini no completó la respuesta (' + cand.finishReason + ').');
-      }
-      var text = cand && cand.content && cand.content.parts && cand.content.parts[0] && cand.content.parts[0].text;
-      if(!text) throw new Error('Gemini no devolvió datos utilizables.');
-      var parsed;
-      try{ parsed = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, '')); }
-      catch(e){ throw new Error('No se pudo interpretar la respuesta de Gemini.'); }
-      return bodyNormalizeItems(parsed);
+      return aiGenerate({ task: 'vision', json: true, maxTokens: 24000, turns: [{ role: 'user', parts: [{ text: bodyPrompt() }, part] }] });
+    }).then(function(res){
+      return bodyNormalizeItems(aiParseJson(res.text));
+    }, function(err){
+      if(err && err.code === 'truncated') throw new Error('El archivo tiene demasiadas mediciones para una sola pasada; divídelo en partes.');
+      throw err;
     });
   }
   function bodyProcessFiles(files){
     files = Array.prototype.slice.call(files || []);
     if(!files.length) return;
-    if(!getGeminiKey()){
-      bpSetStatus('<span class="err" style="color:var(--danger)">Añade tu API key de Gemini en Ajustes (⚙) para leer archivos e imágenes. Mientras tanto puedes introducir los datos a mano.</span>');
+    if(!aiReady()){
+      bpSetStatus('<span class="err" style="color:var(--danger)">' + escapeHtml(aiKeyMsg('para leer archivos e imágenes. Mientras tanto puedes introducir los datos a mano.')) + '</span>');
       return;
     }
     bodyBusy = true;
@@ -6499,16 +6751,9 @@
       'Devuelve ÚNICAMENTE JSON: {"entrenos":[{"tipo":"string","inicio":"YYYY-MM-DD HH:MM","duracion_min":number,"kcal_activas":number,"distancia_km":number,"fc_media":number,"fc_max":number}]}. ' +
       'No inventes datos: omite las claves que no aparezcan; si falta el año usa el actual.';
     return bodyFilePart(file).then(function(part){
-      return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=' + encodeURIComponent(getGeminiKey()), {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, part] }], generationConfig: { response_mime_type: 'application/json', maxOutputTokens: 24000 } })
-      });
-    }).then(function(r){ return r.json(); }).then(function(data){
-      if(data && data.error) throw new Error('Gemini: ' + (data.error.message || 'error'));
-      var cand = data && data.candidates && data.candidates[0];
-      var text = cand && cand.content && cand.content.parts && cand.content.parts[0] && cand.content.parts[0].text;
-      if(!text) throw new Error('Gemini no devolvió datos utilizables.');
-      var parsed; try{ parsed = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, '')); }catch(e){ throw new Error('No se pudo interpretar la respuesta de Gemini.'); }
+      return aiGenerate({ task: 'vision', json: true, maxTokens: 24000, turns: [{ role: 'user', parts: [{ text: prompt }, part] }] });
+    }).then(function(res){
+      var parsed = aiParseJson(res.text);
       var out = [];
       (parsed.entrenos || []).forEach(function(w){
         var rec = wkMake(w.tipo, w.inicio, null, w.duracion_min, 'min', wkNum(w.kcal_activas), wkNum(w.distancia_km), 'km', wkNum(w.fc_media), wkNum(w.fc_max));
@@ -6584,11 +6829,11 @@
     var name = file.name || '', type = file.type || '';
     if(/\.zip$/i.test(name) || /zip/.test(type)) return wkReadZip(file);
     var isText = /\.(csv|tsv|txt|json)$/i.test(name) || /^text\//.test(type) || type === 'application/json';
-    if(!isText) return getGeminiKey() ? wkGeminiExtract(file) : Promise.reject(new Error('Para leer imágenes o PDF hace falta la API key de Gemini (Ajustes).'));
+    if(!isText) return aiReady() ? wkGeminiExtract(file) : Promise.reject(new Error('Para leer imágenes o PDF hace falta la API key de ' + aiProviderName() + ' (Ajustes).'));
     return wkReadText(file).then(function(text){
       var got = /^\s*[\[{]/.test(text) ? wkParseHaeJson(text) : wkParseCsv(text);
       if(got && got.length) return got;
-      if(getGeminiKey() && text.length < 80000) return wkGeminiExtract(file);
+      if(aiReady() && text.length < 80000) return wkGeminiExtract(file);
       throw new Error('No reconozco el formato de "' + name + '". Usa el JSON o CSV de Health Auto Export.');
     });
   }
@@ -6820,9 +7065,8 @@
     if(chip) chip.scrollIntoView({ inline: 'center', block: 'nearest' });
   })();
 
-  /* ---------- Chat con Gemini (conversaciones guardadas en el dispositivo) ---------- */
+  /* ---------- Chat con IA (conversaciones guardadas en el dispositivo) ---------- */
   var LS_CHATS = 'md_chats_v1';
-  var CHAT_MODEL = 'gemini-3.6-flash';
   var CHAT_CONTEXT_IMPORT_MAX = 30000; // caracteres máximos de una conversación importada de Gemini
   var CHAT_HISTORY_MAX = 24;      // mensajes anteriores que se reenvían en cada petición
   var CHAT_CONTEXT_DAYS = 14;     // días con totales diarios en el contexto
@@ -6940,26 +7184,6 @@
     'Cuando propongas comidas, prioriza sus alimentos favoritos y ajusta a lo que le queda del día.\n\n' +
     'DATOS ACTUALES DEL USUARIO (actualizados en este mensaje):\n';
 
-  function chatGeminiUrl(){
-    return 'https://generativelanguage.googleapis.com/v1beta/models/' + CHAT_MODEL + ':generateContent?key=' + encodeURIComponent(getGeminiKey());
-  }
-  // Extrae el texto de una respuesta de Gemini o lanza un error en español.
-  function chatReadReply(data){
-    if(data && data.error){
-      throw new Error('Error de Gemini: ' + (data.error.message || data.error.status || JSON.stringify(data.error)));
-    }
-    var cand = data && data.candidates && data.candidates[0];
-    var finish = cand && cand.finishReason;
-    var parts = (cand && cand.content && cand.content.parts) || [];
-    var text = parts.filter(function(p){ return p && p.text && !p.thought; }).map(function(p){ return p.text; }).join('').trim();
-    if(finish && finish !== 'STOP' && finish !== 'MAX_TOKENS'){
-      throw new Error('Gemini no completó la respuesta (motivo: ' + finish + ').');
-    }
-    if(!text) throw new Error('Gemini no devolvió texto utilizable.');
-    if(finish === 'MAX_TOKENS') text += '…';
-    return text;
-  }
-
   /* ---- Adjuntos del chat: imágenes, PDF y archivos de texto ---- */
   var CHAT_ATT_MAX = 4;                   // adjuntos por mensaje
   var CHAT_PDF_MAX = 8 * 1024 * 1024;     // bytes
@@ -7051,7 +7275,7 @@
       var live = chatLive[m.ts] && chatLive[m.ts][i];
       if(live && live.data && budget.left >= live.data.length){
         budget.left -= live.data.length;
-        parts.push({ inline_data: { mime_type: live.mime, data: live.data } });
+        parts.push(live.mime === 'application/pdf' ? { pdf: { data: live.data, name: a.name } } : { image: { mime: live.mime, data: live.data } });
       } else {
         parts.push({ text: '[' + (a.kind === 'pdf' ? 'PDF' : 'Imagen') + ' adjunto "' + a.name + '" enviado antes: ya no está disponible]' });
       }
@@ -7061,12 +7285,12 @@
   }
 
   function callChatGemini(chat){
-    if(!getGeminiKey()){
-      return Promise.reject(new Error('Añade tu API key de Gemini en Ajustes (⚙) para usar el chat.'));
+    if(!aiReady()){
+      return Promise.reject(new Error(aiKeyMsg('para usar el chat.')));
     }
     var history = chat.messages.slice(-CHAT_HISTORY_MAX);
-    while(history.length && history[0].role !== 'user') history.shift(); // Gemini exige empezar por el usuario
-    function contentsFor(hist){
+    while(history.length && history[0].role !== 'user') history.shift(); // el historial debe empezar por el usuario
+    function turnsFor(hist){
       var budget = { left: CHAT_LIVE_BUDGET };
       var out = new Array(hist.length);
       for(var i = hist.length - 1; i >= 0; i--){ // de más reciente a más antiguo
@@ -7075,27 +7299,20 @@
       }
       return out;
     }
-    var body = {
-      systemInstruction: { parts: [{ text: CHAT_SYSTEM + buildChatContext() + (chat.context ? '\n\nCONTEXTO DE UNA CONVERSACIÓN ANTERIOR del usuario con otro asistente (Gemini), importada por él. Úsalo como memoria de lo ya hablado y continúa desde ahí; si algo contradice los datos reales de arriba, prevalecen los datos de la app:\n"""\n' + chat.context + '\n"""' : '') }] },
-      contents: contentsFor(history),
-      generationConfig: { temperature: 0.7 }
-    };
-    return fetch(chatGeminiUrl(), {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
-    }).then(function(r){ return r.json(); }).then(chatReadReply);
+    var system = CHAT_SYSTEM + buildChatContext() + (chat.context ? '\n\nCONTEXTO DE UNA CONVERSACIÓN ANTERIOR del usuario con otro asistente (Gemini), importada por él. Úsalo como memoria de lo ya hablado y continúa desde ahí; si algo contradice los datos reales de arriba, prevalecen los datos de la app:\n"""\n' + chat.context + '\n"""' : '');
+    return aiGenerate({ task: 'chat', system: system, turns: turnsFor(history), temperature: 0.7 }).then(function(res){
+      return res.truncated ? res.text + '…' : res.text;
+    });
   }
 
   // Título corto generado por la IA tras el primer intercambio (si el usuario no lo ha
   // renombrado antes). Un fallo aquí se ignora: el chat ya tiene un título provisional.
   function generateChatTitle(chatId){
     var chat = chatById(chatId);
-    if(!chat || !chat.titleAuto || chat.messages.length < 2 || !getGeminiKey()) return;
+    if(!chat || !chat.titleAuto || chat.messages.length < 2 || !aiReady()) return;
     var prompt = 'Escribe un título muy corto (máximo 5 palabras, en español, sin comillas ni punto final) para esta conversación sobre nutrición/entrenamiento.\n' +
       'Usuario: ' + chatTruncate(chat.messages[0].text, 300) + '\nAsistente: ' + chatTruncate(chat.messages[1].text, 300);
-    fetch(chatGeminiUrl(), {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.3 } })
-    }).then(function(r){ return r.json(); }).then(chatReadReply).then(function(t){
+    aiGenerate({ task: 'cheap', turns: [{ role: 'user', parts: [{ text: prompt }] }], temperature: 0.3, maxTokens: 60 }).then(function(res){ return res.text; }).then(function(t){
       t = t.replace(/^["'«»“”\s]+|["'«»“”.\s]+$/g, '').split(/\r?\n/)[0];
       var c = chatById(chatId);
       if(!t || !c || !c.titleAuto) return;
@@ -7184,7 +7401,7 @@
         '<div class="chat-welcome-t">Tu asistente de nutrición y entrenamiento</div>' +
         '<div class="chat-welcome-s">Conoce tus objetivos, tus macros y lo que has comido estos días. Pregúntale lo que quieras.</div>' +
         '<div class="chat-sugs">' + CHAT_SUGGESTIONS.map(function(s, i){ return '<button type="button" class="chat-sug" data-sug="' + i + '">' + escapeHtml(s) + '</button>'; }).join('') + '</div>' +
-        '<div class="chat-privacy">Para responder, la app envía a Gemini tus objetivos y tus comidas de los últimos días, además de lo que escribas y adjuntes.</div></div>';
+        '<div class="chat-privacy">Para responder, la app envía a ' + aiProviderName() + ' tus objetivos y tus comidas de los últimos días, además de lo que escribas y adjuntes.</div></div>';
     } else {
       chat.messages.forEach(function(m){
         html += '<div class="chat-msg ' + (m.role === 'user' ? 'me' : 'ai') + '"><div class="chat-bubble">' +
@@ -7256,7 +7473,7 @@
       if(chat.titleAuto && chat.messages.length === 2) generateChatTitle(chatId);
     }).catch(function(err){
       chatBusy = null;
-      chatError = { chatId: chatId, message: (err && err.message) ? err.message : 'No se pudo conectar con Gemini.' };
+      chatError = { chatId: chatId, message: (err && err.message) ? err.message : 'No se pudo conectar con ' + aiProviderName() + '.' };
     }).then(function(){ refreshChatViews(); });
   }
 
@@ -7462,7 +7679,7 @@
        log_AAAA-MM-DD  -> comidas de un día
        meal_{id}       -> comida creada
        chat_{id}       -> conversación del chat
-     La API key de Gemini y el proxy NO se sincronizan (se quedan en cada dispositivo). */
+     Las API keys y el proxy NO se sincronizan (se quedan en cada dispositivo). */
   // Configuración del proyecto Firebase "macrofit-318a0". La apiKey de Firebase no es secreta (va en el código
   // de cualquier web); lo que protege los datos son el inicio de sesión y las reglas de Firestore.
   var FIREBASE_CONFIG = {
