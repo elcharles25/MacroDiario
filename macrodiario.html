@@ -1406,17 +1406,25 @@
     if(o.json && !noJson) body.response_format = { type: 'json_object' };
     var headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key, 'X-Title': 'MacroFit' };
     try{ if(/^https?:/.test(location.origin)) headers['HTTP-Referer'] = location.origin; }catch(e){}
-    return fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: headers, body: JSON.stringify(body) })
+    var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, 120000) : null;
+    return fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: headers, body: JSON.stringify(body), signal: ctrl ? ctrl.signal : undefined })
       .then(function(r){
         return r.text().then(function(t){
-          var d; try{ d = JSON.parse(t); }catch(e){ throw aiError('Respuesta no válida de OpenRouter (HTTP ' + r.status + ').', 'api'); }
+          if(timer) clearTimeout(timer);
+          var d; try{ d = JSON.parse(t); }catch(e){
+            // 408/429/5xx sin JSON (pasarela caída, timeout…) suelen ser transitorios → se reintenta
+            var tr = r.status === 408 || r.status === 429 || r.status >= 500;
+            throw aiError('Respuesta no válida de OpenRouter (HTTP ' + r.status + ').', tr ? 'transient' : 'api');
+          }
+          if(d && d.error && (r.status === 408 || r.status === 429 || r.status >= 500 || /^(408|429|5\d\d)$/.test(String(d.error.code)))) d.__transient = true;
           return d;
         });
-      }).then(function(data){
+      }, function(err){ if(timer) clearTimeout(timer); throw err; }).then(function(data){
         if(data && data.error){
           var m = data.error.message || data.error.code || JSON.stringify(data.error);
           if(o.json && !noJson && /response_format|json_object|json mode|structured/i.test(String(m))) return aiCallOpenRouter(model, o, true);
-          throw aiError('Error de OpenRouter: ' + m, 'api');
+          throw aiError('Error de OpenRouter: ' + m, data.__transient ? 'transient' : 'api');
         }
         var ch = data && data.choices && data.choices[0];
         var c = ch && ch.message && ch.message.content;
@@ -1441,8 +1449,20 @@
     if(!model) return Promise.reject(aiError('Elige un modelo para «' + AI_TASK_LABEL[task] + '» en Ajustes (⚙).', 'nomodel'));
     var t0 = Date.now();
     var p;
-    try{ p = prov === 'openrouter' ? aiCallOpenRouter(model, o) : aiCallGemini(model, o); }
-    catch(err){ p = Promise.reject(err); }
+    function once(){
+      try{ return prov === 'openrouter' ? aiCallOpenRouter(model, o) : aiCallGemini(model, o); }
+      catch(err){ return Promise.reject(err); }
+    }
+    // OpenRouter falla a veces de forma puntual (red móvil, pasarela, límite temporal):
+    // hasta 2 reintentos automáticos con una pequeña espera antes de dar error.
+    function attempt(n){
+      return once().catch(function(err){
+        var transient = prov === 'openrouter' && n < 2 && (!err || !err.ai || err.code === 'transient');
+        if(!transient) throw err;
+        return new Promise(function(res){ setTimeout(res, 1200 * (n + 1)); }).then(function(){ return attempt(n + 1); });
+      });
+    }
+    p = attempt(0);
     return p.then(function(r){
       aiLog({ t: Date.now(), p: prov, m: model, k: task, ms: Date.now() - t0, ok: true, i: r.usage.inT, o: r.usage.outT, c: r.usage.cost == null ? null : r.usage.cost });
       if(r.truncated && o.json) throw aiError('La respuesta de la IA se cortó por ser demasiado larga.', 'truncated');
