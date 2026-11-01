@@ -272,6 +272,12 @@
   .settings-tabs button.active{background:var(--ink);color:#fff;}
   .st-panel{display:none;}
   .st-panel.active{display:block;}
+  .cm-modes{display:flex;gap:6px;margin-bottom:14px;}
+  .cm-modes button{flex:1;border:none;border-radius:var(--radius-md);background:var(--card);padding:10px 4px;font-size:13px;font-weight:600;box-shadow:var(--shadow-card);color:var(--ink-soft);}
+  .cm-modes button.active{background:var(--ink);color:#fff;}
+  .cm-manual-row{display:flex;gap:8px;}
+  .cm-manual-row .m-field{flex:1;min-width:0;}
+  .cm-manual-ai{font-size:12px;color:var(--ink-soft);margin:6px 0 0;}
   .add-subtabs{display:flex;gap:6px;margin-bottom:14px;}
   .add-subtabs button{flex:1;border:none;border-radius:var(--radius-md);background:var(--card);padding:10px 4px;font-size:13px;font-weight:600;box-shadow:var(--shadow-card);color:var(--ink-soft);}
   .add-subtabs button.active{background:var(--ink);color:#fff;}
@@ -1000,6 +1006,10 @@
     <button class="close-x" id="closeCreateMeal">×</button>
     <button class="close-x share-x" id="btnShareCreatedMeal" type="button" title="Compartir con un amigo" aria-label="Compartir con un amigo"></button>
     <h2 id="cmTitle">Nueva comida</h2>
+    <div class="cm-modes hidden" id="cmModes">
+      <button type="button" data-cmmode="ing" class="active">Por ingredientes</button>
+      <button type="button" data-cmmode="manual">Manual (IA)</button>
+    </div>
 
     <img class="cm-photo-hero hidden" id="cmPhotoHero" alt="Foto del plato">
     <div class="m-field" id="cmNameField"><label>Nombre</label><input type="text" id="cmName" placeholder="Ej. Bowl de pollo y arroz"></div>
@@ -1011,11 +1021,29 @@
       <button class="secondary-btn" id="cmPhotoBtn" type="button"></button>
     </div>
 
+    <div id="cmManualBox" class="hidden">
+      <p class="section-label">Datos de la comida</p>
+      <div class="cm-manual-row">
+        <div class="m-field"><label>Calorías (kcal)</label><input type="number" id="cmManKcal" step="any" min="0" inputmode="decimal" placeholder="Ej. 650"></div>
+        <div class="m-field"><label>Cantidad (g, opcional)</label><input type="number" id="cmManGrams" step="any" min="0" inputmode="decimal" placeholder="100"></div>
+      </div>
+      <button class="secondary-btn" id="cmManAiBtn" type="button">✨ Calcular macros con IA</button>
+      <p class="cm-manual-ai" id="cmManAiNote"></p>
+      <div class="cm-manual-row">
+        <div class="m-field"><label>Proteínas (g)</label><input type="number" id="cmManP" step="any" min="0" inputmode="decimal"></div>
+        <div class="m-field"><label>Hidratos (g)</label><input type="number" id="cmManC" step="any" min="0" inputmode="decimal"></div>
+        <div class="m-field"><label>Grasas (g)</label><input type="number" id="cmManF" step="any" min="0" inputmode="decimal"></div>
+      </div>
+      <div class="cm-totals" id="cmManTotals"></div>
+    </div>
+
+    <div id="cmIngBox">
     <p class="section-label">Ingredientes</p>
     <div id="cmIngredientsList"></div>
     <div class="cm-totals" id="cmTotalsBox"></div>
 
     <button class="secondary-btn" id="cmAddIngredientBtn">+ Añadir ingrediente</button>
+    </div>
 
     <div class="cm-log-block" id="cmLogQtyField">
       <p class="section-label">Registrar hoy</p>
@@ -5098,7 +5126,7 @@
     document.getElementById('btnPhotoToCreated').classList.remove('hidden');
     cmServKeyName = '';
     cmRenderPhotoPreview();
-    cmRenderIngredients();
+    cmResetManual(false);
     createMealOverlay.classList.remove('hidden');
   }
 
@@ -5841,6 +5869,88 @@
   }
   document.getElementById('cmLogGrams').addEventListener('input', cmUpdateLogQtyPreview);
 
+  /* ---- Modo manual: nombre + calorías, la IA estima las macros ----
+     Se guarda como UN solo ingrediente con los datos indicados, así que encaja con el resto
+     de la ventana (totales, raciones, registrar hoy) sin cambiar la estructura de las comidas. */
+  var cmManual = false;
+  function round1(n){ return Math.round((Number(n)||0) * 10) / 10; }
+  function cmResetManual(showModes){
+    ['cmManKcal','cmManGrams','cmManP','cmManC','cmManF'].forEach(function(id){ document.getElementById(id).value = ''; });
+    document.getElementById('cmManAiNote').textContent = '';
+    document.getElementById('cmModes').classList.toggle('hidden', !showModes);
+    cmSetManual(false);
+  }
+  function cmManNum(id){ var v = parseFloat(document.getElementById(id).value); return isFinite(v) && v > 0 ? v : 0; }
+  function cmSetManual(on){
+    cmManual = !!on;
+    document.getElementById('cmManualBox').classList.toggle('hidden', !cmManual);
+    document.getElementById('cmIngBox').classList.toggle('hidden', cmManual);
+    Array.prototype.forEach.call(document.querySelectorAll('#cmModes button'), function(b){
+      b.classList.toggle('active', (b.getAttribute('data-cmmode') === 'manual') === cmManual);
+    });
+    if(cmManual) cmManualSync(); else cmRenderIngredients();
+  }
+  // Pasa los campos manuales a cmIngredients (un único ingrediente) y refresca totales.
+  function cmManualSync(){
+    var kcal = cmManNum('cmManKcal'), g = cmManNum('cmManGrams') || 100;
+    var P = cmManNum('cmManP'), C = cmManNum('cmManC'), F = cmManNum('cmManF');
+    var name = document.getElementById('cmName').value.trim() || 'Comida';
+    if(!kcal && !P && !C && !F){ cmIngredients = []; }
+    else {
+      var k = 100 / g;
+      cmIngredients = [{ name: name, grams: g, kcal: kcal, protein: P, carbs: C, fat: F,
+        per100: { kcal: kcal*k, protein: P*k, carbs: C*k, fat: F*k } }];
+    }
+    document.getElementById('cmManTotals').innerHTML = cmIngredients.length
+      ? ('<b>'+round(kcal)+' kcal</b> · P '+round(P)+'g · C '+round(C)+'g · G '+round(F)+'g')
+      : '';
+    cmRenderIngredients();
+    var lg = document.getElementById('cmLogGrams');
+    if(lg && cmUnitId === 'g') { lg.value = round(g); cmUpdateLogQtyPreview(); }
+  }
+  ['cmManKcal','cmManGrams','cmManP','cmManC','cmManF','cmName'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', function(){ if(cmManual) cmManualSync(); });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#cmModes button'), function(b){
+    b.addEventListener('click', function(){ cmSetManual(b.getAttribute('data-cmmode') === 'manual'); });
+  });
+  var cmManBusy = false;
+  document.getElementById('cmManAiBtn').addEventListener('click', function(){
+    var msgEl = document.getElementById('cmMsg'), note = document.getElementById('cmManAiNote');
+    msgEl.style.color = 'var(--fat)'; msgEl.textContent = ''; note.textContent = '';
+    var name = document.getElementById('cmName').value.trim();
+    var kcal = cmManNum('cmManKcal'), g = cmManNum('cmManGrams');
+    if(!name){ msgEl.textContent = 'Ponle un nombre a la comida.'; return; }
+    if(!kcal){ msgEl.textContent = 'Indica las calorías.'; return; }
+    if(!aiReady()){ msgEl.textContent = aiKeyMsg('para que la IA calcule las macros.'); return; }
+    if(cmManBusy) return;
+    cmManBusy = true;
+    var btn = document.getElementById('cmManAiBtn');
+    btn.disabled = true; btn.textContent = 'Calculando…';
+    var prompt = 'Estima los macronutrientes de esta comida para el total indicado.\n' +
+      'Comida: ' + name + '\nCalorías totales: ' + kcal + ' kcal' + (g ? ('\nCantidad total: ' + g + ' g') : '') + '\n' +
+      'Usa una composición típica y realista de esa comida (en España si procede). Las calorías deben ser coherentes con los macros (4 kcal/g proteína e hidratos, 9 kcal/g grasa).\n' +
+      'Responde SOLO con JSON: {"proteinas_g": numero, "carbohidratos_g": numero, "grasas_g": numero, "comentario": "una frase breve en español con la hipótesis usada"}';
+    aiGenerate({ task: 'chat', json: true, temperature: 0.2, maxTokens: 400, turns: [{ role: 'user', parts: [{ text: prompt }] }] })
+      .then(function(r){
+        var d = aiParseJson(r.text) || {};
+        if(Array.isArray(d)) d = d[0] || {};
+        var P = Number(d.proteinas_g), C = Number(d.carbohidratos_g), F = Number(d.grasas_g);
+        if(![P,C,F].every(function(x){ return isFinite(x) && x >= 0; })) throw aiError('La IA no devolvió macros válidos. Inténtalo de nuevo.', 'parse');
+        var est = 4*P + 4*C + 9*F, fixed = false;
+        if(est > 0 && Math.abs(est - kcal) / kcal > 0.15){
+          var f = kcal / est; P *= f; C *= f; F *= f; fixed = true;
+        } else if(est <= 0) throw aiError('La IA no devolvió macros válidos. Inténtalo de nuevo.', 'parse');
+        document.getElementById('cmManP').value = round1(P);
+        document.getElementById('cmManC').value = round1(C);
+        document.getElementById('cmManF').value = round1(F);
+        note.textContent = '✨ ' + (d.comentario ? String(d.comentario) : 'Estimación de la IA') + (fixed ? ' (ajustado a tus calorías)' : '') + ' · puedes corregir los valores.';
+        cmManualSync();
+      })
+      .catch(function(err){ msgEl.textContent = (err && err.message) || 'No se pudo calcular.'; })
+      .then(function(){ cmManBusy = false; btn.disabled = false; btn.textContent = '✨ Calcular macros con IA'; });
+  });
+
   // Si hay foto, se muestra grande arriba del todo (a sangre) con el nombre centrado y
   // grande debajo, y se oculta el campo/botón de "Foto (opcional)" (ya no hace falta:
   // tocar la propia foto la reemplaza). Sin foto, vuelve al formulario compacto de siempre.
@@ -5898,7 +6008,7 @@
     cmInitLogQty();
     document.getElementById('btnPhotoToCreated').classList.add('hidden');
     cmRenderPhotoPreview();
-    cmRenderIngredients();
+    cmResetManual(!existingMeal);
     createMealOverlay.classList.remove('hidden');
   }
 
@@ -5926,7 +6036,7 @@
     document.getElementById('cmLogQtyField').classList.add('hidden');
     document.getElementById('btnPhotoToCreated').classList.add('hidden');
     cmRenderPhotoPreview();
-    cmRenderIngredients();
+    cmResetManual(false);
     createMealOverlay.classList.remove('hidden');
   }
 
@@ -6013,6 +6123,7 @@
     msgEl.style.color = 'var(--fat)';
     var name = document.getElementById('cmName').value.trim();
     if(!name){ msgEl.textContent = 'Ponle un nombre a la comida.'; return false; }
+    if(cmManual){ cmManualSync(); if(!cmManNum('cmManKcal')){ msgEl.textContent = 'Indica las calorías.'; return false; } }
     if(cmIngredients.length === 0){ msgEl.textContent = 'Añade al menos un ingrediente.'; return false; }
     msgEl.textContent = '';
     var payload = { name: name, photo: cmPhotoDataUrl, ingredients: cmIngredients };
